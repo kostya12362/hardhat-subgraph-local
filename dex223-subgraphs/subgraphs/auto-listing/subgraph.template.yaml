@@ -1,0 +1,27 @@
+specVersion: 0.0.7
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: AutoListing
+    network: "localhost"
+    source:
+      address: "{{contractAddress}}"
+      abi: autoListing
+      startBlock: {{startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Pair
+        - ContractInfo
+      eventHandlers:
+        - event: PairsAdded(address[])
+          handler: handlePairsAdded
+      abis:
+        - name: autoListing
+          file: ./abis/autoListing.json
+      file: ./src/autoLising.ts

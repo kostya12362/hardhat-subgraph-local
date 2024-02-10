@@ -1,0 +1,11 @@
+type Pair @entity {
+  id: ID!
+  address: String!
+  timestamp: BigInt!
+}
+
+type Metadata @entity {
+  id: ID!
+  lastUpdate: BigInt
+  numPairs: BigInt
+}
