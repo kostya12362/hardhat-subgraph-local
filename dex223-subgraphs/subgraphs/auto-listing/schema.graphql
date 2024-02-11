@@ -2,10 +2,11 @@ type Pair @entity {
   id: ID!
   address: String!
   timestamp: BigInt!
+  blockNumber: BigInt!
 }
 
 type Metadata @entity {
   id: ID!
-  lastUpdate: BigInt
-  numPairs: BigInt
+  lastUpdate: BigInt!
+  numPairs: BigInt!
 }

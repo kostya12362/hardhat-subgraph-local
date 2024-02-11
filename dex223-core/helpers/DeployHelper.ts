@@ -80,7 +80,7 @@ export class DeployHelper {
       `===== ${contractName} =====`,
       `- Contract deployed to address ${contract.target} from ${owner.address}`,
       `- Tranaction = ${tx?.hash || "N/A"}`,
-      `- Block deploy (startBlock) = ${tx?.blockNumber || "N/A"}      `
+      `- Block deploy (startBlock) = ${tx?.blockNumber || "N/A"}`
     );
     contract.startBlock = tx?.blockNumber || 0;
     return { contract: contract };

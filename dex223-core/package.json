@@ -42,7 +42,6 @@
     "typechain": "^8.3.2",
     "typescript": "^4.6.4"
   },
-  "main": "index.js",
   "scripts": {
     "hardhat:node": "hardhat node",
     "hardhat:compile": "hardhat compile",
@@ -54,7 +53,6 @@
     "hardhat:setup:local": "hardhat run --network localhost scripts/setupData.ts",
     "hardhat:deploy:sepolia": "hardhat run --network sepolia scripts/deploy.ts",
     "hardhat:verify:sepolia": "hardhat verify --network sepolia 0xF72E090f47eB6cDE0f9Eec6BDe3e6BfB91E75280 0x0000000000000000000000000000000000000000000000000000000064d2530c",
-    "hardhat:deploy:counter": "hardhat run scripts/deployCounter.js --network localhost",
     "lint:contracts": "yarn solhint contracts/*.sol",
     "lint:contracts:format": "yarn prettier --write contracts/*.sol",
     "slither": "slither ."

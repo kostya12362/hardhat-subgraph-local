@@ -2,7 +2,7 @@
   "name": "dex223-local-dev",
   "license": "UNLICENSED",
   "scripts": {
-    "compile": "mustache ./config/testnet.json subgraph.template.yaml > subgraph.yaml && graph codegen && graph build",
+    "compile": "mustache ./config.json subgraph.template.yaml > subgraph.yaml && graph codegen && graph build",
     "codegen": "graph codegen",
     "build": "graph build",
     "deploy:prod": "graph deploy --node https://api.studio.thegraph.com/deploy/ dex223-local-dev",
