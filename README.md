@@ -61,7 +61,7 @@ You created instace
 - ipfs
 - the-graph-node
 
-## 3 Setup Subgraph auth-listing
+## 3 Setup Subgraph auto-listing
 
 3.1 Opend dir `/dex223-subgraph/auto-listing`
 

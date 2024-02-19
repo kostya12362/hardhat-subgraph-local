@@ -1,14 +1,14 @@
 {
-  "name": "dex223-local-dev",
+  "name": "auto-listing",
   "license": "UNLICENSED",
   "scripts": {
     "compile": "mustache ./config.json subgraph.template.yaml > subgraph.yaml && graph codegen && graph build",
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy:prod": "graph deploy --node https://api.studio.thegraph.com/deploy/ dex223-local-dev",
-    "create:local": "graph create --node http://localhost:8020/ dex223-local-dev",
-    "remove:local": "graph remove --node http://localhost:8020/ dex223-local-dev",
-    "deploy:local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 dex223-local-dev",
+    "deploy:prod": "graph deploy --node https://api.studio.thegraph.com/deploy/ auto-listing",
+    "create:local": "graph create --node http://localhost:8020/ auto-listing",
+    "remove:local": "graph remove --node http://localhost:8020/ auto-listing",
+    "deploy:local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 auto-listing",
     "test": "graph test"
   },
   "dependencies": {

@@ -6,9 +6,6 @@
   "repository": "git@github.com:pancakeswap/pancake-subgraph.git",
   "author": "DEX223",
   "license": "GPL-3.0-or-later",
-  "workspaces": [
-    "subgraphs/**/*"
-  ],
   "scripts": {
     "codegen": "turbo run codegen",
     "build": "turbo run build",

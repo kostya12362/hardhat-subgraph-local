@@ -8,6 +8,7 @@ subgraphConfigFileName="config.json"
 aibsDirName="abis"
 
 CORE_DIR="${BASE_DIR}/dex223-core"
+SUBGRAPH_MAIN_DIR="${BASE_DIR}/dex223-subgraphs"
 SUBGRAPHS_DIR="${BASE_DIR}/dex223-subgraphs/subgraphs"
 SERVICES_DIR="${BASE_DIR}/docker"
 SUBGRAPH_PATH_HARDHAT="${CORE_DIR}/scripts/__subgraph__"
@@ -17,9 +18,13 @@ SUBGRAPH_PATH_HARDHAT="${CORE_DIR}/scripts/__subgraph__"
 
 # ================== Styles ==================
 ### Text styles
-echoRed() { echo -e "\e[31m$1\e[0m"; }
-echoGreen() { echo -e "\e[32m$1\e[0m"; }
-echoBold() { echo -ne "\e[1m$1\e[0m"; }
+# echoRed() { echo -e "\e[31m$1\e[0m"; }
+# echoGreen() { echo -e "\e[32m$1\e[0m"; }
+# echoBold() { echo -e "\e[1m$1\e[0m"; }
+
+echoRed() { echo -e "$1"; }
+echoGreen() { echo -e "$1"; }
+echoBold() { echo -n "$1"; }
 
 # ================== Styles end ===============
 
@@ -121,12 +126,14 @@ deploySubgraphFiles() {
     echoRed "No subgraph selected. Please select a directory."
     return
   fi
-
+  
   local source_abi_dir="${SUBGRAPH_PATH_HARDHAT}/$chosen_dir/${aibsDirName}"
   local target_abi_dir="${SUBGRAPHS_DIR}/$chosen_dir/${aibsDirName}"
   local source_config_file="${SUBGRAPH_PATH_HARDHAT}/$chosen_dir/${subgraphConfigFileName}"
   local target_config_dir="${SUBGRAPHS_DIR}/$chosen_dir"
-
+  cd $target_config_dir
+  echo "========= Directory: $(echoBold "${target_config_dir}") ========="
+  yarn install
   # Create target directories if they do not exist
   mkdir -p "$target_abi_dir" "$target_config_dir"
 
@@ -162,11 +169,13 @@ initializeSubgraph() {
     return
   fi
   echo "Initializing subgraph..."
+  # cd $SUBGRAPH_MAIN_DIR
+  # yarn install
   cd ${SUBGRAPHS_DIR}/$chosen_dir
+  echo "========= Directory: $(echoBold "${SUBGRAPHS_DIR}/$chosen_dir") ========="
   yarn install
   yarn compile
   if [ "$network" = "local" ]; then
-    yarn remove:local
     yarn create:local
     yarn deploy:local
   fi

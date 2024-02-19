@@ -3,8 +3,8 @@
  "contracts": {
   "autoListing": {
    "abi": "autoListing.json",
-   "address": "0x96F3Ce39Ad2BfDCf92C0F6E2C2CAbF83874660Fc",
-   "startBlock": 157,
+   "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+   "startBlock": 1,
    "contractName": "Autolisting",
    "contractFile": "autoListing.sol"
   }
