@@ -1,2 +1,14 @@
 **/node_modules/
+./node_modules
 .env
+**/.DS_Store/
+**/dist/
+**/build/
+**/coverage/
+**/temp/
+**/.env
+**/generated/
+**/__subgraph__/
+
+.docker/.env
+.docker/volumes

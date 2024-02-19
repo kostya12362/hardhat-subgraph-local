@@ -1,11 +1,12 @@
 import fs from "fs";
 import path from "path";
+
 import { DeployHelper } from "../helpers/DeployHelper";
 import { getContractName, readJsonFile } from "../helpers/utils";
 
 const contractPath = path.join(__dirname, "../artifacts/contracts");
 const contractFiles = fs.readdirSync(contractPath);
-const subgrapDirPath = path.join(__dirname, "__subgraph__");
+const subgrapDirPath = path.join(__dirname, "..", "__subgraph__");
 
 const MANAGER = {
   "auto-listing": {

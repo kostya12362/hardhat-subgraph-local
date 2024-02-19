@@ -1,0 +1,21 @@
+{
+  "name": "dex223-core-subgraphs",
+  "version": "1.0.0",
+  "description": "Subgraphs and core apps",
+  "author": "Kostya Ostapnko",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "apps/core",
+    "apps/subgraphs/**/*",
+    "apps/cli"
+  ],
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.68.0",
+    "@graphprotocol/graph-ts": "^0.32.0"
+  },
+  "devDependencies": {
+    "matchstick-as": "^0.6.0",
+    "mustache": "^4.0.1"
+  }
+}

@@ -1,5 +1,16 @@
 version: "3"
 services:
+  hardhat-dev-node:
+    build:
+      context: ../apps/core
+      dockerfile: Dockerfile
+    ports:
+      - "8545:8545"
+    volumes:
+      - ./volumes/core:/app
+    env_file:
+      - ../apps/core/.env
+
   graph-node:
     image: graphprotocol/graph-node
     ports:
@@ -12,14 +23,14 @@ services:
       - ipfs
       - postgres
     extra_hosts:
-      - host.docker.internal:host-gateway
+      - hardhat-dev-node:host-gateway
     environment:
       postgres_host: postgres
       postgres_user: ${POSTGRES_USER}
       postgres_pass: ${POSTGRES_PASSWORD}
       postgres_db: ${POSTGRES_DB}
       ipfs: "ipfs:5001"
-      ethereum: "localhost:http://host.docker.internal:8545"
+      ethereum: "localhost:http://hardhat-dev-node:8545"
       GRAPH_LOG: info
 
   ipfs:
