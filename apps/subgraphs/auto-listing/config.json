@@ -1,12 +1,12 @@
 {
- "network": "localhost",
- "contracts": {
-  "autoListing": {
-   "abi": "autoListing.json",
-   "address": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
-   "startBlock": 12,
-   "contractName": "Autolisting",
-   "contractFile": "autoListing.sol"
+  "network": "localhost",
+  "contracts": {
+    "Autolisting": {
+      "abi": "Autolisting.json",
+      "address": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+      "startBlock": 5,
+      "contractName": "Autolisting",
+      "contractFile": "auto-listing.sol"
+    }
   }
- }
 }

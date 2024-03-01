@@ -51,7 +51,7 @@
     "hardhat:test:coverage": "hardhat coverage",
     "hardhat:test:gas": "REPORT_GAS=true COINMARKETCAP_API_KEY=$(security find-generic-password -w -s 'Coinmarketcap API Key') hardhat test",
     "hardhat:deploy:local": "hardhat run --network localhost scripts/deploy.ts",
-    "hardhat:setup:local": "hardhat run --network localhost scripts/setupFakeData.ts",
+    "hardhat:setup:data:local": "hardhat run --network localhost scripts/setupFakeData.ts",
     "hardhat:deploy:sepolia": "hardhat run --network sepolia scripts/deploy.ts",
     "hardhat:verify:sepolia": "hardhat verify --network sepolia 0xF72E090f47eB6cDE0f9Eec6BDe3e6BfB91E75280 0x0000000000000000000000000000000000000000000000000000000064d2530c",
     "lint:contracts": "yarn solhint contracts/*.sol",

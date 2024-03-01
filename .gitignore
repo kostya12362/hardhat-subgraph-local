@@ -9,6 +9,9 @@
 **/.env
 **/generated/
 **/__subgraph__/
+**/__result__/
+**/yarn-error.log
+.DS_Store
 
 .docker/.env
 .docker/volumes

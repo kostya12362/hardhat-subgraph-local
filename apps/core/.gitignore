@@ -19,6 +19,7 @@ cache/
 typechain/
 
 scripts/__subgraph__/
+__result__/
 # Misc
 .env
 .env.local

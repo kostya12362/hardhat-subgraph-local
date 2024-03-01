@@ -1,4 +1,3 @@
-import "solidity-coverage";
 import "@nomicfoundation/hardhat-toolbox";
 // import "@nomiclabs/hardhat-ethers";
 

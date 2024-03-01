@@ -15,19 +15,22 @@ export function getContractName(contractFile: string): string {
     throw new Error("Invalid contract file");
   }
   return capitalizeFirstLetter(
-    path.basename(contractFile, ".sol").toLowerCase()
+    path
+      .basename(contractFile, ".sol")
+      .toLowerCase()
+      .replace(/[.*+?^${}()|[\]\\\/\-_]/g, "")
   );
 }
 
-export const MANAGER = {
-  "auto-listing": {
-    network: process.env.HARDHAT_NETWORK,
-    contracts: {
-      autoListing: {
-        abi: "autoListing.json",
-      },
-    },
-  },
-};
+// export const MANAGER = {
+//   "auto-listing": {
+//     network: process.env.HARDHAT_NETWORK,
+//     contracts: {
+//       autoListing: {
+//         abi: "autoListing.json",
+//       },
+//     },
+//   },
+// };
 
-const subgrapDirPath = path.join(__dirname, "__subgraph__");
+// const subgrapDirPath = path.join(__dirname, "__subgraph__");
