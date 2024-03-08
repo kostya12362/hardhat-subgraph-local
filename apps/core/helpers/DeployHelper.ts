@@ -1,5 +1,5 @@
 import { ethers, network } from "hardhat";
-import { Contract } from "ethers";
+import { ContractFactory, BaseContract, ContractMethodArgs } from "ethers";
 
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { chainIdDefaultIdTypeMap } from "./ChainIdDefTypeMap";
@@ -8,15 +8,20 @@ import { chainIdDefaultIdTypeMap } from "./ChainIdDefTypeMap";
  * Helper class for deploying contracts.
  */
 export class DeployHelper {
+  cacheContract: BaseContract[];
   /**
    * Creates an instance of DeployHelper.
    * @param signers The signers to use for deployment.
    * @param enableLogging Whether to enable logging.
+   *
    */
   constructor(
     private signers: SignerWithAddress[],
     private readonly enableLogging: boolean = false
-  ) {}
+  ) {
+    this.log("======== State: deploy started ========");
+    this.cacheContract = [];
+  }
 
   /**
    * Initializes the DeployHelper instance.
@@ -56,25 +61,15 @@ export class DeployHelper {
     return { defaultIdType, chainId };
   }
 
-  /**
-   * Deploys a state contract.
-   * @param contractName The name of the contract to deploy.
-   * @returns A Promise that resolves to an object containing the deployed contract.
-   */
-  async deployState(contractName: string): Promise<{
-    contract: Contract;
-  }> {
-    this.log("======== State: deploy started ========");
-
+  async deployState(
+    contractFactory: ContractFactory,
+    contractName: string,
+    ...contractArgs: any[]
+  ): Promise<any> {
     const { defaultIdType, chainId } = await this.getDefaultIdType();
     this.log(`found defaultIdType ${defaultIdType} for chainId ${chainId}`);
-
     const owner = this.signers[0];
-
-    this.log("deploying verifier...");
-
-    const contarcFactory = await ethers.getContractFactory(contractName);
-    const contract = await contarcFactory.deploy();
+    const contract = await contractFactory.deploy(...contractArgs);
     const tx = contract.deploymentTransaction();
     this.log(
       `===== ${contractName} =====`,
@@ -83,7 +78,10 @@ export class DeployHelper {
       `- Block deploy (startBlock) = ${tx?.blockNumber || "N/A"}`
     );
     contract.startBlock = tx?.blockNumber || 0;
-    return { contract: contract };
+    contract.abi = contractFactory.interface.formatJson();
+    contract.contractName = contractName;
+    this.cacheContract.push(contract);
+    return contract;
   }
 
   /**

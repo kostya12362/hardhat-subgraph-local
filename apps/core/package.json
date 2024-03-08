@@ -8,6 +8,9 @@
     "@nomicfoundation/hardhat-verify": "^2.0.3",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-etherscan": "^3.0.3",
+    "@openzeppelin/contracts": "^5.0.2",
+    "@uniswap/v3-periphery": "^1.4.4",
+    "@uniswap/v3-sdk": "^3.10.2",
     "dotenv": "^16.3.1",
     "ethers": "^6.10.0"
   },
@@ -52,6 +55,8 @@
     "hardhat:test:gas": "REPORT_GAS=true COINMARKETCAP_API_KEY=$(security find-generic-password -w -s 'Coinmarketcap API Key') hardhat test",
     "hardhat:deploy:local": "hardhat run --network localhost scripts/deploy.ts",
     "hardhat:setup:data:local": "hardhat run --network localhost scripts/setupFakeData.ts",
+    "hardhat:deploy:uniswap:local": "hardhat run --network localhost scripts/uniswap/deploy.ts",
+    "hardhat:setup:data:uniswap:local": "hardhat run --network localhost scripts/uniswap/setupFakeData.ts",
     "hardhat:deploy:sepolia": "hardhat run --network sepolia scripts/deploy.ts",
     "hardhat:verify:sepolia": "hardhat verify --network sepolia 0xF72E090f47eB6cDE0f9Eec6BDe3e6BfB91E75280 0x0000000000000000000000000000000000000000000000000000000064d2530c",
     "lint:contracts": "yarn solhint contracts/*.sol",

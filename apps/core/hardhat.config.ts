@@ -1,5 +1,7 @@
 import "@nomicfoundation/hardhat-toolbox";
-// import "@nomiclabs/hardhat-ethers";
+import "@typechain/hardhat";
+import "@nomicfoundation/hardhat-ethers";
+import "@nomicfoundation/hardhat-chai-matchers";
 
 import { HardhatUserConfig, task } from "hardhat/config";
 
@@ -24,7 +26,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.10",
+        version: "0.8.20",
       },
     ],
   },
@@ -49,7 +51,7 @@ const config: HardhatUserConfig = {
       },
     },
     localhost: {
-      url: "http://0.0.0.0:8545",
+      url: "http://0.0.0.0:8545/",
       chainId: 31337,
     },
     sepolia: {

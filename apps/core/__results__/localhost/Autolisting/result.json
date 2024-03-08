@@ -1,0 +1,8 @@
+{
+  "path": "/Users/ostapenkokostya/web3/dex223/dex223-subgraph/test/hardhat-subgraph-local/apps/core/artifacts/contracts/auto-listing.sol/Autolisting.json",
+  "contractFile": "Autolisting.json",
+  "contractName": "Autolisting",
+  "abi": "__results__/localhost/Autolisting/Autolisting.json",
+  "contractAddress": "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
+  "startBlock": 19
+}
