@@ -14,7 +14,7 @@ export function encodePriceSqrt(reserve1: bigint, reserve0: bigint): bigint {
   const ratio = reserve1 / reserve0;
   const twoPow96 = BigInt(2) ** BigInt(96);
   const sqrtRatio = sqrt(ratio);
-  const priceSqrt = (sqrtRatio * twoPow96) / BigInt(10) ** BigInt(18);
+  const priceSqrt = sqrtRatio * twoPow96;
   return priceSqrt;
 }
 
@@ -53,11 +53,18 @@ export async function deployPool(
 ): Promise<string> {
   const [owner] = await ethers.getSigners();
 
-  await nonfungiblePositionManager
+  const tx = await nonfungiblePositionManager
     .connect(owner)
     .createAndInitializePoolIfNecessary(token0, token1, fee, price, {
       gasLimit: 5000000,
     });
+  await tx.wait();
   const poolAddress = await factory.connect(owner).getPool(token0, token1, fee);
+  const envets = await factory.queryFilter(
+    "PoolCreated",
+    POSITION_MANAGER.startBlock,
+    await provider.getBlockNumber()
+  );
+  console.log(envets);
   return poolAddress;
 }

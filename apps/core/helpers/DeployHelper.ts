@@ -1,5 +1,5 @@
 import { ethers, network } from "hardhat";
-import { ContractFactory, BaseContract, ContractMethodArgs } from "ethers";
+import { ContractFactory, BaseContract, ContractMethodArgs, GasCostPlugin } from "ethers";
 
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { chainIdDefaultIdTypeMap } from "./ChainIdDefTypeMap";

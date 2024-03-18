@@ -1,7 +1,7 @@
 {
   "contractFile": "uniswap/NonfungibleTokenPositio",
   "contractName": "NonfungibleTokenPositio",
-  "contractAddress": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+  "contractAddress": "0x162A433068F51e18b7d13932F27e66a3f99E6890",
   "abi": "__results__/localhost/uniswap/NonfungibleTokenPositio/NonfungibleTokenPositio.json",
-  "startBlock": 5
+  "startBlock": 82
 }

@@ -3,6 +3,6 @@
   "contractFile": "Tether.json",
   "contractName": "Tether",
   "abi": "__results__/localhost/mock/Tether/Tether.json",
-  "contractAddress": "0x3Aa5ebB10DC797CAC828524e59A333d0A371443c",
-  "startBlock": 20
+  "contractAddress": "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
+  "startBlock": 75
 }

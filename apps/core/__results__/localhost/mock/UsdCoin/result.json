@@ -3,6 +3,6 @@
   "contractFile": "UsdCoin.json",
   "contractName": "UsdCoin",
   "abi": "__results__/localhost/mock/UsdCoin/UsdCoin.json",
-  "contractAddress": "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d",
-  "startBlock": 21
+  "contractAddress": "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650",
+  "startBlock": 76
 }

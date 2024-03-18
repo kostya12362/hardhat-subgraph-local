@@ -11,6 +11,11 @@ const contractFiles = getSolFolders(contractPath);
 async function main() {
   const deployHelper = await DeployHelper.initialize(null, true);
   for (const index in contractFiles) {
+    console.log("Deploying contract: ", contractFiles[index]);
+    if ("Autolisting".includes(contractFiles[index])) {
+      console.log("Skipping Autolisting");
+      continue;
+    }
     const artifact = contractFiles[index].split("/").slice(-2);
     const contractName = artifact[1].replace(".json", "");
     const contract = await deployHelper.deployState(
@@ -25,7 +30,6 @@ async function main() {
       contractAddress: contract.target,
       startBlock: contract.startBlock,
     };
-    console.log(contractDetail);
     saveDeployResults(contractDetail, contractPath);
   }
 }

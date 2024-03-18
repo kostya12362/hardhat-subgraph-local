@@ -9,6 +9,8 @@ import { Contract } from "ethers";
 import { Token } from "@uniswap/sdk-core";
 import { FeeAmount, Pool, Position, nearestUsableTick } from "@uniswap/v3-sdk";
 import JSBI from "jsbi";
+import USDC_ABI from "../../__results__/localhost/mock/UsdCoin/UsdCoin.json";
+import TETHER_ABI from "../../__results__/localhost/mock/Tether/Tether.json";
 
 async function getPoolData(poolContract: Contract) {
   const [tickSpacing, fee, liquidity, slot0] = await Promise.all([
@@ -73,7 +75,7 @@ export async function addLiquidity(poolAddress: string) {
     "UsdCoin"
   );
 
-  const liquidity = ethers.parseEther("1").toString();
+  const liquidity = ethers.parseEther("0.01").toString();
   const liquidityBigInt = JSBI.BigInt(liquidity); // Преобразование в JSBI BigInt
   const pool = new Pool(
     UsdtToken,
@@ -88,18 +90,29 @@ export async function addLiquidity(poolAddress: string) {
   const position = new Position({
     pool,
     liquidity: liquidityBigInt,
-    tickLower: 0, // Пример значения, задайте свои
-    tickUpper: 60, // Пример значения, задайте свои
+    tickLower:
+      nearestUsableTick(poolData.tick, Number(poolData.tickSpacing)) -
+      Number(poolData.tickSpacing) * 2,
+    tickUpper:
+      nearestUsableTick(poolData.tick, Number(poolData.tickSpacing)) +
+      Number(poolData.tickSpacing) * 2,
   });
+
+  const { amount0: amount0Desired, amount1: amount1Desired } =
+    position.mintAmounts;
 
   const params = {
     token0: TETHER.contractAddress,
     token1: USDC.contractAddress,
     fee: poolData.fee,
-    tickLower: 0,
-    tickUpper: 60,
-    amount0Desired: BigInt(10),
-    amount1Desired: BigInt(10),
+    tickLower:
+      nearestUsableTick(poolData.tick, Number(poolData.tickSpacing)) -
+      Number(poolData.tickSpacing) * 2,
+    tickUpper:
+      nearestUsableTick(poolData.tick, Number(poolData.tickSpacing)) +
+      Number(poolData.tickSpacing) * 2,
+    amount0Desired: amount0Desired.toString(),
+    amount1Desired: amount1Desired.toString(),
     amount0Min: 0,
     amount1Min: 0,
     recipient: signer2.address,
@@ -115,4 +128,5 @@ export async function addLiquidity(poolAddress: string) {
     .connect(signer2)
     .mint(params, { gasLimit: 2_000_000 });
   await tx.wait();
+  console.log(await getPoolData(poolContract));
 }

@@ -3,6 +3,6 @@
   "contractFile": "WrappedBitcoin.json",
   "contractName": "WrappedBitcoin",
   "abi": "__results__/localhost/mock/WrappedBitcoin/WrappedBitcoin.json",
-  "contractAddress": "0x59b670e9fA9D0A427751Af201D676719a970857b",
-  "startBlock": 22
+  "contractAddress": "0xc351628EB244ec633d5f21fBD6621e1a683B1181",
+  "startBlock": 77
 }

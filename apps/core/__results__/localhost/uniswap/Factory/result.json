@@ -1,7 +1,7 @@
 {
   "contractFile": "uniswap/Factory",
   "contractName": "Factory",
-  "contractAddress": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+  "contractAddress": "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc",
   "abi": "__results__/localhost/uniswap/Factory/Factory.json",
-  "startBlock": 2
+  "startBlock": 79
 }
