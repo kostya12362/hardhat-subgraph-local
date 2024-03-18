@@ -1,7 +1,0 @@
-{
-  "contractFile": "uniswap/WETH9",
-  "contractName": "WETH9",
-  "contractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-  "abi": "__results__/localhost/uniswap/WETH9/WETH9.json",
-  "startBlock": 1
-}

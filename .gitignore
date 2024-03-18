@@ -1,17 +1,30 @@
-**/node_modules/
-./node_modules
-.env
-**/.DS_Store/
-**/dist/
-**/build/
-**/coverage/
-**/temp/
-**/.env
-**/generated/
-**/__subgraph__/
-**/__result__/
-**/yarn-error.log
-.DS_Store
+# Hardhat
+node_modules/
+.cache/
+artifacts/
+coverage/
+reports/
 
-.docker/.env
-.docker/volumes
+# Smart Contract Testing
+coverage/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.code-workspace
+
+# Dependency directories
+node_modules/
+cache/
+typechain/
+
+scripts/__subgraph__/
+__result__/
+# Misc
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.log
+typechain-types/

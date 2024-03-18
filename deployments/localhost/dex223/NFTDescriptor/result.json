@@ -1,0 +1,85 @@
+{
+  "contractFile": "dex223/NFTDescriptor",
+  "contractName": "NFTDescriptor",
+  "contractAddress": "0xaC9fCBA56E42d5960f813B9D0387F3D3bC003338",
+  "abi": [
+    {
+      "type": "function",
+      "name": "constructTokenURI",
+      "constant": true,
+      "stateMutability": "pure",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "tuple",
+          "name": "params",
+          "components": [
+            {
+              "type": "uint256",
+              "name": "tokenId"
+            },
+            {
+              "type": "address",
+              "name": "quoteTokenAddress"
+            },
+            {
+              "type": "address",
+              "name": "baseTokenAddress"
+            },
+            {
+              "type": "string",
+              "name": "quoteTokenSymbol"
+            },
+            {
+              "type": "string",
+              "name": "baseTokenSymbol"
+            },
+            {
+              "type": "uint8",
+              "name": "quoteTokenDecimals"
+            },
+            {
+              "type": "uint8",
+              "name": "baseTokenDecimals"
+            },
+            {
+              "type": "bool",
+              "name": "flipRatio"
+            },
+            {
+              "type": "int24",
+              "name": "tickLower"
+            },
+            {
+              "type": "int24",
+              "name": "tickUpper"
+            },
+            {
+              "type": "int24",
+              "name": "tickCurrent"
+            },
+            {
+              "type": "int24",
+              "name": "tickSpacing"
+            },
+            {
+              "type": "uint24",
+              "name": "fee"
+            },
+            {
+              "type": "address",
+              "name": "poolAddress"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "type": "string",
+          "name": ""
+        }
+      ]
+    }
+  ],
+  "startBlock": 259
+}

@@ -1,8 +1,0 @@
-{
-  "path": "/Users/ostapenkokostya/web3/dex223/dex223-subgraph/test/hardhat-subgraph-local/apps/core/artifacts/contracts/mock/Usdcoin.sol/UsdCoin.json",
-  "contractFile": "UsdCoin.json",
-  "contractName": "UsdCoin",
-  "abi": "__results__/localhost/mock/UsdCoin/UsdCoin.json",
-  "contractAddress": "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d",
-  "startBlock": 21
-}
