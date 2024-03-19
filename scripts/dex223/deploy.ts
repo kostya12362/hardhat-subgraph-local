@@ -11,9 +11,8 @@ import WETH9 from "./WETH9.json";
 const contractPath = path.join(__dirname, "../dex223/artifacts");
 
 const artifacts = {
-  // Factory: require("@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json"),
-
-  Factory: require("../../artifacts/contracts/core/Dex223Factory.sol/UniswapV3Factory.json"),
+  Factory: require("@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json"),
+  // Factory: require("../../artifacts/contracts/core/Dex223Factory.sol/UniswapV3Factory.json"),
   SwapRouter: require("@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json"),
   NFTDescriptor: require("@uniswap/v3-periphery/artifacts/contracts/libraries/NFTDescriptor.sol/NFTDescriptor.json"),
   NonfungibleTokenPositionDescriptor: require("@uniswap/v3-periphery/artifacts/contracts/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json"),

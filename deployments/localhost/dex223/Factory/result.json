@@ -1,7 +1,7 @@
 {
   "contractFile": "dex223/Factory",
   "contractName": "Factory",
-  "contractAddress": "0x63fea6E447F120B8Faf85B53cdaD8348e645D80E",
+  "contractAddress": "0x22753E4264FDDc6181dc7cce468904A80a363E44",
   "abi": [
     {
       "type": "constructor",
@@ -222,5 +222,5 @@
       "outputs": []
     }
   ],
-  "startBlock": 257
+  "startBlock": 158
 }

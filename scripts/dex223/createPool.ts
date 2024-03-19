@@ -5,14 +5,13 @@ import FACTORY from "../../deployments/localhost/dex223/Factory/result.json";
 import POSITION_MANAGER from "../../deployments/localhost/dex223/DexaransNonfungiblePositionManager/result.json";
 
 import {
-  IUniswapV3Factory,
+  UniswapV3Factory,
   DexaransNonfungiblePositionManager,
 } from "../../typechain-types";
 
 const provider = ethers.provider;
 
 export function encodePriceSqrt(reserve1: bigint, reserve0: bigint): bigint {
-  console.log(reserve1, reserve0);
   const ratio = reserve1 / reserve0;
   const twoPow96 = BigInt(2) ** BigInt(96);
   const sqrtRatio = sqrt(ratio);
@@ -27,15 +26,12 @@ function sqrt(value: bigint): bigint {
   if (value < 2n) {
     return value;
   }
-
   let x0 = value;
   let x1 = value / 2n + 1n; // Инициализируем x1 половиной value, чтобы начать алгоритм
-
   while (x1 < x0) {
     x0 = x1;
     x1 = (value / x1 + x1) / 2n;
   }
-
   return x0;
 }
 
@@ -49,7 +45,7 @@ const factory = new Contract(
   FACTORY.contractAddress,
   FACTORY.abi,
   provider
-) as BaseContract as IUniswapV3Factory;
+) as BaseContract as UniswapV3Factory;
 
 export async function deployPool(
   token0: string,
@@ -65,13 +61,6 @@ export async function deployPool(
       gasLimit: 8_000_000,
     });
   await tx.wait();
-  console.log(tx.hash);
   const poolAddress = await factory.connect(owner).getPool(token0, token1, fee);
-  // const envets = await factory.queryFilter(
-  //   "PoolCreated",
-  //   POSITION_MANAGER.startBlock,
-  //   await provider.getBlockNumber()
-  // );
-  // console.log(envets);
   return poolAddress;
 }

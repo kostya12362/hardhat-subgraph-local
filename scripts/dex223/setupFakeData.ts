@@ -1,9 +1,5 @@
-import path from "path";
-
 import { ethers } from "hardhat";
-import { BaseContract, Contract, ContractFactory } from "ethers";
-
-import { saveDeployResults } from "../helpers/utils";
+import { BaseContract, Contract } from "ethers";
 
 import { deployPool, encodePriceSqrt } from "./createPool";
 import { addLiquidity } from "./addLiquidity";
@@ -17,45 +13,54 @@ import TEST_HYBRID_ERC223_D from "../../deployments/localhost/dex223/tokens/test
 const provider = ethers.provider;
 
 async function main() {
-  const usdt = new Contract(
+  let usdt = new Contract(
     USDT.contractAddress,
     USDT.abi,
     provider
   ) as BaseContract as ERC20Token;
-  const usdc = new Contract(
+  let usdc = new Contract(
     USDC.contractAddress,
     USDC.abi,
     provider
   ) as BaseContract as ERC20Token;
 
-  const testERC223_A = new Contract(
+  let testERC223_C = new Contract(
     TEST_HYBRID_ERC223_C.contractAddress,
     TEST_HYBRID_ERC223_C.abi,
     provider
   ) as BaseContract as IERC223;
-  const testERC223_B = new Contract(
+
+  let testERC223_D = new Contract(
     TEST_HYBRID_ERC223_D.contractAddress,
     TEST_HYBRID_ERC223_D.abi,
     provider
   ) as BaseContract as IERC223;
 
-  // const usdtUsdc500 = await deployPool(
-  //   String(usdt.target),
-  //   String(usdc.target),
-  //   500,
-  //   encodePriceSqrt(1n, 1n)
-  // );
-  const erc223_a_erc20_b = await deployPool(
-    String(testERC223_A.target),
-    String(testERC223_B.target),
+  const usdtUsdc500 = await deployPool(
+    String(usdt.target),
+    String(usdc.target),
     500,
     encodePriceSqrt(1n, 1n)
   );
-  console.log(`Pool: erc223_c_erc20_d = ${erc223_a_erc20_b}`);
-  // console.log(`Pool: USDT_USDC_500=${usdtUsdc500}`);
+  // TODO check in contract
+  if (testERC223_C.target > testERC223_D.target) {
+    console.log("Warning: Swapping testERC223_C and testERC223_D");
+    const temp = testERC223_D;
+    testERC223_D = testERC223_C;
+    testERC223_C = temp;
+  }
 
-  // await addLiquidity(usdtUsdc500, usdt, usdc);
-  await addLiquidity(erc223_a_erc20_b, testERC223_A, testERC223_B);
+  const erc223_c_erc20_d = await deployPool(
+    String(testERC223_C.target),
+    String(testERC223_D.target),
+    500,
+    encodePriceSqrt(1n, 1n)
+  );
+  console.log(`Pool: ERC223_C and ERC223_D = ${erc223_c_erc20_d}`);
+  console.log(`Pool: USDT and USDC = ${erc223_c_erc20_d}`);
+
+  await addLiquidity(usdtUsdc500, usdt, usdc, "ERC20");
+  await addLiquidity(erc223_c_erc20_d, testERC223_C, testERC223_D, "ERC223");
 }
 
 main()

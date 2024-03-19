@@ -1,7 +1,7 @@
 {
   "contractFile": "dex223/tokens/Tether",
   "contractName": "Tether",
-  "contractAddress": "0xf090f16dEc8b6D24082Edd25B1C8D26f2bC86128",
+  "contractAddress": "0x3155755b79aA083bd953911C92705B7aA82a18F9",
   "abi": [
     {
       "type": "constructor",
@@ -335,5 +335,5 @@
       "outputs": []
     }
   ],
-  "startBlock": 262
+  "startBlock": 163
 }

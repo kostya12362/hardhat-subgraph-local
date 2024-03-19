@@ -1,15 +1,17 @@
 import { ethers } from "hardhat";
-import { Contract } from "ethers";
+import { BaseContract, Contract } from "ethers";
 import { Token } from "@uniswap/sdk-core";
 import { FeeAmount, Pool, Position, nearestUsableTick } from "@uniswap/v3-sdk";
 import JSBI from "jsbi";
-import { ERC20Token, ERC223Token } from "../../typechain-types";
-import { ContractResult } from "../helpers/Types";
+import {
+  ERC20Token,
+  ERC223Token,
+  IERC223,
+  DexaransNonfungiblePositionManager,
+} from "../../typechain-types";
 
-// import TETHER from "../../deployments/localhost/dex223/Tether/result.json";
 import UniswapV3Pool from "@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json";
 import NONFUNGIBLE_POSITION_MANAGER from "../../deployments/localhost/dex223/DexaransNonfungiblePositionManager/result.json";
-import { IERC223 } from "../../typechain-types/contracts/Dex223-dev/TestTokens/TestHybrid.sol";
 
 const provider = ethers.provider;
 
@@ -48,35 +50,59 @@ async function getToken(token: ERC20Token | IERC223): Promise<Token> {
 
 export async function addLiquidity(
   poolAddress: string,
-  token0: IERC223 | ERC20Token,
-  token1: IERC223 | ERC20Token
+  _token0: IERC223 | ERC20Token,
+  _token1: IERC223 | ERC20Token,
+  _type: "ERC20" | "ERC223"
 ) {
   const [_owner, signer2] = await ethers.getSigners();
-  const _token0 = token0 as IERC223 | ERC20Token;
-  const _token1 = token1 as IERC223 | ERC20Token;
+  // const _token0 = token0 as IERC223 | ERC20Token;
+  // const _token1 = token1 as IERC223 | ERC20Token;
   const nonfungiblePositionManager = new Contract(
     NONFUNGIBLE_POSITION_MANAGER.contractAddress,
     NONFUNGIBLE_POSITION_MANAGER.abi,
     provider
-  );
+  ) as BaseContract as DexaransNonfungiblePositionManager;
   const poolContract = new Contract(poolAddress, UniswapV3Pool.abi, provider);
   const poolData = await getPoolData(poolContract);
   const t0 = await getToken(_token0);
   const t1 = await getToken(_token1);
 
   const liquidityBigInt = JSBI.BigInt(ethers.parseEther("0.01").toString());
-
-  // if ("approve" in token0) {
-  console.log(_token0, _token1);
-  // if (_token0?.transfer) {
-  console.log("transfer", _token0.target);
-
-  await _token0
-    .connect(signer2)
-    .transfer(
-      NONFUNGIBLE_POSITION_MANAGER.contractAddress,
-      ethers.parseEther("1000")
-    );
+  // console.log(_token0, _token1);
+  // console.log("transfer", _token0.target);
+  if (_type === "ERC223") {
+    await _token0
+      .connect(signer2)
+      .transfer(
+        NONFUNGIBLE_POSITION_MANAGER.contractAddress,
+        ethers.parseEther("1000")
+      );
+    await _token1
+      .connect(signer2)
+      .transfer(
+        NONFUNGIBLE_POSITION_MANAGER.contractAddress,
+        ethers.parseEther("1000")
+      );
+  } else {
+    await _token0
+      .connect(signer2)
+      .approve(
+        NONFUNGIBLE_POSITION_MANAGER.contractAddress,
+        ethers.parseEther("1000")
+      );
+    await _token1
+      .connect(signer2)
+      .approve(
+        NONFUNGIBLE_POSITION_MANAGER.contractAddress,
+        ethers.parseEther("1000")
+      );
+  }
+  // await _token0
+  //   .connect(signer2)
+  //   .approve(
+  //     NONFUNGIBLE_POSITION_MANAGER.contractAddress,
+  //     ethers.parseEther("1000")
+  //   );
   // } else {
   // console.log("approve", _token0.target);
   // await _token0
@@ -87,14 +113,14 @@ export async function addLiquidity(
   //   );
   // }
 
-  // if (_token1 instanceof IERC223) {
-  console.log("transfer", _token1.target);
-  await _token1
-    .connect(signer2)
-    .transfer(
-      NONFUNGIBLE_POSITION_MANAGER.contractAddress,
-      ethers.parseEther("1000")
-    );
+  console.log(await _token1.connect(signer2).balanceOf(signer2.address));
+
+  // await _token1
+  //   .connect(signer2)
+  //   .approve(
+  //     NONFUNGIBLE_POSITION_MANAGER.contractAddress,
+  //     ethers.parseEther("1000")
+  //   );
   // } else {
   // console.log("approve", _token1.target);
   // await _token1
@@ -104,7 +130,7 @@ export async function addLiquidity(
   //     ethers.parseEther("1000")
   //   );
   // }
-  console.log(t0, t1);
+  // console.log(t0, t1);
   // Проверяем наличие метода `approve` у объекта `token1` и вызываем его, если он доступен
   // if ("approve" in token1) {
   // console.log(token1.target);
@@ -139,8 +165,8 @@ export async function addLiquidity(
     position.mintAmounts;
 
   const params = {
-    token0: token0.target,
-    token1: token1.target,
+    token0: _token0.target,
+    token1: _token1.target,
     fee: poolData.fee,
     tickLower:
       nearestUsableTick(poolData.tick, Number(poolData.tickSpacing)) -
@@ -159,7 +185,7 @@ export async function addLiquidity(
 
   const tx = await nonfungiblePositionManager
     .connect(signer2)
-    .mint(params, { gasLimit: 10_000_000 });
+    .mint(params, { gasLimit: 8_000_000 });
   await tx.wait();
   console.log(await getPoolData(poolContract));
 }

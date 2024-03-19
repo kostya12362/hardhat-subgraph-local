@@ -1,7 +1,7 @@
 {
   "contractFile": "dex223/tokens/TestToken ERC20",
   "contractName": "Test Token ERC20",
-  "contractAddress": "0x56D13Eb21a625EdA8438F55DF2C31dC3632034f5",
+  "contractAddress": "0xffa7CA1AEEEbBc30C874d32C7e22F052BbEa0429",
   "abi": [
     {
       "type": "constructor",
@@ -335,5 +335,5 @@
       "outputs": []
     }
   ],
-  "startBlock": 264
+  "startBlock": 165
 }

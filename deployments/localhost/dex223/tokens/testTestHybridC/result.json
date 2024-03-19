@@ -1,7 +1,7 @@
 {
   "contractFile": "dex223/tokens/testTestHybridC",
   "contractName": "testTestHybridC",
-  "contractAddress": "0xE8addD62feD354203d079926a8e563BC1A7FE81e",
+  "contractAddress": "0x3aAde2dCD2Df6a8cAc689EE797591b2913658659",
   "abi": [
     {
       "type": "constructor",
@@ -289,5 +289,5 @@
       ]
     }
   ],
-  "startBlock": 265
+  "startBlock": 166
 }
