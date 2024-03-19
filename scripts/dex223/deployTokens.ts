@@ -12,9 +12,9 @@ const artifacts = {
   tether: require("../../artifacts/contracts/TestTokens/Tether.sol/Tether.json"),
   usdc: require("../../artifacts/contracts/TestTokens/Usdcoin.sol/UsdCoin.json"),
   wbtc: require("../../artifacts/contracts/TestTokens/WrappedBitcoin.sol/WrappedBitcoin.json"),
-  testTokenERC20: require("../../artifacts/contracts/TestTokens/TestERC20.sol/ERC20Token.json"),
-  testTokenERC223A: require("../../artifacts/contracts/TestTokens/TestERC223A.sol/ERC223Token.json"),
-  testTokenERC223B: require("../../artifacts/contracts/TestTokens/TestERC223B.sol/ERC223Token.json"),
+  // testTokenERC20: require("../../artifacts/contracts/TestTokens/TestERC20.sol/ERC20Token.json"),
+  // testTokenERC223A: require("../../artifacts/contracts/TestTokens/TestERC223A.sol/ERC223Token.json"),
+  // testTokenERC223B: require("../../artifacts/contracts/TestTokens/TestERC223B.sol/ERC223Token.json"),
   TestHybridC: require("../../artifacts/contracts/TestTokens/TestHybridC.sol/ERC223Token.json"),
   TestHybridD: require("../../artifacts/contracts/TestTokens/TestHybridD.sol/ERC223Token.json"),
 };
@@ -38,14 +38,14 @@ export async function setupTokens() {
       owner
     ),
   });
-  await deployHelper.deployState({
-    contractName: "Test Token ERC20",
-    contractFactory: new ContractFactory(
-      artifacts.testTokenERC20.abi,
-      artifacts.testTokenERC20.bytecode,
-      owner
-    ),
-  });
+  // await deployHelper.deployState({
+  //   contractName: "Test Token ERC20",
+  //   contractFactory: new ContractFactory(
+  //     artifacts.testTokenERC20.abi,
+  //     artifacts.testTokenERC20.bytecode,
+  //     owner
+  //   ),
+  // });
 
   await deployHelper.deployState({
     contractName: "testTestHybridC",

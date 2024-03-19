@@ -36,6 +36,13 @@ async function main() {
     provider
   ) as BaseContract as IERC223;
 
+  if (usdt.target > usdc.target) {
+    console.log("Warning: Swapping usdc and usdt");
+    const temp = usdc;
+    usdc = usdt;
+    usdt = temp;
+  }
+
   const usdtUsdc500 = await deployPool(
     String(usdt.target),
     String(usdc.target),
@@ -57,7 +64,7 @@ async function main() {
     encodePriceSqrt(1n, 1n)
   );
   console.log(`Pool: ERC223_C and ERC223_D = ${erc223_c_erc20_d}`);
-  console.log(`Pool: USDT and USDC = ${erc223_c_erc20_d}`);
+  console.log(`Pool: USDT and USDC = ${usdtUsdc500}`);
 
   await addLiquidity(usdtUsdc500, usdt, usdc, "ERC20");
   await addLiquidity(erc223_c_erc20_d, testERC223_C, testERC223_D, "ERC223");

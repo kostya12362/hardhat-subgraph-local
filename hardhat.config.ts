@@ -30,7 +30,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 1000,
+            runs: 100,
           },
         },
       },
@@ -62,7 +62,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       allowUnlimitedContractSize: true,
-      blockGasLimit: 60000000,
+      blockGasLimit: 30000000,
       accounts: {
         mnemonic: DEFAULT_MNEMONIC,
         path: "m/44'/60'/0'/0",
@@ -72,7 +72,7 @@ const config: HardhatUserConfig = {
       chainId: 31337,
     },
     localhost: {
-      blockGasLimit: 60000000,
+      blockGasLimit: 30000000,
       allowUnlimitedContractSize: true,
       url: "http://0.0.0.0:8545/",
       chainId: 31337,
