@@ -2,10 +2,10 @@
 
 pragma solidity >=0.8.19;
 
-import "../ERC223/IERC223.sol";
-import "../ERC223/IERC223Recipient.sol";
-import "../utils/Address.sol";
-import "@openzeppelin/contracts/introspection/ERC165.sol";
+import "./IERC223.sol";
+import "./IERC223Recipient.sol";
+import "./Address.sol";
+import "./ERC165.sol";
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -98,7 +98,7 @@ contract ERC223WrapperToken is IERC223, ERC165
         wrapper_for = _wrapper_for;
     }
     uint256 private _totalSupply;
-    
+
     mapping(address => uint256) private balances; // List of user balances.
 
     function totalSupply() public view override returns (uint256)             { return _totalSupply; }
@@ -173,20 +173,20 @@ contract ERC223WrapperToken is IERC223, ERC165
 
         allowances[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
-        
+
         return true;
     }
 
     function transferFrom(address _from, address _to, uint _value) public returns (bool) {
-        
+
         require(allowances[_from][msg.sender] >= _value, "ERC-223: Insufficient allowance.");
-        
+
         balances[_from] -= _value;
         allowances[_from][msg.sender] -= _value;
         balances[_to] += _value;
-        
+
         emit Transfer(_from, _to, _value);
-        
+
         return true;
     }
 }
@@ -210,7 +210,7 @@ contract ERC20WrapperToken is IERC20, ERC165
 
 
     function balanceOf(address _owner) public view override returns (uint256) { return balances[_owner]; }
-    
+
     function name()        public view override returns (string memory) { return IERC20(wrapper_for).name(); }
     function symbol()      public view override returns (string memory) { return string.concat(IERC223(wrapper_for).name(), "20"); }
     function decimals()    public view override returns (uint8)         { return IERC20(wrapper_for).decimals(); }
@@ -258,20 +258,20 @@ contract ERC20WrapperToken is IERC20, ERC165
 
         allowances[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
-        
+
         return true;
     }
 
     function transferFrom(address _from, address _to, uint _value) public returns (bool) {
-        
+
         require(allowances[_from][msg.sender] >= _value, "ERC-20: Insufficient allowance.");
-        
+
         balances[_from] -= _value;
         allowances[_from][msg.sender] -= _value;
         balances[_to] += _value;
-        
+
         emit Transfer(_from, _to, _value);
-        
+
         return true;
     }
 }
@@ -337,7 +337,7 @@ contract TokenStandardConverter is IERC223Recipient
             erc20Supply[erc20Origins[msg.sender]] -= _value;
             //erc223Wrappers[msg.sender].burn(_value);
             ERC223WrapperToken(msg.sender).burn(_value);
-            
+
             return this.tokenReceived.selector;
         }
         // Otherwise origin for the sender token doesn't exist
@@ -349,7 +349,7 @@ contract TokenStandardConverter is IERC223Recipient
             // Create ERC-20 wrapper if it doesn't exist.
             createERC20Wrapper(msg.sender);
         }
-        
+
         // Mint ERC-20 wrapper tokens for the deposited ERC-223 token
         // if the ERC-20 wrapper didn't exist then it was just created in the above statement.
         erc20Wrappers[msg.sender].mint(_from, _value);
@@ -405,7 +405,7 @@ contract TokenStandardConverter is IERC223Recipient
 
         //IERC20(_ERC20token).transferFrom(msg.sender, address(this), _amount);
         safeTransferFrom(_ERC20token, msg.sender, address(this), _amount);
-        
+
         _amount = IERC20(_ERC20token).balanceOf(address(this)) - _converterBalance;
         erc20Supply[_ERC20token] += _amount;
 
@@ -420,7 +420,7 @@ contract TokenStandardConverter is IERC223Recipient
         require(erc223Origins[_ERC20token] != address(0), "Error: provided token is not a ERC-20 wrapper.");
 
         ERC20WrapperToken(_ERC20token).burn(msg.sender, _amount);
-        
+
         safeTransfer(erc223Origins[_ERC20token], msg.sender, _amount);
 
         return true;
@@ -429,7 +429,7 @@ contract TokenStandardConverter is IERC223Recipient
     function isWrapper(address _token) public view returns (bool)
     {
         return erc20Origins[_token] != address(0) || erc223Origins[_token] != address(0);
-    } 
+    }
 
 /*
     function convertERC223toERC20(address _from, uint256 _amount) public returns (bool)
@@ -440,7 +440,7 @@ contract TokenStandardConverter is IERC223Recipient
         {
             createERC223Wrapper(msg.sender);
         }
-        
+
         erc20Wrappers[msg.sender].mint(_from, _amount);
 
         return true;
@@ -460,7 +460,7 @@ contract TokenStandardConverter is IERC223Recipient
         require(msg.sender == ownerMultisig, "ERROR: Only owner can call this function.");
         ownerMultisig = _newOwner;
     }
-    
+
     // ************************************************************
     // Functions that address problems with tokens that pretend to be ERC-20
     // but in fact are not compatible with the ERC-20 standard transferring methods.

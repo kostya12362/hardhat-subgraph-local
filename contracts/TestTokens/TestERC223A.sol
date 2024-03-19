@@ -1,4 +1,4 @@
-// pragma solidity ^0.7.6;
+ pragma solidity ^0.7.6;
 
 // import "@openzeppelin/contracts/access/Ownable.sol";
 // import "../ERC223/IERC223.sol";
@@ -143,7 +143,7 @@
 
 //     function mint(address to, uint256 amount) public onlyOwner {
 //         require(to != address(0), "ERC223Token: mint to the zero address");
-        
+
 //         _beforeTokenTransfer(address(0), to, amount);
 
 //         _totalSupply += amount;
