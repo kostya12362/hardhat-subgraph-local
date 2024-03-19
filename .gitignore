@@ -1,2 +1,30 @@
-**/node_modules/
+# Hardhat
+node_modules/
+.cache/
+artifacts/
+coverage/
+reports/
+
+# Smart Contract Testing
+coverage/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.code-workspace
+
+# Dependency directories
+node_modules/
+cache/
+typechain/
+
+scripts/__subgraph__/
+__result__/
+# Misc
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.log
+typechain-types/
