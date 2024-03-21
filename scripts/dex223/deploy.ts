@@ -19,6 +19,7 @@ const artifacts = {
   NFTDescriptor: require("../../artifacts/contracts/periphery/libraries/NFTDescriptor.sol/NFTDescriptor.json"),
   NonfungibleTokenPositionDescriptor: require("../../artifacts/contracts/periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json"),
   WETH9,
+  Convertor: require("../../artifacts/contracts/TokenStandardConverter/TokenConverter.sol/TokenStandardConverter.json"),
 };
 
 async function getPoolHashCode(signer: any, contract: Contract ) {
@@ -164,8 +165,8 @@ async function main() {
     contractArgs: [weth.target, ethers.encodeBytes32String("WETH")],
   });
 
+  /** NonfungiblePositionManager */
   const DexaransNonfungiblePositionManager = require("../../artifacts/contracts/periphery/NonfungiblePositionManager.sol/DexaransNonfungiblePositionManager.json");
-
   await deployHelper.deployState({
     contractName: "DexaransNonfungiblePositionManager",
     contractFactory: new ContractFactory(
@@ -174,6 +175,16 @@ async function main() {
       owner
     ),
     contractArgs: [factory.target, weth.target],
+  });
+
+  /** Token Convertor */
+  await deployHelper.deployState({
+    contractName: "TokenConvertor",
+    contractFactory: new ContractFactory(
+      artifacts.Convertor.abi,
+        artifacts.Convertor.bytecode,
+      owner
+    ),
   });
 
   const network = await ethers.provider.getNetwork();

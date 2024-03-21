@@ -1,10 +1,11 @@
 import path from "path";
 
 import { ethers } from "hardhat";
-import { ContractFactory } from "ethers";
+import {BaseContract, Contract, ContractFactory} from "ethers";
 
-import { ERC20Token, ERC223Token, IERC223 } from "../../typechain-types";
 import { DeployHelper } from "../helpers/DeployHelper";
+import USDT from "../../deployments/localhost/dex223/tokens/Tether/result.json";
+import {ERC20Token} from "../../typechain-types";
 
 const contractPath = path.join(__dirname, "../dex223/artifacts");
 
@@ -12,16 +13,16 @@ const artifacts = {
   tether: require("../../artifacts/contracts/TestTokens/Tether.sol/Tether.json"),
   usdc: require("../../artifacts/contracts/TestTokens/Usdcoin.sol/UsdCoin.json"),
   wbtc: require("../../artifacts/contracts/TestTokens/WrappedBitcoin.sol/WrappedBitcoin.json"),
-  // testTokenERC20: require("../../artifacts/contracts/TestTokens/TestERC20.sol/ERC20Token.json"),
-  // testTokenERC223A: require("../../artifacts/contracts/TestTokens/TestERC223A.sol/ERC223Token.json"),
-  // testTokenERC223B: require("../../artifacts/contracts/TestTokens/TestERC223B.sol/ERC223Token.json"),
   TestHybridC: require("../../artifacts/contracts/TestTokens/TestHybridC.sol/ERC223Token.json"),
   TestHybridD: require("../../artifacts/contracts/TestTokens/TestHybridD.sol/ERC223Token.json"),
 };
 
+import WETH9 from "../../deployments/localhost/dex223/WETH9/result.json";
+
 export async function setupTokens() {
   const deployHelper = await DeployHelper.initialize(null, true);
   const [owner, signer2] = await ethers.getSigners();
+
   await deployHelper.deployState({
     contractName: "Tether",
     contractFactory: new ContractFactory(
@@ -30,6 +31,7 @@ export async function setupTokens() {
       owner
     ),
   });
+
   await deployHelper.deployState({
     contractName: "USDC",
     contractFactory: new ContractFactory(
@@ -38,14 +40,6 @@ export async function setupTokens() {
       owner
     ),
   });
-  // await deployHelper.deployState({
-  //   contractName: "Test Token ERC20",
-  //   contractFactory: new ContractFactory(
-  //     artifacts.testTokenERC20.abi,
-  //     artifacts.testTokenERC20.bytecode,
-  //     owner
-  //   ),
-  // });
 
   await deployHelper.deployState({
     contractName: "testTestHybridC",
@@ -55,6 +49,7 @@ export async function setupTokens() {
       owner
     ),
   });
+
   await deployHelper.deployState({
     contractName: "testTestHybridD",
     contractFactory: new ContractFactory(
@@ -70,5 +65,15 @@ export async function setupTokens() {
       .connect(owner)
       .mint(signer2.address, ethers.parseEther("100000"));
   }
-  deployHelper.deploysSave("dex223/tokens", contractPath);
+
+  const provider = ethers.provider;
+  let weth = new Contract(
+      WETH9.contractAddress,
+      WETH9.abi,
+      provider
+  );
+
+  await weth.connect(signer2).deposit({value: ethers.parseEther("1000")});
+
+  await deployHelper.deploysSave("dex223/tokens", contractPath);
 }
