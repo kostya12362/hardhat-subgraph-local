@@ -14,10 +14,10 @@ const artifacts = {
   // Factory: require("@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json"),
   Factory: require("../../artifacts/contracts/core/Dex223Factory.sol/UniswapV3Factory.json"),
   PoolAddressHelper: require("../../artifacts/contracts/core/Dex223Factory.sol/PoolAddressHelper.json"),
+  PoolAddress: require("../../artifacts/contracts/periphery/libraries/PoolAddress.sol/PoolAddress.json"),
   SwapRouter: require("../../artifacts/contracts/periphery/SwapRouter.sol/SwapRouter.json"),
   NFTDescriptor: require("../../artifacts/contracts/periphery/libraries/NFTDescriptor.sol/NFTDescriptor.json"),
   NonfungibleTokenPositionDescriptor: require("../../artifacts/contracts/periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json"),
-  DexaransNonfungiblePositionManager: require("../../artifacts/contracts/periphery/NonfungiblePositionManager.sol/DexaransNonfungiblePositionManager.json"),
   WETH9,
 };
 
@@ -114,7 +114,7 @@ async function main() {
   const line = `    bytes32 internal constant POOL_INIT_CODE_HASH = ${poolHash};`;
   replaceLineInFile(fileName, line, 5);
 
-  // NOTE trying to recompile Edited SOL file. But it not helps.
+  // NOTE recompile Edited SOL file
   await run("compile");
 
   await deployHelper.deployState({
@@ -164,11 +164,13 @@ async function main() {
     contractArgs: [weth.target, ethers.encodeBytes32String("WETH")],
   });
 
+  const DexaransNonfungiblePositionManager = require("../../artifacts/contracts/periphery/NonfungiblePositionManager.sol/DexaransNonfungiblePositionManager.json");
+
   await deployHelper.deployState({
     contractName: "DexaransNonfungiblePositionManager",
     contractFactory: new ContractFactory(
-      artifacts.DexaransNonfungiblePositionManager.abi,
-      artifacts.DexaransNonfungiblePositionManager.bytecode,
+      DexaransNonfungiblePositionManager.abi,
+      DexaransNonfungiblePositionManager.bytecode,
       owner
     ),
     contractArgs: [factory.target, weth.target],
