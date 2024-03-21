@@ -1,7 +1,7 @@
 {
   "contractFile": "dex223/DexaransNonfungiblePositionManager",
   "contractName": "DexaransNonfungiblePositionManager",
-  "contractAddress": "0x3347B4d90ebe72BeFb30444C9966B2B990aE9FcB",
+  "contractAddress": "0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44",
   "abi": [
     {
       "type": "constructor",
@@ -1245,5 +1245,5 @@
       "stateMutability": "payable"
     }
   ],
-  "startBlock": 162
+  "startBlock": 27
 }

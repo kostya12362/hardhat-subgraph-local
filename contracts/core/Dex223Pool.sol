@@ -25,9 +25,11 @@ import './interfaces/IUniswapV3Factory.sol';
 import './interfaces/IERC20Minimal.sol';
 import './interfaces/callback/IUniswapV3MintCallback.sol';
 import './interfaces/callback/IUniswapV3SwapCallback.sol';
+/*
 import './interfaces/callback/IUniswapV3FlashCallback.sol';
+*/
 
-contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
+contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
     using LowGasSafeMath for uint256;
     using LowGasSafeMath for int256;
     using SafeCast for uint256;
@@ -83,7 +85,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         uint128 token0;
         uint128 token1;
     }
-
+    
     struct ERC223TransferInfo
     {
         address token_contract;
@@ -92,12 +94,12 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         bytes   data;
     }
     
-    // ERC-223 variables
     ERC223TransferInfo private tkn;
     
     address private swap_sender;
     address private swap_token;
-    mapping(address => mapping(address => uint)) public balanceERC223;    // user => token => value
+
+    mapping(address => mapping(address => uint)) internal erc223deposit;    // user => token => value
     
     
     /// @inheritdoc IUniswapV3PoolState
@@ -171,18 +173,21 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
          * tkn.data  - is the "metadata" of token transfer
          * tkn.token_contract is most likely equal to msg.sender because the token contract typically invokes this function
         */
-        tkn.token_contract = msg.sender;
-        tkn.sender         = _from;
-        tkn.value          = _value;
-        tkn.data           = _data;
 
-        balanceERC223[_from][msg.sender] = balanceERC223[_from][msg.sender] + _value;   // add token to user balance
+        erc223deposit[_from][msg.sender] += _value;   // add token to user balance
         if (_data.length >= 36) { // signature + at least 1 parameter
             swap_sender = _from;
             swap_token  = msg.sender;
-            (bool success,) = address(this).call{value:0}(_data);
+            //(bool success,) = address(this).call{value:0}(_data);
+            (bool success,) = address(this).delegatecall(_data);
             require(success, "ERC223 internal call failed");
         }
+
+        // WARNING! Leaving tokens on the Pool's balance makes them vulnerable to arbitrage,
+        //          tokens must be extracted after the execution of the logic following the deposit.
+
+        ////  Commented for testing purposes.
+        ////  if (erc223deposit[_from][msg.sender] != 0) TransferHelper.safeTransfer(msg.sender, _from, erc223deposit[_from][msg.sender]);
         
         /*
         bytes4 _sig = _data[0] |  bytes4(_data[1]) >> 8 | bytes4(_data[2]) >> 16  | bytes4(_data[3]) >> 24;
@@ -199,9 +204,10 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
 
     // allow user to withdraw transferred ERC223 tokens
     function withdraw(address token, uint amount) external {
-        uint userBalance = balanceERC223[msg.sender][token];
-        require(userBalance >= amount, "Insufficient");
-        balanceERC223[msg.sender][token] = userBalance - amount;
+        uint _userBalance = erc223deposit[msg.sender][token];
+        if(amount == 0) amount = _userBalance;
+        require(_userBalance >= amount, "Insufficient");
+        erc223deposit[msg.sender][token] = _userBalance - amount;
         TransferHelper.safeTransfer(token, msg.sender, amount);
     }
 
@@ -543,7 +549,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         int24 tickUpper,
         uint128 amount,
         bytes calldata data
-    ) external override lock adjustableSender returns (uint256 amount0, uint256 amount1) {
+    ) external override lock /*adjustableSender*/ returns (uint256 amount0, uint256 amount1) {
         require(amount > 0);
         (, int256 amount0Int, int256 amount1Int) =
             _modifyPosition(
@@ -562,11 +568,11 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         uint256 balance1Before;
         if (amount0 > 0) balance0Before = balance0();
         if (amount1 > 0) balance1Before = balance1();
-        IUniswapV3MintCallback(swap_sender).uniswapV3MintCallback(amount0, amount1, data);
+        IUniswapV3MintCallback(msg.sender).uniswapV3MintCallback(amount0, amount1, data);
         if (amount0 > 0) require(balance0Before.add(amount0) <= balance0(), 'M0');
         if (amount1 > 0) require(balance1Before.add(amount1) <= balance1(), 'M1');
 
-        emit Mint(swap_sender, recipient, tickLower, tickUpper, amount, amount0, amount1);
+        emit Mint(msg.sender, recipient, tickLower, tickUpper, amount, amount0, amount1);
     }
 
     /// @inheritdoc IUniswapV3PoolActions
@@ -682,7 +688,9 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
         bytes calldata data
-    ) external override noDelegateCall adjustableSender returns (int256 amount0, int256 amount1) {
+    ) external override adjustableSender noDelegateCall // noDelegateCall will not prevent delegatecalling
+                                                        // this method from the same contract via `tokenReceived` of ERC-223
+     returns (int256 amount0, int256 amount1) {
 
         require(amountSpecified != 0, 'AS');
 
@@ -853,18 +861,40 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
             : (state.amountCalculated, amountSpecified - state.amountSpecifiedRemaining);
 
         // do the transfers and collect payment
+        // @Dexaran: Adjusting the token delivery method for ERC-20 and ERC-223 tokens
+        //           in case of ERC-223 this `swap()` func is called within `tokenReceived()` invocation
+        //           so the ERC-223 tokens are already in the contract 
+        //           and the amount is stored in a `erc223deposit[msg.sender][token]` variable.
         if (zeroForOne) {
             if (amount1 < 0) TransferHelper.safeTransfer(token1, recipient, uint256(-amount1));
 
-            uint256 balance0Before = balance0();
-            IUniswapV3SwapCallback(swap_sender).uniswapV3SwapCallback(amount0, amount1, data);
-            require(balance0Before.add(uint256(amount0)) <= balance0(), 'IIA');
+            // ERC-223 depositing logic
+            if (erc223deposit[swap_sender][token0] >= uint256(amount0))
+            {
+                erc223deposit[swap_sender][token0] -= uint256(amount0);
+            }
+            // ERC-20 depositing logic
+            else 
+            {
+                uint256 balance0Before = balance0();
+                IUniswapV3SwapCallback(swap_sender).uniswapV3SwapCallback(amount0, amount1, data);
+                require(balance0Before.add(uint256(amount0)) <= balance0(), 'IIA');
+            }
         } else {
             if (amount0 < 0) TransferHelper.safeTransfer(token0, recipient, uint256(-amount0));
 
-            uint256 balance1Before = balance1();
-            IUniswapV3SwapCallback(swap_sender).uniswapV3SwapCallback(amount0, amount1, data);
-            require(balance1Before.add(uint256(amount1)) <= balance1(), 'IIA');
+            // ERC-223 depositing logic
+            if (erc223deposit[swap_sender][token1] >= uint256(amount1))
+            {
+                erc223deposit[swap_sender][token1] -= uint256(amount1);
+            }
+            // ERC-20 depositing logic
+            else 
+            {
+                uint256 balance1Before = balance1();
+                IUniswapV3SwapCallback(swap_sender).uniswapV3SwapCallback(amount0, amount1, data);
+                require(balance1Before.add(uint256(amount1)) <= balance1(), 'IIA');
+            }
         }
 
         emit Swap(swap_sender, recipient, amount0, amount1, state.sqrtPriceX96, state.liquidity, state.tick);
@@ -872,6 +902,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
     }
 
     /// @inheritdoc IUniswapV3PoolActions
+    /*
     function flash(
         address recipient,
         uint256 amount0,
@@ -916,6 +947,7 @@ contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
 
         emit Flash(msg.sender, recipient, amount0, amount1, paid0, paid1);
     }
+    */
 
     /// @inheritdoc IUniswapV3PoolOwnerActions
     function setFeeProtocol(uint8 feeProtocol0, uint8 feeProtocol1) external override lock onlyFactoryOwner {

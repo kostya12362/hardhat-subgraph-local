@@ -1,31 +1,32 @@
 pragma solidity >=0.7.0;
 
+//import "https://github.com/Dexaran/ERC223-token-standard/blob/development/token/ERC223/IERC223.sol";
 abstract contract IERC223 {
-    
+
     function name()        public view virtual returns (string memory);
     function symbol()      public view virtual returns (string memory);
     function decimals()    public view virtual returns (uint8);
     function totalSupply() public view virtual returns (uint256);
-    
+
     /**
      * @dev Returns the balance of the `who` address.
      */
     function balanceOf(address who) public virtual view returns (uint);
-        
+
     /**
      * @dev Transfers `value` tokens from `msg.sender` to `to` address
      * and returns `true` on success.
      */
     function transfer(address to, uint value) public virtual returns (bool success);
-        
+
     /**
      * @dev Transfers `value` tokens from `msg.sender` to `to` address with `data` parameter
      * and returns `true` on success.
      */
     function transfer(address to, uint value, bytes calldata data) public virtual returns (bool success);
-     
-     /**
-     * @dev Event that is fired on successful transfer.
+
+    /**
+    * @dev Event that is fired on successful transfer.
      */
     event Transfer(address indexed from, address indexed to, uint value, bytes data);
 }
@@ -35,16 +36,16 @@ abstract contract IERC223 {
 abstract contract IERC223Recipient {
 
 
- struct ERC223TransferInfo
+    struct ERC223TransferInfo
     {
         address token_contract;
         address sender;
         uint256 value;
         bytes   data;
     }
-    
+
     ERC223TransferInfo private tkn;
-    
+
 /**
  * @dev Standard ERC223 function that will handle incoming token transfers.
  *
@@ -57,7 +58,7 @@ abstract contract IERC223Recipient {
         /**
          * @dev Note that inside of the token transaction handler the actual sender of token transfer is accessible via the tkn.sender variable
          * (analogue of msg.sender for Ether transfers)
-         * 
+         *
          * tkn.value - is the amount of transferred tokens
          * tkn.data  - is the "metadata" of token transfer
          * tkn.token_contract is most likely equal to msg.sender because the token contract typically invokes this function
@@ -66,7 +67,7 @@ abstract contract IERC223Recipient {
         tkn.sender         = _from;
         tkn.value          = _value;
         tkn.data           = _data;
-        
+
         // ACTUAL CODE
 
         return 0x8943ec02;
@@ -118,7 +119,7 @@ contract ERC223Token is IERC223 {
     uint8   private _decimals;
     uint256 private _totalSupply;
     mapping (address => mapping (address => uint256)) private _allowances;
-    
+
     mapping(address => uint256) public balances; // List of user balances.
 
     /**
@@ -130,7 +131,7 @@ contract ERC223Token is IERC223 {
      * All three of these values are immutable: they can only be set once during
      * construction.
      */
-     
+
     constructor()
     {
         _name     = "Test Token D";
@@ -174,6 +175,11 @@ contract ERC223Token is IERC223 {
         return _decimals;
     }
 
+    function standard() public view returns (string memory)
+    {
+        return "223";
+    }
+
     /**
      * @dev See {IERC223-totalSupply}.
      */
@@ -182,7 +188,7 @@ contract ERC223Token is IERC223 {
         return _totalSupply;
     }
 
-    
+
     /**
      * @dev Returns balance of the `_owner`.
      *
@@ -193,7 +199,7 @@ contract ERC223Token is IERC223 {
     {
         return balances[_owner];
     }
-    
+
     /**
      * @dev Transfer the specified amount of tokens to the specified address.
      *      Invokes the `tokenFallback` function if the recipient is a contract.
@@ -221,7 +227,7 @@ contract ERC223Token is IERC223 {
         emit Transfer(msg.sender, _to, _value, _data);
         return true;
     }
-    
+
     /**
      * @dev Transfer the specified amount of tokens to the specified address.
      *      This function works the same with the previous one
@@ -259,11 +265,11 @@ contract ERC223Token is IERC223 {
         _approve(msg.sender, spender, amount);
         return true;
     }
-    
+
     function _transferFrom(address sender, address recipient, uint256 amount) internal {
         require(sender != address(0), "ERC223: transfer from the zero address");
         require(recipient != address(0), "ERC223: transfer to the zero address");
-        
+
         balances[sender] = balances[sender] - amount;
         balances[recipient] = balances[recipient] + amount;
         emit Transfer(sender, recipient, amount, "");

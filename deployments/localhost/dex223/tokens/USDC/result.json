@@ -1,7 +1,7 @@
 {
   "contractFile": "dex223/tokens/USDC",
   "contractName": "USDC",
-  "contractAddress": "0x5bf5b11053e734690269C6B9D438F8C9d48F528A",
+  "contractAddress": "0x4A679253410272dd5232B3Ff7cF5dbB88f295319",
   "abi": [
     {
       "type": "constructor",
@@ -335,5 +335,5 @@
       "outputs": []
     }
   ],
-  "startBlock": 164
+  "startBlock": 29
 }

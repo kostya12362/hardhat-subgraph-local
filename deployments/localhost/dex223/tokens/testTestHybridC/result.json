@@ -1,7 +1,7 @@
 {
   "contractFile": "dex223/tokens/testTestHybridC",
   "contractName": "testTestHybridC",
-  "contractAddress": "0x3aAde2dCD2Df6a8cAc689EE797591b2913658659",
+  "contractAddress": "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F",
   "abi": [
     {
       "type": "constructor",
@@ -188,6 +188,20 @@
     },
     {
       "type": "function",
+      "name": "standard",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [],
+      "outputs": [
+        {
+          "type": "string",
+          "name": ""
+        }
+      ]
+    },
+    {
+      "type": "function",
       "name": "symbol",
       "constant": true,
       "stateMutability": "view",
@@ -289,5 +303,5 @@
       ]
     }
   ],
-  "startBlock": 166
+  "startBlock": 30
 }

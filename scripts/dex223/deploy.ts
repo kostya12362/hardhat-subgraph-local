@@ -1,24 +1,43 @@
 import path from "path";
+import fs from "fs";
 
-import { ContractFactory } from "ethers";
-import { ethers } from "hardhat";
+import { ContractFactory, Contract } from "ethers";
 
+import { ethers, run } from "hardhat";
 import { DeployHelper } from "../helpers/DeployHelper";
-import { saveDeployResults } from "../helpers/utils";
 import { setupTokens } from "./deployTokens";
 import WETH9 from "./WETH9.json";
 
 const contractPath = path.join(__dirname, "../dex223/artifacts");
 
 const artifacts = {
-  Factory: require("@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json"),
-  // Factory: require("../../artifacts/contracts/core/Dex223Factory.sol/UniswapV3Factory.json"),
-  SwapRouter: require("@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json"),
-  NFTDescriptor: require("@uniswap/v3-periphery/artifacts/contracts/libraries/NFTDescriptor.sol/NFTDescriptor.json"),
-  NonfungibleTokenPositionDescriptor: require("@uniswap/v3-periphery/artifacts/contracts/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json"),
-  DexaransNonfungiblePositionManager: require("../../artifacts/contracts/NonfungiblePositionManager.sol/DexaransNonfungiblePositionManager.json"),
+  // Factory: require("@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json"),
+  Factory: require("../../artifacts/contracts/core/Dex223Factory.sol/UniswapV3Factory.json"),
+  PoolAddressHelper: require("../../artifacts/contracts/core/Dex223Factory.sol/PoolAddressHelper.json"),
+  SwapRouter: require("../../artifacts/contracts/periphery/SwapRouter.sol/SwapRouter.json"),
+  NFTDescriptor: require("../../artifacts/contracts/periphery/libraries/NFTDescriptor.sol/NFTDescriptor.json"),
+  NonfungibleTokenPositionDescriptor: require("../../artifacts/contracts/periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json"),
+  DexaransNonfungiblePositionManager: require("../../artifacts/contracts/periphery/NonfungiblePositionManager.sol/DexaransNonfungiblePositionManager.json"),
   WETH9,
 };
+
+async function getPoolHashCode(signer: any, contract: Contract ) {
+  const code = await contract
+      .connect(signer)
+      .getPoolCreationCode();
+
+  return contract
+      .connect(signer)
+      .hashPoolCode(code);
+}
+
+function replaceLineInFile(filename: string, line: string, position: number) {
+  const fileText = fs.readFileSync(filename, { encoding: 'utf8', flag: 'r' });
+  const array = fileText.split('\n');
+  array[position] = line;
+  const out = array.join('\n');
+  fs.writeFileSync(filename, out);
+}
 
 const linkLibraries = (
   {
@@ -71,11 +90,33 @@ async function main() {
   const factory = await deployHelper.deployState({
     contractName: "Factory",
     contractFactory: new ContractFactory(
-      artifacts.Factory.abi,
-      artifacts.Factory.bytecode,
+        artifacts.Factory.abi,
+        artifacts.Factory.bytecode,
+        owner
+    ),
+  });
+
+  const addressHelper = await deployHelper.deployState({
+    contractName: "AddressHelper",
+    contractFactory: new ContractFactory(
+      artifacts.PoolAddressHelper.abi,
+      artifacts.PoolAddressHelper.bytecode,
       owner
     ),
   });
+
+  // get pool hash from contract
+  const poolHash = await getPoolHashCode(owner, addressHelper);
+  console.log(`PoolHash: ${poolHash}`);
+
+  // edit pool hash in PoolAddress.sol
+  const fileName = path.join(__dirname, "../../contracts/periphery/libraries/PoolAddress.sol");
+  const line = `    bytes32 internal constant POOL_INIT_CODE_HASH = ${poolHash};`;
+  replaceLineInFile(fileName, line, 5);
+
+  // NOTE trying to recompile Edited SOL file. But it not helps.
+  await run("compile");
+
   await deployHelper.deployState({
     contractName: "SwapRouter",
     contractFactory: new ContractFactory(
@@ -103,7 +144,7 @@ async function main() {
           NFTDescriptor: [
             {
               length: 20,
-              start: 1681,
+              start: 1640,
             },
           ],
         },
@@ -122,6 +163,7 @@ async function main() {
     ),
     contractArgs: [weth.target, ethers.encodeBytes32String("WETH")],
   });
+
   await deployHelper.deployState({
     contractName: "DexaransNonfungiblePositionManager",
     contractFactory: new ContractFactory(
@@ -131,8 +173,9 @@ async function main() {
     ),
     contractArgs: [factory.target, weth.target],
   });
+
   const network = await ethers.provider.getNetwork();
-  deployHelper.deploysSave("dex223", contractPath);
+  await deployHelper.deploysSave("dex223", contractPath);
   if (network.name == "localhost") {
     console.log(`Start setup tokens network = ${network.name} `);
     await setupTokens();

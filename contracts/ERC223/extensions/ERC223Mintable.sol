@@ -2,7 +2,7 @@ pragma solidity ^0.7.6;
 
 import "../IERC223.sol";
 import "../IERC223Recipient.sol";
-import "../../utils/Address.sol";
+import "../Address.sol";
 
 /**
  * @title Reference implementation of the ERC223 standard token.

@@ -1,16 +1,15 @@
 import { ethers } from "hardhat";
 import { BaseContract, Contract } from "ethers";
 import { Token } from "@uniswap/sdk-core";
-import { FeeAmount, Pool, Position, nearestUsableTick } from "@uniswap/v3-sdk";
+import { Pool, Position, nearestUsableTick } from "@uniswap/v3-sdk";
 import JSBI from "jsbi";
 import {
   ERC20Token,
-  ERC223Token,
   IERC223,
   DexaransNonfungiblePositionManager,
 } from "../../typechain-types";
 
-import UniswapV3Pool from "@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json";
+import UniswapV3Pool from "../../artifacts/contracts/core/Dex223Pool.sol/Dex223Pool.json";
 import NONFUNGIBLE_POSITION_MANAGER from "../../deployments/localhost/dex223/DexaransNonfungiblePositionManager/result.json";
 
 const provider = ethers.provider;

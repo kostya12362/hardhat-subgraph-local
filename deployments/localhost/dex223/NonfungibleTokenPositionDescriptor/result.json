@@ -1,7 +1,7 @@
 {
   "contractFile": "dex223/NonfungibleTokenPositionDescriptor",
   "contractName": "NonfungibleTokenPositionDescriptor",
-  "contractAddress": "0x276C216D241856199A83bf27b2286659e5b877D3",
+  "contractAddress": "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1",
   "abi": [
     {
       "type": "constructor",
@@ -134,5 +134,5 @@
       ]
     }
   ],
-  "startBlock": 161
+  "startBlock": 26
 }

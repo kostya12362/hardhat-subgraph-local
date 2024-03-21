@@ -5,16 +5,12 @@ artifacts/
 coverage/
 reports/
 
-# Smart Contract Testing
-coverage/
-
 # IDEs and Editors
 .vscode/
 .idea/
 *.code-workspace
 
 # Dependency directories
-node_modules/
 cache/
 typechain/
 
@@ -28,3 +24,4 @@ __result__/
 .env.production.local
 *.log
 typechain-types/
+/deployments/
