@@ -1,22 +1,22 @@
-//  pragma solidity ^0.7.6;
-
+//  pragma solidity =0.7.6;
+//
 // import "@openzeppelin/contracts/access/Ownable.sol";
 // import "../ERC223/IERC223.sol";
 // import "../ERC223/IERC223Recipient.sol";
 // import "../utils/Address.sol";
-
+//
 // /**
 //  * @title Reference implementation of the ERC223 standard token.
 //  */
 // contract ERC223Token is IERC223, Ownable {
-
+//
 //     string  private _name;
 //     string  private _symbol;
 //     uint8   private _decimals;
 //     uint256 private _totalSupply;
-
+//
 //     mapping(address => uint256) public balances; // List of user balances.
-
+//
 //     /**
 //      * @dev Sets the values for {name} and {symbol}, initializes {decimals} with
 //      * a default value of 18.
@@ -26,7 +26,7 @@
 //      * All three of these values are immutable: they can only be set once during
 //      * construction.
 //      */
-
+//
 //     constructor()
 //     {
 //         _name     = "Test ERC-223 A";
@@ -34,7 +34,7 @@
 //         _decimals = 6;
 //         balances[msg.sender] = 10000 * 1e6;
 //     }
-
+//
 //     /**
 //      * @dev Returns the name of the token.
 //      */
@@ -42,7 +42,7 @@
 //     {
 //         return _name;
 //     }
-
+//
 //     /**
 //      * @dev Returns the symbol of the token, usually a shorter version of the
 //      * name.
@@ -51,7 +51,7 @@
 //     {
 //         return _symbol;
 //     }
-
+//
 //     /**
 //      * @dev Returns the number of decimals used to get its user representation.
 //      * For example, if `decimals` equals `2`, a balance of `505` tokens should
@@ -69,7 +69,7 @@
 //     {
 //         return _decimals;
 //     }
-
+//
 //     /**
 //      * @dev See {IERC223-totalSupply}.
 //      */
@@ -77,8 +77,8 @@
 //     {
 //         return _totalSupply;
 //     }
-
-
+//
+//
 //     /**
 //      * @dev Returns balance of the `_owner`.
 //      *
@@ -89,7 +89,7 @@
 //     {
 //         return balances[_owner];
 //     }
-
+//
 //     /**
 //      * @dev Transfer the specified amount of tokens to the specified address.
 //      *      Invokes the `tokenFallback` function if the recipient is a contract.
@@ -117,9 +117,9 @@
 //         emit Transfer(msg.sender, _to, _value, _data);
 //         return true;
 //     }
-
-
-
+//
+//
+//
 //     /**
 //      * @dev Transfer the specified amount of tokens to the specified address.
 //      *      This function works the same with the previous one
@@ -140,22 +140,22 @@
 //         emit Transfer(msg.sender, _to, _value, _empty);
 //         return true;
 //     }
-
+//
 //     function mint(address to, uint256 amount) public onlyOwner {
 //         require(to != address(0), "ERC223Token: mint to the zero address");
-
+//
 //         _beforeTokenTransfer(address(0), to, amount);
-
+//
 //         _totalSupply += amount;
 //         balances[to] += amount;
-
+//
 //         emit Transfer(address(0), to, amount, "");
-
+//
 //         _afterTokenTransfer(address(0), to, amount);
 //     }
-
+//
 //     // Остальные функции контракта...
 //     function _afterTokenTransfer(address from, address to, uint256 amount) internal virtual { }
 //     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual { }
-
+//
 // }
