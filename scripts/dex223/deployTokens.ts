@@ -121,7 +121,7 @@ export async function setupTokens() {
   const wrapper223a = await tokenConv.connect(signer2).getERC223WrapperFor(erc20a.target);
   console.log(`ERC223 Wrapper (A): ${wrapper223a}`);
   const wrapper223b = await tokenConv.connect(signer2).getERC223WrapperFor(erc20b.target);
-  console.log(`ERC223 Wrapper (A): ${wrapper223b}`);
+  console.log(`ERC223 Wrapper (B): ${wrapper223b}`);
 
   await deployHelper.deploysSave("dex223/tokens", contractPath);
 }
