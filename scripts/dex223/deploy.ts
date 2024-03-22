@@ -79,14 +79,28 @@ const linkLibraries = (
 async function main() {
   const [owner] = await ethers.getSigners();
   const deployHelper = await DeployHelper.initialize(null, true);
-  const weth = await deployHelper.deployState({
-    contractName: "WETH9",
-    contractFactory: new ContractFactory(
-      artifacts.WETH9.abi,
-      artifacts.WETH9.bytecode,
-      owner
-    ),
-  });
+
+  let weth;
+  try {
+    const WETH9 = require( "../../deployments/localhost/dex223/WETH9/result.json");
+    const provider = ethers.provider;
+    console.log('Getting deployed WETH');
+    weth = new Contract(
+        WETH9.contractAddress,
+        WETH9.abi,
+        provider
+    );
+  } catch (e) {
+    console.log('Deploying new WETH');
+    weth = await deployHelper.deployState({
+      contractName: "WETH9",
+      contractFactory: new ContractFactory(
+          artifacts.WETH9.abi,
+          artifacts.WETH9.bytecode,
+          owner
+      ),
+    });
+  }
 
   const factory = await deployHelper.deployState({
     contractName: "Factory",

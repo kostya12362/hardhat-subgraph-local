@@ -52,6 +52,7 @@ export async function deployPool(
   fee: number,
   price: bigint
 ): Promise<string> {
+  console.log(`Deploy pool: ${token0} | ${token1}`);
   const [owner] = await ethers.getSigners();
 
   const tx = await nonfungiblePositionManager

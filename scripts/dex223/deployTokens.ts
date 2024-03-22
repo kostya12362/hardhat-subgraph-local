@@ -17,8 +17,6 @@ const artifacts = {
   TestHybridD: require("../../artifacts/contracts/TestTokens/TestHybridD.sol/ERC223Token.json"),
 };
 
-import WETH9 from "../../deployments/localhost/dex223/WETH9/result.json";
-
 export async function setupTokens() {
   const deployHelper = await DeployHelper.initialize(null, true);
   const [owner, signer2] = await ethers.getSigners();
@@ -66,6 +64,8 @@ export async function setupTokens() {
       .mint(signer2.address, ethers.parseEther("100000"));
   }
 
+  const WETH9 = require( "../../deployments/localhost/dex223/WETH9/result.json");
+
   const provider = ethers.provider;
   let weth = new Contract(
       WETH9.contractAddress,
@@ -73,7 +73,12 @@ export async function setupTokens() {
       provider
   );
 
-  await weth.connect(signer2).deposit({value: ethers.parseEther("1000")});
+  const balance = await weth.connect(signer2).balanceOf(signer2.address);
+  if (!balance) {
+    await weth.connect(signer2).deposit({value: ethers.parseEther("3000")});
+  } else {
+    console.log(`Already have ${balance} WETH`);
+  }
 
   await deployHelper.deploysSave("dex223/tokens", contractPath);
 }
