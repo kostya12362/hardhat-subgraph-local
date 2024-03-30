@@ -51,7 +51,8 @@ export async function addLiquidity(
   poolAddress: string,
   _token0: IERC223 | ERC20Token,
   _token1: IERC223 | ERC20Token,
-  _type: "ERC20" | "ERC223"
+  _type: "ERC20" | "ERC223",
+  _val: number
 ) {
   const [_owner, signer2] = await ethers.getSigners();
   // const _token0 = token0 as IERC223 | ERC20Token;
@@ -63,105 +64,66 @@ export async function addLiquidity(
   ) as BaseContract as DexaransNonfungiblePositionManager;
   const poolContract = new Contract(poolAddress, UniswapV3Pool.abi, provider);
   const poolData = await getPoolData(poolContract);
+
   const t0 = await getToken(_token0);
   const t1 = await getToken(_token1);
 
-  const liquidityBigInt = JSBI.BigInt(ethers.parseEther("0.01").toString());
-  // console.log(_token0, _token1);
-  // console.log("transfer", _token0.target);
+  console.log(t0.symbol);
+  console.log(t1.symbol);
+
+  const liquidityBigInt = JSBI.BigInt(ethers.parseEther(_val.toString()).toString());
+
+  const pool = new Pool(
+      t0,
+      t1,
+      poolData.fee,
+      poolData.sqrtPriceX96.toString(),
+      poolData.liquidity.toString(),
+      poolData.tick
+  );
+  const position = new Position({
+    pool,
+    liquidity: liquidityBigInt,
+    tickLower:
+        nearestUsableTick(poolData.tick, Number(poolData.tickSpacing)) -
+        Number(poolData.tickSpacing) * 2,
+    tickUpper:
+        nearestUsableTick(poolData.tick, Number(poolData.tickSpacing)) +
+        Number(poolData.tickSpacing) * 2,
+  });
+  const { amount0: amount0Desired, amount1: amount1Desired } =
+      position.mintAmounts;
+
   if (_type === "ERC223") {
     await _token0
       .connect(signer2)
       .transfer(
         NONFUNGIBLE_POSITION_MANAGER.contractAddress,
-        ethers.parseEther("1000")
+          amount0Desired.toString()
       );
     await _token1
       .connect(signer2)
       .transfer(
         NONFUNGIBLE_POSITION_MANAGER.contractAddress,
-        ethers.parseEther("1000")
+          amount1Desired.toString()
       );
   } else {
     await _token0
       .connect(signer2)
       .approve(
         NONFUNGIBLE_POSITION_MANAGER.contractAddress,
-        ethers.parseEther("1000")
+          amount0Desired.toString()
       );
     await _token1
       .connect(signer2)
       .approve(
         NONFUNGIBLE_POSITION_MANAGER.contractAddress,
-        ethers.parseEther("1000")
+          amount1Desired.toString()
       );
   }
-  // await _token0
-  //   .connect(signer2)
-  //   .approve(
-  //     NONFUNGIBLE_POSITION_MANAGER.contractAddress,
-  //     ethers.parseEther("1000")
-  //   );
-  // } else {
-  // console.log("approve", _token0.target);
-  // await _token0
-  //   .connect(signer2)
-  //   .approve(
-  //     NONFUNGIBLE_POSITION_MANAGER.contractAddress,
-  //     ethers.parseEther("1000")
-  //   );
-  // }
 
   console.log(await _token1.connect(signer2).balanceOf(signer2.address));
 
-  // await _token1
-  //   .connect(signer2)
-  //   .approve(
-  //     NONFUNGIBLE_POSITION_MANAGER.contractAddress,
-  //     ethers.parseEther("1000")
-  //   );
-  // } else {
-  // console.log("approve", _token1.target);
-  // await _token1
-  //   .connect(signer2)
-  //   .approve(
-  //     NONFUNGIBLE_POSITION_MANAGER.contractAddress,
-  //     ethers.parseEther("1000")
-  //   );
-  // }
-  // console.log(t0, t1);
-  // Проверяем наличие метода `approve` у объекта `token1` и вызываем его, если он доступен
-  // if ("approve" in token1) {
-  // console.log(token1.target);
-  // let x = await _token0
-  //   .connect(signer2)
-  //   .transfer(
-  //     NONFUNGIBLE_POSITION_MANAGER.contractAddress,
-  //     ethers.parseEther("1000")
-  //   );
-  // }
-  // await x.wait();
-  // console.log("approve", x.hash);
-  const pool = new Pool(
-    t0,
-    t1,
-    poolData.fee,
-    poolData.sqrtPriceX96.toString(),
-    poolData.liquidity.toString(),
-    poolData.tick
-  );
-  const position = new Position({
-    pool,
-    liquidity: liquidityBigInt,
-    tickLower:
-      nearestUsableTick(poolData.tick, Number(poolData.tickSpacing)) -
-      Number(poolData.tickSpacing) * 2,
-    tickUpper:
-      nearestUsableTick(poolData.tick, Number(poolData.tickSpacing)) +
-      Number(poolData.tickSpacing) * 2,
-  });
-  const { amount0: amount0Desired, amount1: amount1Desired } =
-    position.mintAmounts;
 
   const params = {
     token0: _token0.target,

@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 import { BaseContract, Contract } from "ethers";
 
-import { deployPool, encodePriceSqrt } from "./createPool";
+import { deployPool, encodePriceSqrt, calculateSqrtPriceX96 } from "./createPool";
 import { addLiquidity } from "./addLiquidity";
 import { ERC20Token, IERC223 } from "../../typechain-types";
 
@@ -46,22 +46,25 @@ async function main() {
   /** usdt-usdc pool */
   let wethPair1 = weth;
   let wethPair2 = usdc;
-  let wethReserve1 = 1n;
-  let wethReserve2 = 3500n;
+  let wethRatio = 3500;
   if (wethPair1.target > wethPair2.target) {
     console.log("Warning: Swapping weth and usdc");
     const temp = wethPair2;
     wethPair2 = wethPair1;
     wethPair1 = temp;
-    wethReserve1 = 3500n;
-    wethReserve2 = 1n;
+    wethRatio = 1/3500;
   }
 
+  let dec1 = await wethPair1.decimals();
+  let dec2 = await wethPair2.decimals();
+  let sqrtPrice = calculateSqrtPriceX96(Number(dec1) ,Number(dec2), wethRatio);
+  // console.log(`sqrtPrice: ${sqrtPrice}`);
+
   const wethUsdc500 = await deployPool(
-    String(wethPair1.target),
-    String(wethPair2.target),
-    500,
-    encodePriceSqrt(wethReserve1, wethReserve2)
+      String(wethPair1.target),
+      String(wethPair2.target),
+      500,
+      sqrtPrice
   );
 
   /** weth-usdc pool */
@@ -72,11 +75,16 @@ async function main() {
     usdt = temp;
   }
 
+  dec1 = await usdt.decimals();
+  dec2 = await usdc.decimals();
+  sqrtPrice = calculateSqrtPriceX96(Number(dec1) ,Number(dec2), 1);
+  // console.log(`sqrtPrice: ${sqrtPrice}`);
+
   const usdtUsdc500 = await deployPool(
-    String(usdt.target),
-    String(usdc.target),
-    500,
-    encodePriceSqrt(1n, 1n)
+      String(usdt.target),
+      String(usdc.target),
+      500,
+      sqrtPrice
   );
 
   /** ERC223_C-ERC223_D pool */
@@ -87,19 +95,24 @@ async function main() {
     testERC223_C = temp;
   }
 
+  dec1 = await testERC223_C.decimals();
+  dec2 = await testERC223_D.decimals();
+  sqrtPrice = calculateSqrtPriceX96(Number(dec1) ,Number(dec2), 1);
+  // console.log(`sqrtPrice: ${sqrtPrice}`);
+
   const erc223_c_erc20_d = await deployPool(
-    String(testERC223_C.target),
-    String(testERC223_D.target),
-    500,
-    encodePriceSqrt(1n, 1n)
+      String(testERC223_C.target),
+      String(testERC223_D.target),
+      500,
+      sqrtPrice
   );
   console.log(`Pool: ERC223_C and ERC223_D = ${erc223_c_erc20_d}`);
   console.log(`Pool: USDT and USDC = ${usdtUsdc500}`);
   console.log(`Pool: WETH and USDC = ${wethUsdc500}`);
 
-  await addLiquidity(wethUsdc500, wethPair1, wethPair2, "ERC20");
-  await addLiquidity(usdtUsdc500, usdt, usdc, "ERC20");
-  await addLiquidity(erc223_c_erc20_d, testERC223_C, testERC223_D, "ERC223");
+  await addLiquidity(wethUsdc500, wethPair1, wethPair2, "ERC20", 2);
+  await addLiquidity(usdtUsdc500, usdt, usdc, "ERC20",2);
+  await addLiquidity(erc223_c_erc20_d, testERC223_C, testERC223_D, "ERC223", 3);
 }
 
 main()

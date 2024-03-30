@@ -17,15 +17,44 @@ import './libraries/PoolAddress.sol';
 import './libraries/CallbackValidation.sol';
 import './interfaces/external/IWETH9.sol';
 
+abstract contract IERC223Recipient {
+
+
+ struct ERC223TransferInfo
+    {
+        address token_contract;
+        address sender;
+        uint256 value;
+        bytes   data;
+    }
+    
+    ERC223TransferInfo private tkn;
+    
+/**
+ * @dev Standard ERC223 function that will handle incoming token transfers.
+ *
+ * @param _from  Token sender address.
+ * @param _value Amount of tokens.
+ * @param _data  Transaction metadata.
+ */
+    function tokenReceived(address _from, uint _value, bytes memory _data) public virtual returns (bytes4)
+    {
+        // ACTUAL CODE
+
+        return 0x8943ec02;
+    }
+}
+
 /// @title Uniswap V3 Swap Router
 /// @notice Router for stateless execution of swaps against Uniswap V3
-contract SwapRouter is
+contract ERC223SwapRouter is
     ISwapRouter,
     PeripheryImmutableState,
     PeripheryValidation,
     PeripheryPaymentsWithFee,
     Multicall,
-    SelfPermit
+    SelfPermit,
+    IERC223Recipient
 {
     using Path for bytes;
     using SafeCast for uint256;
@@ -36,8 +65,49 @@ contract SwapRouter is
 
     /// @dev Transient storage variable used for returning the computed amount in for an exact output swap.
     uint256 private amountInCached = DEFAULT_AMOUNT_IN_CACHED;
+    
+    address public call_sender;
+    
+    struct ERC223SwapStep
+    {
+        address[] path;
+        uint256   outMin;
+    }
+    
+    modifier adjustableSender() {
+        if (call_sender == address(0))
+        {
+            call_sender = msg.sender;
+        }
+
+        _;
+
+        call_sender = address(0);
+    }
 
     constructor(address _factory, address _WETH9) PeripheryImmutableState(_factory, _WETH9) {}
+
+    function tokenReceived(address _from, uint _value, bytes memory _data) public override returns (bytes4)
+    {
+        depositERC223(_from, msg.sender, _value);
+        call_sender = _from;
+        if (_data.length != 0)
+        {
+             // Standard ERC-223 swapping via ERC-20 pattern
+            (bool success, bytes memory _data_) = address(this).delegatecall(_data);
+            require(success, "23F");
+/*
+            ERC223SwapStep memory encodedSwaps = abi.decode(_data, (ERC223SwapStep));
+
+            for (uint16 i = 0; i < encodedSwaps.path.length; i++)
+            {
+                swapERC223(encodedSwaps.path[i-1], encodedSwaps.path[i]);
+            }
+*/
+        }
+        call_sender = address(0);
+        return 0x8943ec02;
+    }
 
     /// @dev Returns the pool for the given token pair and fee. The pool contract may or may not exist.
     function getPool(
@@ -111,19 +181,46 @@ contract SwapRouter is
         return uint256(-(zeroForOne ? amount1 : amount0));
     }
 
-    /// @inheritdoc ISwapRouter
-    function exactInputSingle(ExactInputSingleParams calldata params)
-        external
-        payable
-        override
-        checkDeadline(params.deadline)
+    function exactInputSingle(ExactInputSingleParams calldata params) external payable override 
         returns (uint256 amountOut)
     {
+
+    }
+
+    // @inheritdoc ISwapRouter
+    function exactInputSingle1(
+        //ExactInputSingleParams calldata params
+            address tokenIn,
+            address tokenOut,
+            uint24 fee,
+            address recipient,
+            uint256 deadline,
+            uint256 amountIn,
+            uint256 amountOutMinimum,
+            uint160 sqrtPriceLimitX96
+        )
+        external
+        payable
+        adjustableSender
+        checkDeadline(//params.deadline
+        deadline)
+        returns (uint256 amountOut)
+    {
+        ExactInputSingleParams memory params = ExactInputSingleParams(
+             tokenIn,
+             tokenOut,
+             fee,
+             recipient,
+             deadline,
+             amountIn,
+             amountOutMinimum,
+             sqrtPriceLimitX96);
         amountOut = exactInputInternal(
             params.amountIn,
             params.recipient,
             params.sqrtPriceLimitX96,
-            SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: msg.sender})
+            //SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: msg.sender})
+            SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: call_sender})
         );
         require(amountOut >= params.amountOutMinimum, 'Too little received');
     }

@@ -122,7 +122,10 @@ abstract contract PeripheryPayments is IPeripheryPayments, PeripheryImmutableSta
             // Paying in a ERC-223 token.
             _erc223Deposits[payer][token] -= value;
             //TransferHelper.safeApprove(token, address(this), value);
-            IERC20(token).approve(address(this), value);
+            if(IERC20(token).allowance(address(this), address(this)) < value)
+            {
+                IERC20(token).approve(address(this), 2**256 - 1);
+            }
             //TransferHelper.safeTransferFrom(token, address(this), recipient, value);
             IERC20(token).transferFrom(address(this), recipient, value);
         }

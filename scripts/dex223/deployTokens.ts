@@ -14,6 +14,7 @@ const artifacts = {
   tether: require("../../artifacts/contracts/TestTokens/Tether.sol/Tether.json"),
   usdc: require("../../artifacts/contracts/TestTokens/Usdcoin.sol/UsdCoin.json"),
   wbtc: require("../../artifacts/contracts/TestTokens/WrappedBitcoin.sol/WrappedBitcoin.json"),
+  dai: require("../../artifacts/contracts/TestTokens/DAI.sol/Dai.json"),
   Test20A: require("../../artifacts/contracts/TestTokens/TestERC20A.sol/ERC20Token.json"),
   Test20B: require("../../artifacts/contracts/TestTokens/TestERC20B.sol/ERC20Token.json"),
   TestHybridC: require("../../artifacts/contracts/TestTokens/TestHybridC.sol/ERC223Token.json"),
@@ -38,6 +39,15 @@ export async function setupTokens() {
     contractFactory: new ContractFactory(
       artifacts.usdc.abi,
       artifacts.usdc.bytecode,
+      owner
+    ),
+  });
+
+  await deployHelper.deployState({
+    contractName: "DAI",
+    contractFactory: new ContractFactory(
+      artifacts.dai.abi,
+      artifacts.dai.bytecode,
       owner
     ),
   });

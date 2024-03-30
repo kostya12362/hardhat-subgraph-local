@@ -11,8 +11,13 @@ import {
 
 const provider = ethers.provider;
 
-export function encodePriceSqrt(reserve1: bigint, reserve0: bigint): bigint {
-  const ratio = Number(reserve1) / Number(reserve0);
+export function calculateSqrtPriceX96(decimalsA: number, decimalsB: number, priceOfTokenBInTermsOfTokenA: number): bigint {
+  let priceRatio = priceOfTokenBInTermsOfTokenA * (10 ** (decimalsB - decimalsA));
+  return encodePriceSqrt(priceRatio)
+}
+
+export function encodePriceSqrt(ratio: number): bigint {
+  // const ratio = Number(reserve1) / Number(reserve0);
   const twoPow48 = 2n ** 48n;
   const sqrtRatio = Math.sqrt(ratio);
   return  BigInt(Math.floor(sqrtRatio * Number(twoPow48))) * twoPow48;
