@@ -184,37 +184,6 @@ contract ERC223SwapRouter is
     function exactInputSingle(ExactInputSingleParams calldata params) external payable override 
         returns (uint256 amountOut)
     {
-
-    }
-
-    // @inheritdoc ISwapRouter
-    function exactInputSingle1(
-        //ExactInputSingleParams calldata params
-            address tokenIn,
-            address tokenOut,
-            uint24 fee,
-            address recipient,
-            uint256 deadline,
-            uint256 amountIn,
-            uint256 amountOutMinimum,
-            uint160 sqrtPriceLimitX96
-        )
-        external
-        payable
-        adjustableSender
-        checkDeadline(//params.deadline
-        deadline)
-        returns (uint256 amountOut)
-    {
-        ExactInputSingleParams memory params = ExactInputSingleParams(
-             tokenIn,
-             tokenOut,
-             fee,
-             recipient,
-             deadline,
-             amountIn,
-             amountOutMinimum,
-             sqrtPriceLimitX96);
         amountOut = exactInputInternal(
             params.amountIn,
             params.recipient,
