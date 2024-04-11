@@ -68,12 +68,6 @@ contract ERC223SwapRouter is
     
     address public call_sender;
     
-    struct ERC223SwapStep
-    {
-        address[] path;
-        uint256   outMin;
-    }
-    
     modifier adjustableSender() {
         if (call_sender == address(0))
         {
