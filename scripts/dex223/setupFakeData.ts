@@ -90,7 +90,7 @@ async function main() {
   const usdtUsdc500 = await deployPool(
       String(usdt.target),
       String(usdc.target),
-      500,
+      3000,
       sqrtPrice
   );
 
@@ -104,7 +104,7 @@ async function main() {
 
   dec1 = await testERC223_C.decimals();
   dec2 = await testERC223_D.decimals();
-  sqrtPrice = calculateSqrtPriceX96(Number(dec1) ,Number(dec2), 0.1);
+  sqrtPrice = calculateSqrtPriceX96(Number(dec1) ,Number(dec2), 10);
   // console.log(`sqrtPrice: ${sqrtPrice}`);
 
   const erc223_c_erc20_d = await deployPool(
@@ -117,10 +117,10 @@ async function main() {
   console.log(`Pool: USDT and USDC = ${usdtUsdc500}`);
   console.log(`Pool: WETH and USDC = ${wethUsdc500}`);
 
-  await addLiquidity(wethUsdc500, wethPair1, wethPair2, "ERC20", 2);
-  await addLiquidity(wethUsdc3000, wethPair1, wethPair2, "ERC20", 1000);
-  await addLiquidity(usdtUsdc500, usdt, usdc, "ERC20",0.002);
-  await addLiquidity(erc223_c_erc20_d, testERC223_C, testERC223_D, "ERC223", 3000);
+  // await addLiquidity(wethUsdc500, wethPair1, wethPair2, "ERC20", 2);
+  // await addLiquidity(wethUsdc3000, wethPair1, wethPair2, "ERC20", 1000);
+  // await addLiquidity(usdtUsdc500, usdt, usdc, "ERC20",0.002);
+  await addLiquidity(erc223_c_erc20_d, testERC223_C, testERC223_D, "ERC223", 30000);
 }
 
 main()
