@@ -25,3 +25,4 @@ __result__/
 *.log
 typechain-types/
 /deployments/
+.extractedAbis/

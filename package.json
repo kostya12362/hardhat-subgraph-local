@@ -56,6 +56,7 @@
     "hardhat:compile:force": "hardhat compile --force",
     "hardhat:test": "hardhat test",
     "hardhat:test:coverage": "hardhat coverage",
+    "hardhat:extract:abis:dex223": "hardhat run scripts/dex223/getAbis.ts",
     "hardhat:test:gas": "REPORT_GAS=true COINMARKETCAP_API_KEY=$(security find-generic-password -w -s 'Coinmarketcap API Key') hardhat test",
     "hardhat:deploy:local": "hardhat run --network localhost scripts/deploy.ts",
     "hardhat:setup:data:local": "hardhat run --network localhost scripts/setupFakeData.ts",
