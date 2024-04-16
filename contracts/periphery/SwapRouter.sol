@@ -27,9 +27,9 @@ abstract contract IERC223Recipient {
         uint256 value;
         bytes   data;
     }
-    
+
     ERC223TransferInfo private tkn;
-    
+
 /**
  * @dev Standard ERC223 function that will handle incoming token transfers.
  *
@@ -65,9 +65,9 @@ contract ERC223SwapRouter is
 
     /// @dev Transient storage variable used for returning the computed amount in for an exact output swap.
     uint256 private amountInCached = DEFAULT_AMOUNT_IN_CACHED;
-    
+
     address public call_sender;
-    
+
     modifier adjustableSender() {
         if (call_sender == address(0))
         {
@@ -132,6 +132,7 @@ contract ERC223SwapRouter is
             amount0Delta > 0
                 ? (tokenIn < tokenOut, uint256(amount0Delta))
                 : (tokenOut < tokenIn, uint256(amount1Delta));
+
         if (isExactInput) {
             pay(tokenIn, data.payer, msg.sender, amountToPay);
         } else {
@@ -175,14 +176,14 @@ contract ERC223SwapRouter is
         return uint256(-(zeroForOne ? amount1 : amount0));
     }
 
-    function exactInputSingle(ExactInputSingleParams calldata params) external payable override 
+    function exactInputSingle(ExactInputSingleParams calldata params) external payable override adjustableSender
         returns (uint256 amountOut)
     {
         amountOut = exactInputInternal(
             params.amountIn,
             params.recipient,
             params.sqrtPriceLimitX96,
-            //SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: msg.sender})
+//            SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: msg.sender})
             SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: call_sender})
         );
         require(amountOut >= params.amountOutMinimum, 'Too little received');
@@ -265,6 +266,7 @@ contract ERC223SwapRouter is
         payable
         override
         checkDeadline(params.deadline)
+        adjustableSender
         returns (uint256 amountIn)
     {
         // avoid an SLOAD by using the swap return data

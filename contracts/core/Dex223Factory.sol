@@ -19,8 +19,11 @@ contract Dex223Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegateCa
     /// @inheritdoc IUniswapV3Factory
     mapping(address => mapping(address => mapping(uint24 => address))) public override getPool;
 
-    constructor() {
+    address public pool_library;
+
+    constructor(address _pool_library) {
         owner = msg.sender;
+        pool_library = _pool_library;
         emit OwnerChanged(address(0), msg.sender);
 
         feeAmountTickSpacing[500] = 10;
@@ -43,7 +46,7 @@ contract Dex223Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegateCa
         int24 tickSpacing = feeAmountTickSpacing[fee];
         require(tickSpacing != 0);
         require(getPool[token0][token1][fee] == address(0));
-        pool = deploy(address(this), token0, token1, fee, tickSpacing);
+        pool = deploy(address(this), token0, token1, fee, tickSpacing, pool_library);
         getPool[token0][token1][fee] = pool;
         // populate mapping in the reverse direction, deliberate choice to avoid the cost of comparing addresses
         getPool[token1][token0][fee] = pool;
@@ -56,7 +59,7 @@ contract Dex223Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegateCa
         emit OwnerChanged(owner, _owner);
         owner = _owner;
     }
-    
+
 
     /// @inheritdoc IUniswapV3Factory
     function enableFeeAmount(uint24 fee, int24 tickSpacing) public override {
@@ -80,16 +83,16 @@ contract PoolAddressHelper
     function getPoolCreationCode() public view returns (bytes memory) {
         return type(Dex223Pool).creationCode;
     }
-    
+
     function hashPoolCode(bytes memory creation_code) public view returns (bytes32 pool_hash){
         pool_hash = keccak256(creation_code);
     }
-    
-    function computeAddress(address factory, 
+
+    function computeAddress(address factory,
                             address tokenA,
                             address tokenB,
-                            uint24 fee) 
-                            external view returns (address _pool) 
+                            uint24 fee)
+                            external view returns (address _pool)
     {
         require(tokenA < tokenB, "token1 > token0");
         //---------------- calculate pool address

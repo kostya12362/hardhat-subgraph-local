@@ -119,7 +119,7 @@ async function main() {
 
   // await addLiquidity(wethUsdc500, wethPair1, wethPair2, "ERC20", 2);
   // await addLiquidity(wethUsdc3000, wethPair1, wethPair2, "ERC20", 1000);
-  // await addLiquidity(usdtUsdc500, usdt, usdc, "ERC20",0.002);
+  await addLiquidity(usdtUsdc500, usdt, usdc, "ERC20",0.002);
   await addLiquidity(erc223_c_erc20_d, testERC223_C, testERC223_D, "ERC223", 30000);
 }
 

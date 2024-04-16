@@ -12,6 +12,7 @@ const contractPath = path.join(__dirname, "../dex223/artifacts");
 
 const artifacts = {
   // Factory: require("@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json"),
+  PoolLibrary: require("../../artifacts/contracts/core/libraries/Dex223PoolLib.sol/Dex223PoolLib.json"),
   Factory: require("../../artifacts/contracts/core/Dex223Factory.sol/Dex223Factory.json"),
   PoolAddressHelper: require("../../artifacts/contracts/core/Dex223Factory.sol/PoolAddressHelper.json"),
   PoolAddress: require("../../artifacts/contracts/periphery/libraries/PoolAddress.sol/PoolAddress.json"),
@@ -102,6 +103,15 @@ async function main() {
     });
   }
 
+  const poolLibrary = await deployHelper.deployState({
+    contractName: "PoolLibrary",
+    contractFactory: new ContractFactory(
+        artifacts.PoolLibrary.abi,
+        artifacts.PoolLibrary.bytecode,
+        owner
+    ),
+  });
+
   const factory = await deployHelper.deployState({
     contractName: "Factory",
     contractFactory: new ContractFactory(
@@ -109,6 +119,7 @@ async function main() {
         artifacts.Factory.bytecode,
         owner
     ),
+    contractArgs: [poolLibrary.target]
   });
 
   const addressHelper = await deployHelper.deployState({
