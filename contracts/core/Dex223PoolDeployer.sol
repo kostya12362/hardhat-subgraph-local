@@ -34,7 +34,7 @@ contract UniswapV3PoolDeployer is IUniswapV3PoolDeployer {
     ) internal returns (address pool) {
         parameters = Parameters({factory: factory, token0: token0, token1: token1, fee: fee, tickSpacing: tickSpacing});
         pool = address(new Dex223Pool{salt: keccak256(abi.encode(token0, token1, fee))}());
-        Dex223Pool(pool).setPoolLib(factory, _pool_library);
+        Dex223Pool(pool).setPoolLib(_pool_library);
         delete parameters;
     }
 }

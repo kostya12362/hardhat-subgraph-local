@@ -360,8 +360,8 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         emit Initialize(sqrtPriceX96, tick);
     }
 
-    function setPoolLib(address _factory, address _pool_library) external {
-        require(_factory == factory, "Wrong Factory");
+    function setPoolLib(address _pool_library) external {
+        require(msg.sender == factory, "Wrong Factory");
         pool_library = _pool_library;
     }
 
