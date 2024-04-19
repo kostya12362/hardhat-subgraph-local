@@ -1,12 +1,13 @@
 import path from "path";
 import fs from "fs";
 
-import { ContractFactory, Contract } from "ethers";
+import {ContractFactory, Contract, BaseContract} from "ethers";
 
 import { ethers, run } from "hardhat";
 import { DeployHelper } from "../helpers/DeployHelper";
 import { setupTokens } from "./deployTokens";
 import WETH9 from "./WETH9.json";
+import ERC223Quoter from "../../deployments/localhost/dex223/Quoter/result.json";
 
 const contractPath = path.join(__dirname, "../dex223/artifacts");
 
@@ -23,6 +24,8 @@ const artifacts = {
   WETH9,
   Convertor: require("../../artifacts/contracts/TokenStandardConverter/TokenConverter.sol/TokenStandardConverter.json"),
 };
+
+const provider = ethers.provider;
 
 async function getPoolHashCode(signer: any, contract: Contract ) {
   const code = await contract
@@ -104,45 +107,57 @@ async function main() {
     });
   }
 
-  const poolLibrary = await deployHelper.deployState({
-    contractName: "PoolLibrary",
-    contractFactory: new ContractFactory(
-        artifacts.PoolLibrary.abi,
-        artifacts.PoolLibrary.bytecode,
-        owner
-    ),
-  });
+  let factory: any;
+  try {
+    const ah = require("../../deployments/localhost/dex223/AddressHelper/result.json");
+    const fact = require("../../deployments/localhost/dex223/Factory/result.json");
+    factory = new Contract(
+        fact.contractAddress,
+        fact.abi,
+        provider
+    ) as BaseContract
+    // console.dir (factory);
+  } catch (e) {
+    const poolLibrary = await deployHelper.deployState({
+      contractName: "PoolLibrary",
+      contractFactory: new ContractFactory(
+          artifacts.PoolLibrary.abi,
+          artifacts.PoolLibrary.bytecode,
+          owner
+      ),
+    });
 
-  const factory = await deployHelper.deployState({
-    contractName: "Factory",
-    contractFactory: new ContractFactory(
-        artifacts.Factory.abi,
-        artifacts.Factory.bytecode,
-        owner
-    ),
-    contractArgs: [poolLibrary.target]
-  });
+    factory = await deployHelper.deployState({
+      contractName: "Factory",
+      contractFactory: new ContractFactory(
+          artifacts.Factory.abi,
+          artifacts.Factory.bytecode,
+          owner
+      ),
+      contractArgs: [poolLibrary.target]
+    });
 
-  const addressHelper = await deployHelper.deployState({
-    contractName: "AddressHelper",
-    contractFactory: new ContractFactory(
-      artifacts.PoolAddressHelper.abi,
-      artifacts.PoolAddressHelper.bytecode,
-      owner
-    ),
-  });
+    const addressHelper = await deployHelper.deployState({
+      contractName: "AddressHelper",
+      contractFactory: new ContractFactory(
+          artifacts.PoolAddressHelper.abi,
+          artifacts.PoolAddressHelper.bytecode,
+          owner
+      ),
+    });
 
-  // get pool hash from contract
-  const poolHash = await getPoolHashCode(owner, addressHelper);
-  console.log(`PoolHash: ${poolHash}`);
+    // get pool hash from contract
+    const poolHash = await getPoolHashCode(owner, addressHelper);
+    console.log(`PoolHash: ${poolHash}`);
 
-  // edit pool hash in PoolAddress.sol
-  const fileName = path.join(__dirname, "../../contracts/periphery/libraries/PoolAddress.sol");
-  const line = `    bytes32 internal constant POOL_INIT_CODE_HASH = ${poolHash};`;
-  replaceLineInFile(fileName, line, 5);
+    // edit pool hash in PoolAddress.sol
+    const fileName = path.join(__dirname, "../../contracts/periphery/libraries/PoolAddress.sol");
+    const line = `    bytes32 internal constant POOL_INIT_CODE_HASH = ${poolHash};`;
+    replaceLineInFile(fileName, line, 5);
 
-  // NOTE recompile Edited SOL file
-  await run("compile");
+    // NOTE recompile Edited SOL file
+    await run("compile");
+  }
 
   await deployHelper.deployState({
     contractName: "SwapRouter",

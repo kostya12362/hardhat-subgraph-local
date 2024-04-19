@@ -416,17 +416,11 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         if (success) {
             (amount0, amount1) = abi.decode(reason, (int256, int256));
         } else {
-            // forward reason to Quoter
-            // will not work with Quoter V2
-            if (reason.length != 32) {
-                revert(abi.decode(reason, (string)));
-            } else {
-                uint256 val = abi.decode(reason, (uint256));
-                assembly {
-                    let ptr := mload(0x40)
-                    mstore(ptr, val)
-                    revert(ptr, 32)
-                }
+            uint256 val = abi.decode(reason, (uint256));
+            assembly {
+                let ptr := mload(0x40)
+                mstore(ptr, val)
+                revert(ptr, 32)
             }
         }
      }
