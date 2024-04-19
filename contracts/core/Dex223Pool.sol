@@ -26,6 +26,7 @@ import './interfaces/IUniswapV3Factory.sol';
 import './interfaces/IERC20Minimal.sol';
 //import './interfaces/callback/IUniswapV3MintCallback.sol';
 import './interfaces/callback/IUniswapV3SwapCallback.sol';
+import {Quoter} from "../periphery/lens/Quoter.sol";
 /*
 import './interfaces/callback/IUniswapV3FlashCallback.sol';
 */
@@ -328,6 +329,7 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
 
     function increaseObservationCardinalityNext(uint16 observationCardinalityNext)
         external
+        override
         lock
         noDelegateCall
     {
@@ -340,7 +342,7 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
     }
 
     /// @dev not locked because it initializes unlocked
-    function initialize(uint160 sqrtPriceX96) external  {
+    function initialize(uint160 sqrtPriceX96) external override {
         require(slot0.sqrtPriceX96 == 0, 'AI');
 
         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
@@ -371,7 +373,7 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         int24 tickUpper,
         uint128 amount,
         bytes calldata data
-    ) external  lock /*adjustableSender*/ returns (uint256 amount0, uint256 amount1) {
+    ) external override lock /*adjustableSender*/ returns (uint256 amount0, uint256 amount1) {
         (bool success, bytes memory retdata) = pool_library.delegatecall(abi.encodeWithSignature("mint(address,int24,int24,uint128,bytes)", recipient, tickLower, tickUpper, amount, data));
         require(success);
         return abi.decode(retdata, (uint256, uint256));
@@ -381,7 +383,7 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         int24 tickLower,
         int24 tickUpper,
         uint128 amount
-    ) external  lock returns (uint256 amount0, uint256 amount1) {
+    ) external override lock returns (uint256 amount0, uint256 amount1) {
         (bool success, bytes memory retdata) = pool_library.delegatecall(abi.encodeWithSignature("burn(int24,int24,uint128)", tickLower, tickUpper, amount));
         require(success);
         return abi.decode(retdata, (uint256, uint256));
@@ -393,7 +395,7 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         int24 tickUpper,
         uint128 amount0Requested,
         uint128 amount1Requested
-    ) external  lock returns (uint128 amount0, uint128 amount1) {
+    ) external override lock returns (uint128 amount0, uint128 amount1) {
         (bool success, bytes memory retdata) = pool_library.delegatecall(abi.encodeWithSignature("collect(address,int24,int24,uint128,uint128)", recipient, tickLower, tickUpper, amount0Requested, amount1Requested));
         require(success);
         return abi.decode(retdata, (uint128, uint128));
@@ -405,12 +407,28 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
         bytes memory data
-    ) public  adjustableSender /*noDelegateCall*/ // noDelegateCall will not prevent delegatecalling
+    ) public override adjustableSender /*noDelegateCall*/ // noDelegateCall will not prevent delegatecalling
                                                         // this method from the same contract via `tokenReceived` of ERC-223
      returns (int256 amount0, int256 amount1) {
-        (bool success, bytes memory retdata) = pool_library.delegatecall(abi.encodeWithSignature("swap(address,bool,int256,uint160,bytes)", recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, data));
-        require(success);
-        return abi.decode(retdata, (int256, int256));
+
+        (bool success, bytes memory reason) = pool_library.delegatecall(abi.encodeWithSignature("swap(address,bool,int256,uint160,bytes)", recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, data));
+
+        if (success) {
+            (amount0, amount1) = abi.decode(reason, (int256, int256));
+        } else {
+            // forward reason to Quoter
+            // will not work with Quoter V2
+            if (reason.length != 32) {
+                revert(abi.decode(reason, (string)));
+            } else {
+                uint256 val = abi.decode(reason, (uint256));
+                assembly {
+                    let ptr := mload(0x40)
+                    mstore(ptr, val)
+                    revert(ptr, 32)
+                }
+            }
+        }
      }
 
     /// @inheritdoc IUniswapV3PoolActions

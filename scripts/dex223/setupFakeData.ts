@@ -3,6 +3,7 @@ import { BaseContract, Contract } from "ethers";
 
 import { deployPool, encodePriceSqrt, calculateSqrtPriceX96 } from "./createPool";
 import { addLiquidity } from "./addLiquidity";
+import { makeQuote } from "./makeQuote";
 import { ERC20Token, IERC223 } from "../../typechain-types";
 
 import USDT from "../../deployments/localhost/dex223/tokens/Tether/result.json";
@@ -121,6 +122,7 @@ async function main() {
   // await addLiquidity(wethUsdc3000, wethPair1, wethPair2, "ERC20", 1000);
   await addLiquidity(usdtUsdc500, usdt, usdc, "ERC20",0.002);
   await addLiquidity(erc223_c_erc20_d, testERC223_C, testERC223_D, "ERC223", 30000);
+  await makeQuote(testERC223_C, testERC223_D, 3000, 30000);
 }
 
 main()

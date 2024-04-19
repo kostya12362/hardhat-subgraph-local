@@ -17,6 +17,7 @@ const artifacts = {
   PoolAddressHelper: require("../../artifacts/contracts/core/Dex223Factory.sol/PoolAddressHelper.json"),
   PoolAddress: require("../../artifacts/contracts/periphery/libraries/PoolAddress.sol/PoolAddress.json"),
   SwapRouter: require("../../artifacts/contracts/periphery/SwapRouter.sol/ERC223SwapRouter.json"),
+  Quoter: require("../../artifacts/contracts/periphery/lens/Quoter223.sol/ERC223Quoter.json"),
   NFTDescriptor: require("../../artifacts/contracts/periphery/libraries/NFTDescriptor.sol/NFTDescriptor.json"),
   NonfungibleTokenPositionDescriptor: require("../../artifacts/contracts/periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json"),
   WETH9,
@@ -148,6 +149,16 @@ async function main() {
     contractFactory: new ContractFactory(
       artifacts.SwapRouter.abi,
       artifacts.SwapRouter.bytecode,
+      owner
+    ),
+    contractArgs: [factory.target, weth.target],
+  });
+
+  await deployHelper.deployState({
+    contractName: "Quoter",
+    contractFactory: new ContractFactory(
+      artifacts.Quoter.abi,
+      artifacts.Quoter.bytecode,
       owner
     ),
     contractArgs: [factory.target, weth.target],
