@@ -52,20 +52,22 @@ const factory = new Contract(
 ) as BaseContract as UniswapV3Factory;
 
 export async function deployPool(
-  token0: string,
-  token1: string,
+  token0erc20: string,
+  token1erc20: string,
+  token0erc223: string,
+  token1erc223: string,
   fee: number,
   price: bigint
 ): Promise<string> {
-  console.log(`Deploy pool: ${token0} | ${token1}`);
+  console.log(`Deploy pool: ${token0erc20} | ${token1erc20}`);
   const [owner] = await ethers.getSigners();
 
   const tx = await nonfungiblePositionManager
     .connect(owner)
-    .createAndInitializePoolIfNecessary(token0, token1, fee, price, {
-      gasLimit: 8_000_000,
+    .createAndInitializePoolIfNecessary(token0erc20, token1erc20, token0erc223, token1erc223, fee, price, {
+      gasLimit: 15_000_000, //30_000_000
     });
   await tx.wait();
-  const poolAddress = await factory.connect(owner).getPool(token0, token1, fee);
+  const poolAddress = await factory.connect(owner).getPool(token0erc20, token1erc20, fee);
   return poolAddress;
 }

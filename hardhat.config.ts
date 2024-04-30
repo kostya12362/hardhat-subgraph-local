@@ -38,27 +38,57 @@ const config: HardhatUserConfig = {
     overrides: {
       "contracts/TokenStandardConverter/TokenConverter.sol": {
         version: "0.8.19",
-        settings: {}
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 100,
+          }
+        }
       },
       "contracts/TokenStandardConverter/ERC165.sol": {
         version: "0.8.19",
-        settings: {}
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 100,
+          }
+        }
       },
       "contracts/TokenStandardConverter/Address.sol": {
         version: "0.8.19",
-        settings: {}
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 100,
+          }
+        }
       },
       "contracts/TokenStandardConverter/IERC165.sol": {
         version: "0.8.19",
-        settings: {}
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 100,
+          }
+        }
       },
       "contracts/TokenStandardConverter/IERC223.sol": {
         version: "0.8.19",
-        settings: {}
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 100,
+          }
+        }
       },
       "contracts/TokenStandardConverter/IERC223Recipient.sol": {
         version: "0.8.19",
-        settings: {}
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 100,
+          }
+        }
       }
     }
   },

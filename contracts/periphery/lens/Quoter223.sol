@@ -2,10 +2,10 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import '@uniswap/v3-core/contracts/libraries/SafeCast.sol';
-import '@uniswap/v3-core/contracts/libraries/TickMath.sol';
-import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
-import '@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol';
+import '../libraries/SafeCast.sol';
+import '../libraries/TickMath.sol';
+import '../interfaces/IUniswapV3Pool.sol';
+import '../interfaces/callback/IUniswapV3SwapCallback.sol';
 
 import '../interfaces/IQuoter.sol';
 import '../base/PeripheryImmutableState.sol';
@@ -139,6 +139,7 @@ contract ERC223Quoter is IQuoter, IUniswapV3SwapCallback, PeripheryImmutableStat
             sqrtPriceLimitX96 == 0
                 ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
                 : sqrtPriceLimitX96,
+            false, // bool prefer223Out    
             abi.encodePacked(tokenIn, fee, tokenOut)
         )
         {} catch (bytes memory reason) {
@@ -185,6 +186,7 @@ contract ERC223Quoter is IQuoter, IUniswapV3SwapCallback, PeripheryImmutableStat
             sqrtPriceLimitX96 == 0
                 ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
                 : sqrtPriceLimitX96,
+            false, // bool prefer223Out        
             abi.encodePacked(tokenOut, fee, tokenIn)
         )
         {} catch (bytes memory reason) {

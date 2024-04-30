@@ -2,9 +2,9 @@
 pragma solidity >=0.7.6;
 pragma abicoder v2;
 
-import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
-import '@uniswap/v3-core/contracts/libraries/FixedPoint128.sol';
-import '@uniswap/v3-core/contracts/libraries/FullMath.sol';
+import './interfaces/IUniswapV3Pool.sol';
+import './libraries/FixedPoint128.sol';
+import './libraries/FullMath.sol';
 
 import './interfaces/INonfungiblePositionManager.sol';
 import './interfaces/INonfungibleTokenPositionDescriptor.sol';
@@ -16,7 +16,6 @@ import './base/Multicall.sol';
 import './base/PeripheryValidation.sol';
 import './base/PoolInitializer.sol';
 
-
 /// SwapCallbackData memory data = abi.decode(_data, (SwapCallbackData));
 
 ///////////////////// IMPORTING HELL /////////////////////////////////
@@ -24,8 +23,6 @@ import './base/PoolInitializer.sol';
 
 
 //import './base/SelfPermit.sol';
-
-// import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 /*
 interface IERC20 {
@@ -1992,9 +1989,9 @@ abstract contract IERC223Recipient {
         uint256 value;
         bytes   data;
     }
-    
+
     ERC223TransferInfo private tkn;
-    
+
 /**
  * @dev Standard ERC223 function that will handle incoming token transfers.
  *
@@ -2007,7 +2004,7 @@ abstract contract IERC223Recipient {
         /**
          * @dev Note that inside of the token transaction handler the actual sender of token transfer is accessible via the tkn.sender variable
          * (analogue of msg.sender for Ether transfers)
-         * 
+         *
          * tkn.value - is the amount of transferred tokens
          * tkn.data  - is the "metadata" of token transfer
          * tkn.token_contract is most likely equal to msg.sender because the token contract typically invokes this function
@@ -2016,7 +2013,7 @@ abstract contract IERC223Recipient {
         tkn.sender         = _from;
         tkn.value          = _value;
         tkn.data           = _data;
-        
+
         // ACTUAL CODE
 
         return 0x8943ec02;
@@ -2083,14 +2080,14 @@ contract DexaransNonfungiblePositionManager is
     ) ERC721Permit('Uniswap V3 Positions NFT-V1', 'UNI-V3-POS', '1') PeripheryImmutableState(_factory, _WETH9) {
         // _tokenDescriptor = _tokenDescriptor_; removed during testing
     }
-    
+
     ERC223TransferInfo private tkn;
     function tokenReceived(address _from, uint _value, bytes memory _data) public override returns (bytes4)
     {
         /**
          * @dev Note that inside of the token transaction handler the actual sender of token transfer is accessible via the tkn.sender variable
          * (analogue of msg.sender for Ether transfers)
-         * 
+         *
          * tkn.value - is the amount of transferred tokens
          * tkn.data  - is the "metadata" of token transfer
          * tkn.token_contract is most likely equal to msg.sender because the token contract typically invokes this function
@@ -2099,7 +2096,7 @@ contract DexaransNonfungiblePositionManager is
         tkn.sender         = _from;
         tkn.value          = _value;
         tkn.data           = _data;
-        
+
         depositERC223(_from, msg.sender, _value);
 
         return 0x8943ec02;

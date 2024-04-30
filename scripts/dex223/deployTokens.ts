@@ -107,6 +107,7 @@ export async function setupTokens() {
   const balance = await weth.connect(signer2).balanceOf(signer2.address);
   if (!balance) {
     await weth.connect(signer2).deposit({value: ethers.parseEther("3000")});
+    console.log(`Converted 3000 WETH`);
   } else {
     console.log(`Already have ${balance} WETH`);
   }

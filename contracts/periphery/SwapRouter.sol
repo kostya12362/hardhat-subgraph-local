@@ -2,9 +2,9 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import '@uniswap/v3-core/contracts/libraries/SafeCast.sol';
-import '@uniswap/v3-core/contracts/libraries/TickMath.sol';
-import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
+import './libraries/SafeCast.sol';
+import './libraries/TickMath.sol';
+import './interfaces/IUniswapV3Pool.sol';
 
 import './interfaces/ISwapRouter.sol';
 import './base/PeripheryImmutableState.sol';
@@ -17,6 +17,17 @@ import './libraries/PoolAddress.sol';
 import './libraries/CallbackValidation.sol';
 import './interfaces/external/IWETH9.sol';
 
+interface IDex223Pool {
+        function swap(
+        address recipient,
+        bool zeroForOne,
+        int256 amountSpecified,
+        uint160 sqrtPriceLimitX96,
+        bool prefer223,
+        bytes memory data
+    ) external returns (int256 amount0, int256 amount1);
+}
+
 abstract contract IERC223Recipient {
 
 
@@ -27,9 +38,9 @@ abstract contract IERC223Recipient {
         uint256 value;
         bytes   data;
     }
-
+    
     ERC223TransferInfo private tkn;
-
+    
 /**
  * @dev Standard ERC223 function that will handle incoming token transfers.
  *
@@ -65,9 +76,9 @@ contract ERC223SwapRouter is
 
     /// @dev Transient storage variable used for returning the computed amount in for an exact output swap.
     uint256 private amountInCached = DEFAULT_AMOUNT_IN_CACHED;
-
+    
     address public call_sender;
-
+    
     modifier adjustableSender() {
         if (call_sender == address(0))
         {
@@ -108,8 +119,8 @@ contract ERC223SwapRouter is
         address tokenA,
         address tokenB,
         uint24 fee
-    ) private view returns (IUniswapV3Pool) {
-        return IUniswapV3Pool(PoolAddress.computeAddress(factory, PoolAddress.getPoolKey(tokenA, tokenB, fee)));
+    ) private view returns (IDex223Pool) {
+        return IDex223Pool(PoolAddress.computeAddress(factory, PoolAddress.getPoolKey(tokenA, tokenB, fee)));
     }
 
     struct SwapCallbackData {
@@ -132,7 +143,6 @@ contract ERC223SwapRouter is
             amount0Delta > 0
                 ? (tokenIn < tokenOut, uint256(amount0Delta))
                 : (tokenOut < tokenIn, uint256(amount1Delta));
-
         if (isExactInput) {
             pay(tokenIn, data.payer, msg.sender, amountToPay);
         } else {
@@ -153,6 +163,7 @@ contract ERC223SwapRouter is
         uint256 amountIn,
         address recipient,
         uint160 sqrtPriceLimitX96,
+        //bool prefer223Out,
         SwapCallbackData memory data
     ) private returns (uint256 amountOut) {
         // allow swapping to the router address with address 0
@@ -170,16 +181,18 @@ contract ERC223SwapRouter is
                 sqrtPriceLimitX96 == 0
                     ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
                     : sqrtPriceLimitX96,
+                false, // FOR TESTING REASONS
+                       // automatically request ERC-20 tokens as an output.
                 abi.encode(data)
             );
 
         return uint256(-(zeroForOne ? amount1 : amount0));
     }
 
-    function exactInputSingle(ExactInputSingleParams calldata params)
-        external
-        payable
-        override
+    function exactInputSingle(ExactInputSingleParams calldata params) 
+        external 
+        payable 
+        override 
         adjustableSender
         checkDeadline(params.deadline)
         returns (uint256 amountOut)
@@ -188,10 +201,53 @@ contract ERC223SwapRouter is
             params.amountIn,
             params.recipient,
             params.sqrtPriceLimitX96,
-//            SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: msg.sender})
+            //params.prefer223Out,
+            //SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: msg.sender})
             SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: call_sender})
         );
         require(amountOut >= params.amountOutMinimum, 'Too little received');
+    }
+
+    struct exactInputDoubleStandardData
+    {
+        address tokenIn;
+        address tokenOut;
+        int256 amountIn;
+        address recipient;
+        uint160 sqrtPriceLimitX96;
+        bool zeroForOne;
+        address pool;
+        uint256 fee;
+        uint256 deadline;
+        bool prefer223Out;
+    }
+
+    function exactInputDoubleStandard(exactInputDoubleStandardData calldata data) 
+        external 
+        payable  
+        adjustableSender
+        checkDeadline(data.deadline)
+        returns (uint256 amountOut)
+    {
+        //(address tokenIn, address tokenOut, uint24 fee) = data.path.decodeFirstPool();
+        //bool zeroForOne = tokenIn < tokenOut;
+
+        (int256 amount0, int256 amount1) =
+            IDex223Pool(data.pool).swap(
+                data.recipient,
+                data.zeroForOne,
+                data.amountIn, // int256 << can be negative
+                data.sqrtPriceLimitX96,
+                data.prefer223Out,
+                //bytes("0")
+
+                abi.encode( SwapCallbackData({path: abi.encodePacked(data.tokenIn, data.fee, data.tokenOut), payer: call_sender}) )
+            );
+
+        //return uint256(-(zeroForOne ? amount1 : amount0));
+        //require(amountOut >= amountOutMin, 'Too little received');
+
+        return uint256(-(data.zeroForOne ? amount1 : amount0));
     }
 
     /// @inheritdoc ISwapRouter
@@ -212,6 +268,7 @@ contract ERC223SwapRouter is
                 params.amountIn,
                 hasMultiplePools ? address(this) : params.recipient, // for intermediate swaps, this contract custodies
                 0,
+                //params.prefer223Out,
                 SwapCallbackData({
                     path: params.path.getFirstPool(), // only the first pool in the path is necessary
                     payer: payer
@@ -253,6 +310,7 @@ contract ERC223SwapRouter is
                 sqrtPriceLimitX96 == 0
                     ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
                     : sqrtPriceLimitX96,
+                false,
                 abi.encode(data)
             );
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.7.5;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '../interfaces/IERC20.sol';
 
 import '../interfaces/IPeripheryPayments.sol';
 import '../interfaces/external/IWETH9.sol';
@@ -11,29 +11,29 @@ import '../libraries/TransferHelper.sol';
 import './PeripheryImmutableState.sol';
 
 abstract contract IERC223 {
-    
+
     function name()        public view virtual returns (string memory);
     function symbol()      public view virtual returns (string memory);
     function decimals()    public view virtual returns (uint8);
     function totalSupply() public view virtual returns (uint256);
-    
+
     /**
      * @dev Returns the balance of the `who` address.
      */
     function balanceOf(address who) public virtual view returns (uint);
-        
+
     /**
      * @dev Transfers `value` tokens from `msg.sender` to `to` address
      * and returns `true` on success.
      */
     function transfer(address to, uint value) public virtual returns (bool success);
-        
+
     /**
      * @dev Transfers `value` tokens from `msg.sender` to `to` address with `data` parameter
      * and returns `true` on success.
      */
     function transfer(address to, uint value, bytes calldata data) public virtual returns (bool success);
-     
+
      /**
      * @dev Event that is fired on successful transfer.
      */
@@ -41,7 +41,7 @@ abstract contract IERC223 {
 }
 
 abstract contract PeripheryPayments is IPeripheryPayments, PeripheryImmutableState {
-    
+
     /// @dev User => Token => Balance
     mapping(address => mapping(address => uint256)) internal _erc223Deposits;
 
@@ -116,7 +116,7 @@ abstract contract PeripheryPayments is IPeripheryPayments, PeripheryImmutableSta
             // pay with WETH9
             IWETH9(WETH9).deposit{value: value}(); // wrap only what is needed to pay
             IWETH9(WETH9).transfer(recipient, value);
-        } 
+        }
         else if (_erc223Deposits[payer][token] >= value)
         {
             // Paying in a ERC-223 token.
@@ -124,7 +124,8 @@ abstract contract PeripheryPayments is IPeripheryPayments, PeripheryImmutableSta
             //TransferHelper.safeApprove(token, address(this), value);
             if(IERC20(token).allowance(address(this), address(this)) < value)
             {
-                IERC20(token).approve(address(this), 2**256 - 1);
+                //IERC20(token).approve(address(this), 2**256 - 1);
+                TransferHelper.safeApprove(token, address(this), 2**256 - 1);
             }
             //TransferHelper.safeTransferFrom(token, address(this), recipient, value);
             IERC20(token).transferFrom(address(this), recipient, value);

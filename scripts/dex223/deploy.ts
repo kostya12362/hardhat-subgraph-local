@@ -13,7 +13,7 @@ const contractPath = path.join(__dirname, "../dex223/artifacts");
 
 const artifacts = {
   // Factory: require("@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json"),
-  PoolLibrary: require("../../artifacts/contracts/core/libraries/Dex223PoolLib.sol/Dex223PoolLib.json"),
+  PoolLibrary: require("../../artifacts/contracts/core/Dex223PoolLib.sol/Dex223PoolLib.json"),
   Factory: require("../../artifacts/contracts/core/Dex223Factory.sol/Dex223Factory.json"),
   PoolAddressHelper: require("../../artifacts/contracts/core/Dex223Factory.sol/PoolAddressHelper.json"),
   PoolAddress: require("../../artifacts/contracts/periphery/libraries/PoolAddress.sol/PoolAddress.json"),
@@ -82,7 +82,7 @@ const linkLibraries = (
 };
 
 async function main() {
-  const [owner] = await ethers.getSigners();
+  const [owner, signer] = await ethers.getSigners();
   const deployHelper = await DeployHelper.initialize(null, true);
 
   let weth;
@@ -127,15 +127,26 @@ async function main() {
       ),
     });
 
+    /** Token Convertor */
+    const converter = await deployHelper.deployState({
+      contractName: "TokenConvertor",
+      contractFactory: new ContractFactory(
+          artifacts.Convertor.abi,
+          artifacts.Convertor.bytecode,
+          owner
+      ),
+    });
+
     factory = await deployHelper.deployState({
       contractName: "Factory",
       contractFactory: new ContractFactory(
           artifacts.Factory.abi,
           artifacts.Factory.bytecode,
           owner
-      ),
-      contractArgs: [poolLibrary.target]
+      )
     });
+
+    await factory.connect(owner).set(poolLibrary.target, converter.target);
 
     const addressHelper = await deployHelper.deployState({
       contractName: "AddressHelper",
@@ -226,16 +237,6 @@ async function main() {
       owner
     ),
     contractArgs: [factory.target, weth.target],
-  });
-
-  /** Token Convertor */
-  await deployHelper.deployState({
-    contractName: "TokenConvertor",
-    contractFactory: new ContractFactory(
-      artifacts.Convertor.abi,
-        artifacts.Convertor.bytecode,
-      owner
-    ),
   });
 
   const network = await ethers.provider.getNetwork();

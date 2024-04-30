@@ -2,7 +2,7 @@
 pragma solidity >=0.7.5;
 pragma abicoder v2;
 
-import '@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol';
+import '../interfaces/callback/IUniswapV3SwapCallback.sol';
 
 /// @title Router token swapping functionality
 /// @notice Functions for swapping tokens via Uniswap V3
@@ -16,6 +16,7 @@ interface ISwapRouter is IUniswapV3SwapCallback {
         uint256 amountIn;
         uint256 amountOutMinimum;
         uint160 sqrtPriceLimitX96;
+        bool    prefer223Out;
     }
 
     /// @notice Swaps `amountIn` of one token for as much as possible of another token
@@ -29,6 +30,7 @@ interface ISwapRouter is IUniswapV3SwapCallback {
         uint256 deadline;
         uint256 amountIn;
         uint256 amountOutMinimum;
+        bool    prefer223Out;
     }
 
     /// @notice Swaps `amountIn` of one token for as much as possible of another along the specified path
