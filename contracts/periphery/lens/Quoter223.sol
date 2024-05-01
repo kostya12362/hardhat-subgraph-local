@@ -13,6 +13,17 @@ import '../libraries/Path.sol';
 import '../libraries/PoolAddress.sol';
 import '../libraries/CallbackValidation.sol';
 
+interface IDex223Pool {
+    function swap(
+        address recipient,
+        bool zeroForOne,
+        int256 amountSpecified,
+        uint160 sqrtPriceLimitX96,
+        bool prefer223,
+        bytes memory data
+    ) external returns (int256 amount0, int256 amount1);
+}
+
 abstract contract IERC223Recipient {
 
 
@@ -74,8 +85,8 @@ contract ERC223Quoter is IQuoter, IUniswapV3SwapCallback, PeripheryImmutableStat
         address tokenA,
         address tokenB,
         uint24 fee
-    ) private view returns (IUniswapV3Pool) {
-        return IUniswapV3Pool(PoolAddress.computeAddress(factory, PoolAddress.getPoolKey(tokenA, tokenB, fee)));
+    ) private view returns (IDex223Pool) {
+        return IDex223Pool(PoolAddress.computeAddress(factory, PoolAddress.getPoolKey(tokenA, tokenB, fee)));
     }
 
     /// @inheritdoc IUniswapV3SwapCallback
@@ -139,7 +150,7 @@ contract ERC223Quoter is IQuoter, IUniswapV3SwapCallback, PeripheryImmutableStat
             sqrtPriceLimitX96 == 0
                 ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
                 : sqrtPriceLimitX96,
-            false, // bool prefer223Out    
+            false, // bool prefer223Out
             abi.encodePacked(tokenIn, fee, tokenOut)
         )
         {} catch (bytes memory reason) {
@@ -186,7 +197,7 @@ contract ERC223Quoter is IQuoter, IUniswapV3SwapCallback, PeripheryImmutableStat
             sqrtPriceLimitX96 == 0
                 ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
                 : sqrtPriceLimitX96,
-            false, // bool prefer223Out        
+            false, // bool prefer223Out
             abi.encodePacked(tokenOut, fee, tokenIn)
         )
         {} catch (bytes memory reason) {

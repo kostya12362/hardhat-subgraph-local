@@ -68,8 +68,15 @@ async function main() {
   // console.log(`sqrtPrice: ${sqrtPrice}`);
 
   // TODO add ERC223 addresses
-  const wethPair1ERC223 = await convertContract.predictWrapperAddress(wethPair1.target, true);
+  const [_owner, signer2] = await ethers.getSigners();
+  try {
+    await convertContract.connect(signer2).createERC223Wrapper(wethPair1.target);
+    await convertContract.connect(signer2).createERC223Wrapper(wethPair2.target);
+  } catch (e) {
+    //
+  }
   const wethPair2ERC223 = await convertContract.predictWrapperAddress(wethPair2.target, true);
+  const wethPair1ERC223 = await convertContract.predictWrapperAddress(wethPair1.target, true);
   console.log("wethPair1ERC223:", wethPair1ERC223);
   console.log("wethPair2ERC223:", wethPair2ERC223);
 
@@ -136,9 +143,10 @@ async function main() {
   await addLiquidity(wethUsdc3000, wethPair1, wethPair2, "ERC20", 10);
   // await addLiquidity(usdtUsdc500, usdt, usdc, "ERC20",0.002);
   // await addLiquidity(erc223_c_erc20_d, testERC223_C, testERC223_D, "ERC223", 30000);
-  // await makeQuote(testERC223_C, testERC223_D, 3000, 30000);
-
-  // TODO create pool with 223 versions than add 20 versions as liquidity
+  await makeQuote(wethPair1, wethPair2, 3000, 10000000000);
+  // await makeQuote({target: wethPair1ERC223} as IERC223, wethPair2, 3000, 10000000000);
+  // await makeQuote({target: wethPair1ERC223} as IERC223, {target: wethPair2ERC223} as IERC223, 3000, 10000000000);
+  // await makeQuote({target: wethPair2ERC223} as IERC223, wethPair1, 3000, 10);
 
 }
 

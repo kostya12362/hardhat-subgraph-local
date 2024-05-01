@@ -30,7 +30,7 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
     // @inheritdoc IUniswapV3Factory
     mapping(address => mapping(address => mapping(uint24 => address))) public override getPool;
 
-    function set(address _lib, address _converter) public
+    function set(address _lib, address _converter) public 
     {
         require(msg.sender == owner);
         converter = ITokenStandardConverter(_converter);
@@ -40,6 +40,7 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
     constructor() {
         owner = msg.sender;
         converter = ITokenStandardConverter(0x5B38Da6a701c568545dCfcB03FcB875f56beddC4); // Just some test address. Replace with a mainnet ERC-7417 converter instead!
+        //pool_lib = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4;
         emit OwnerChanged(address(0), msg.sender);
         feeAmountTickSpacing[500] = 10;
         emit FeeAmountEnabled(500, 10);
@@ -49,7 +50,7 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
         emit FeeAmountEnabled(10000, 200);
     }
 
-    function tokenReceived(address _from, uint _value, bytes memory _data) public returns (bytes4)
+    function tokenReceived(address _from, uint _value, bytes memory ) public returns (bytes4)
     {
         if(_from == address(this) && _value == 0)
         {
@@ -95,7 +96,7 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
         int24 tickSpacing = feeAmountTickSpacing[fee];
         require(tickSpacing != 0);
         require(getPool[tokenA_erc20][tokenB_erc20][fee] == address(0));
-        pool = deploy(address(this), tokenA_erc20, tokenB_erc20, fee, tickSpacing); //tokenA_erc223, tokenB_erc223,
+        pool = deploy(address(this), tokenA_erc20, tokenB_erc20, fee, tickSpacing);
         Dex223Pool(pool).set(tokenA_erc223, tokenB_erc223, pool_lib);
         getPool[tokenA_erc20][tokenB_erc20][fee] = pool;
         // populate mapping in ALL directions.
@@ -117,7 +118,7 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
         owner = _owner;
     }
 
-    function identifyTokens(address _token) internal returns (address erc20_address, address erc223_address, uint8 origin)
+    function identifyTokens(address _token) internal view returns (address erc20_address, address erc223_address, uint8 origin)
     {
 
         // origin      << address of the token origin (always exists)
@@ -126,9 +127,9 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
         //                can be predicted as its created via CREATE2
 
         // Not using the standard introspection now but better check it for safety in production.
-        bytes memory erc223_output = bytes("0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000033232330000000000000000000000000000000000000000000000000000000000");
+        // bytes memory erc223_output = bytes("0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000033232330000000000000000000000000000000000000000000000000000000000");
 
-        (bool success, bytes memory data) =
+        (bool success, ) =
                 _token.staticcall(abi.encodeWithSelector(0x5a3b7e42));
                 if(success)
                 {
@@ -136,12 +137,12 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
                     {
                         return (converter.getERC20OriginFor(_token), _token, 20);
                     }
-                    else
+                    else 
                     {
                         return (converter.predictWrapperAddress(_token, false), _token, 223);
                     }
                 }
-                else
+                else 
                 {
                     if(converter.isWrapper(_token))
                     {
@@ -153,7 +154,7 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
                     }
                 }
     }
-
+    
 
     // @inheritdoc IUniswapV3Factory
     function enableFeeAmount(uint24 fee, int24 tickSpacing) public override {
@@ -174,19 +175,19 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
 
 contract PoolAddressHelper
 {
-    function getPoolCreationCode() public view returns (bytes memory) {
+    function getPoolCreationCode() public pure returns (bytes memory) {
         return type(Dex223Pool).creationCode;
     }
-
-    function hashPoolCode(bytes memory creation_code) public view returns (bytes32 pool_hash){
+    
+    function hashPoolCode(bytes memory creation_code) public pure returns (bytes32 pool_hash){
         pool_hash = keccak256(creation_code);
     }
-
-    function computeAddress(address factory,
+    
+    function computeAddress(address factory, 
                             address tokenA,
                             address tokenB,
-                            uint24 fee)
-                            external view returns (address _pool)
+                            uint24 fee) 
+                            external pure returns (address _pool) 
     {
         require(tokenA < tokenB, "token1 > token0");
         //---------------- calculate pool address

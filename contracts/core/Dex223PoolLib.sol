@@ -6,6 +6,8 @@ import './interfaces/callback/IUniswapV3MintCallback.sol';
 import './interfaces/pool/IUniswapV3PoolEvents.sol';
 import './interfaces/IERC20Minimal.sol';
 import './interfaces/callback/IUniswapV3SwapCallback.sol';
+import './interfaces/ITokenConverter.sol';
+import './interfaces/IUniswapV3Pool.sol';
 
 import './libraries/SqrtPriceMath.sol';
 import './libraries/Position.sol';
@@ -17,7 +19,7 @@ import './libraries/Oracle.sol';
 import './libraries/TransferHelper.sol';
 import './libraries/SwapMath.sol';
 
-contract Dex223PoolLib  {
+contract Dex223PoolLib {
     using LowGasSafeMath for uint256;
     using LowGasSafeMath for int256;
     using SafeCast for uint256;
@@ -28,14 +30,24 @@ contract Dex223PoolLib  {
     using Position for Position.Info;
     using Oracle for Oracle.Observation[65535];
 
+    struct Token
+    {
+        address erc20;
+        address erc223;
+    }
+
     address public factory;
-    address public token0;
-    address public token1;
-    uint24 public fee;
 
-    int24 public tickSpacing;
+    ITokenStandardConverter public converter;
 
-    uint128 public maxLiquidityPerTick;
+    Token public token0;
+    Token public token1;
+
+    uint24 public  fee;
+
+    int24 public  tickSpacing;
+
+    uint128 public  maxLiquidityPerTick;
 
     struct Slot0 {
         // the current price
@@ -54,7 +66,6 @@ contract Dex223PoolLib  {
         // whether the pool is locked
         bool unlocked;
     }
-
     Slot0 public  slot0;
 
     uint256 public  feeGrowthGlobal0X128;
@@ -118,7 +129,7 @@ contract Dex223PoolLib  {
         uint128 amount1
     );
 
-    event Swap(
+      event Swap(
         address indexed sender,
         address indexed recipient,
         int256 amount0,
@@ -144,20 +155,30 @@ contract Dex223PoolLib  {
     /// @dev This function is gas optimized to avoid a redundant extcodesize check in addition to the returndatasize
     /// check
     function balance0() private view returns (uint256) {
-        (bool success, bytes memory data) =
-                            token0.staticcall(abi.encodeWithSelector(IERC20Minimal.balanceOf.selector, address(this)));
-        require(success && data.length >= 32);
-        return abi.decode(data, (uint256));
+        (bool success20, bytes memory data20) =
+                                token0.erc20.staticcall(abi.encodeWithSelector(IERC20Minimal.balanceOf.selector, address(this)));
+        (bool success223, bytes memory data223) =
+                                token0.erc223.staticcall(abi.encodeWithSelector(IERC20Minimal.balanceOf.selector, address(this)));
+        uint256 _balance;
+        if(success20 && data20.length >= 32)  _balance += abi.decode(data20, (uint256));
+        if(success223 && data223.length >= 32) _balance += abi.decode(data223, (uint256));
+        require((success20 && data20.length >= 32) || (success223 && data223.length >= 32));
+        return _balance;
     }
 
     /// @dev Get the pool's balance of token1
     /// @dev This function is gas optimized to avoid a redundant extcodesize check in addition to the returndatasize
     /// check
     function balance1() private view returns (uint256) {
-        (bool success, bytes memory data) =
-                            token1.staticcall(abi.encodeWithSelector(IERC20Minimal.balanceOf.selector, address(this)));
-        require(success && data.length >= 32);
-        return abi.decode(data, (uint256));
+        (bool success20, bytes memory data20) =
+                                token1.erc20.staticcall(abi.encodeWithSelector(IERC20Minimal.balanceOf.selector, address(this)));
+        (bool success223, bytes memory data223) =
+                                token1.erc223.staticcall(abi.encodeWithSelector(IERC20Minimal.balanceOf.selector, address(this)));
+        uint256 _balance;
+        if(success20 && data20.length >= 32)  _balance += abi.decode(data20, (uint256));
+        if(success223 && data223.length >= 32) _balance += abi.decode(data223, (uint256));
+        require((success20 && data20.length >= 32) || (success223 && data223.length >= 32));
+        return _balance;
     }
 
     /// @dev Gets and updates a position with the given liquidity delta
@@ -181,7 +202,7 @@ contract Dex223PoolLib  {
         bool flippedLower;
         bool flippedUpper;
         if (liquidityDelta != 0) {
-            uint32 time = _blockTimestamp();
+            uint32 time = uint32(block.timestamp);
             (int56 tickCumulative, uint160 secondsPerLiquidityCumulativeX128) =
                                 observations.observeSingle(
                     time,
@@ -204,7 +225,6 @@ contract Dex223PoolLib  {
                 false,
                 maxLiquidityPerTick
             );
-
             flippedUpper = ticks.update(
                 tickUpper,
                 tick,
@@ -249,7 +269,6 @@ contract Dex223PoolLib  {
     /// @return amount1 the amount of token1 owed to the pool, negative if the pool should pay the recipient
     function _modifyPosition(ModifyPositionParams memory params)
     private
-//    noDelegateCall
     returns (
         Position.Info storage position,
         int256 amount0,
@@ -257,6 +276,7 @@ contract Dex223PoolLib  {
     )
     {
         checkTicks(params.tickLower, params.tickUpper);
+
         Slot0 memory _slot0 = slot0; // SLOAD for gas optimization
 
         position = _updatePosition(
@@ -283,7 +303,7 @@ contract Dex223PoolLib  {
                 // write an oracle entry
                 (slot0.observationIndex, slot0.observationCardinality) = observations.write(
                     _slot0.observationIndex,
-                    _blockTimestamp(),
+                    uint32(block.timestamp),
                     _slot0.tick,
                     liquidityBefore,
                     _slot0.observationCardinality,
@@ -321,7 +341,7 @@ contract Dex223PoolLib  {
         int24 tickUpper,
         uint128 amount,
         bytes calldata data
-    ) external /*adjustableSender*/ returns (uint256 amount0, uint256 amount1) {
+    ) external  /*adjustableSender*/ returns (uint256 amount0, uint256 amount1) {
         require(amount > 0);
         (, int256 amount0Int, int256 amount1Int) =
                         _modifyPosition(
@@ -340,13 +360,35 @@ contract Dex223PoolLib  {
         uint256 balance1Before;
         if (amount0 > 0) balance0Before = balance0();
         if (amount1 > 0) balance1Before = balance1();
-
         IUniswapV3MintCallback(msg.sender).uniswapV3MintCallback(amount0, amount1, data);
-
         if (amount0 > 0) require(balance0Before.add(amount0) <= balance0(), 'M0');
         if (amount1 > 0) require(balance1Before.add(amount1) <= balance1(), 'M1');
-
         emit Mint(msg.sender, recipient, tickLower, tickUpper, amount, amount0, amount1);
+    }
+
+    function collect(
+        address recipient,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 amount0Requested,
+        uint128 amount1Requested
+    ) external  returns (uint128 amount0, uint128 amount1) {
+        // we don't need to checkTicks here, because invalid positions will never have non-zero tokensOwed{0,1}
+        Position.Info storage position = positions.get(msg.sender, tickLower, tickUpper);
+
+        amount0 = amount0Requested > position.tokensOwed0 ? position.tokensOwed0 : amount0Requested;
+        amount1 = amount1Requested > position.tokensOwed1 ? position.tokensOwed1 : amount1Requested;
+
+        if (amount0 > 0) {
+            position.tokensOwed0 -= amount0;
+            TransferHelper.safeTransfer(token0.erc20, recipient, amount0);
+        }
+        if (amount1 > 0) {
+            position.tokensOwed1 -= amount1;
+            TransferHelper.safeTransfer(token1.erc20, recipient, amount1);
+        }
+
+        emit Collect(msg.sender, recipient, tickLower, tickUpper, amount0, amount1);
     }
 
     /// @dev noDelegateCall is applied indirectly via _modifyPosition
@@ -354,7 +396,7 @@ contract Dex223PoolLib  {
         int24 tickLower,
         int24 tickUpper,
         uint128 amount
-    ) external returns (uint256 amount0, uint256 amount1) {
+    ) external  returns (uint256 amount0, uint256 amount1) {
         (Position.Info storage position, int256 amount0Int, int256 amount1Int) =
                         _modifyPosition(
                 ModifyPositionParams({
@@ -378,31 +420,6 @@ contract Dex223PoolLib  {
         emit Burn(msg.sender, tickLower, tickUpper, amount, amount0, amount1);
     }
 
-
-    function collect(
-        address recipient,
-        int24 tickLower,
-        int24 tickUpper,
-        uint128 amount0Requested,
-        uint128 amount1Requested
-    ) external returns (uint128 amount0, uint128 amount1) {
-        // we don't need to checkTicks here, because invalid positions will never have non-zero tokensOwed{0,1}
-        Position.Info storage position = positions.get(msg.sender, tickLower, tickUpper);
-
-        amount0 = amount0Requested > position.tokensOwed0 ? position.tokensOwed0 : amount0Requested;
-        amount1 = amount1Requested > position.tokensOwed1 ? position.tokensOwed1 : amount1Requested;
-
-        if (amount0 > 0) {
-            position.tokensOwed0 -= amount0;
-            TransferHelper.safeTransfer(token0, recipient, amount0);
-        }
-        if (amount1 > 0) {
-            position.tokensOwed1 -= amount1;
-            TransferHelper.safeTransfer(token1, recipient, amount1);
-        }
-
-        emit Collect(msg.sender, recipient, tickLower, tickUpper, amount0, amount1);
-    }
 
     struct SwapCache {
         // the protocol fee for the input token
@@ -459,11 +476,14 @@ contract Dex223PoolLib  {
         bool zeroForOne,
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
+        bool prefer223Out,
         bytes memory data
-    ) public  /*noDelegateCall*/ // noDelegateCall will not prevent delegatecalling
+    ) external /*noDelegateCall*/ // noDelegateCall will not prevent delegatecalling
                                                         // this method from the same contract via `tokenReceived` of ERC-223
      returns (int256 amount0, int256 amount1) {
+
         require(amountSpecified != 0, 'AS');
+
         Slot0 memory slot0Start = slot0;
 
         require(slot0Start.unlocked, 'LOK');
@@ -479,7 +499,7 @@ contract Dex223PoolLib  {
         SwapCache memory cache =
             SwapCache({
                 liquidityStart: liquidity,
-                blockTimestamp: _blockTimestamp(),
+                blockTimestamp: uint32(block.timestamp),
                 feeProtocol: zeroForOne ? (slot0Start.feeProtocol % 16) : (slot0Start.feeProtocol >> 4),
                 secondsPerLiquidityCumulativeX128: 0,
                 tickCumulative: 0,
@@ -634,43 +654,158 @@ contract Dex223PoolLib  {
         // @Dexaran: Adjusting the token delivery method for ERC-20 and ERC-223 tokens
         //           in case of ERC-223 this `swap()` func is called within `tokenReceived()` invocation
         //           so the ERC-223 tokens are already in the contract
-        //           and the amount is stored in a `erc223deposit[msg.sender][token]` variable.
-
+        //           and the amount is stored in the `erc223deposit[msg.sender][token]` variable.
         if (zeroForOne) {
-            if (amount1 < 0) TransferHelper.safeTransfer(token1, recipient, uint256(-amount1));
+
+            // SECURITY WARNING!
+            // In order to prevent re-entrancy attacks
+            // first subtract the deposited amount or pull the tokens from the swap sender
+            // then deliver the swapped amount.
 
             // ERC-223 depositing logic
-            if (erc223deposit[swap_sender][token0] >= uint256(amount0))
+            if (erc223deposit[swap_sender][token0.erc223] >= uint256(amount0))
             {
-                erc223deposit[swap_sender][token0] -= uint256(amount0);
+                erc223deposit[swap_sender][token0.erc223] -= uint256(amount0);
             }
             // ERC-20 depositing logic
             else
             {
                 uint256 balance0Before = balance0();
                 IUniswapV3SwapCallback(swap_sender).uniswapV3SwapCallback(amount0, amount1, data);
-                uint256 balance0After = balance0();
-                require(balance0Before.add(uint256(amount0)) <= balance0After, 'IIA');
+                require(balance0Before.add(uint256(amount0)) <= balance0(), 'IIA');
+            }
+
+            if (amount1 < 0)
+            {
+                if(prefer223Out)
+                {
+                    // Optimistically attempt to transfer the full amount of tokens to the recipient.
+                    // Optimizes gas usages for situations where there are enough tokens in the pool
+                    // to provide the recipient with the tokens of the chosen standard
+                    // without a need to convert them via ERC-7417.
+                    (bool success, bytes memory data) =
+                        token1.erc223.call(abi.encodeWithSelector(IERC20Minimal.transfer.selector, recipient, uint256(-amount1)));
+
+                        //require(success && (data.length == 0 || abi.decode(data, (bool))), 'TF');
+                    if(!success)
+                    {
+                        // The transfer didn't work and it could be because there are not enough tokens in the contract
+                        // to pay in the selected standard.
+                        // We need to call the converter and transform part of the tokens from pools balance
+                        // to the tokens of desired standard.
+
+                        if(IERC20Minimal(token1.erc223).balanceOf(address(this)) < uint256(-amount1))
+                        {
+                            IERC20Minimal(token1.erc223).transfer(address(converter), uint256(-amount1) - IERC20Minimal(token1.erc223).balanceOf(address(this)));
+                        }
+                        // Now there should be enough tokens to cover the payment.
+                        TransferHelper.safeTransfer(token1.erc223, recipient, uint256(-amount1));
+                    }
+                }
+                else
+                {
+                    // Optimistically attempt to transfer the full amount of tokens to the recipient.
+                    (bool success, bytes memory data) =
+                        token1.erc20.call(abi.encodeWithSelector(IERC20Minimal.transfer.selector, recipient, uint256(-amount1)));
+
+                        //require(success && (data.length == 0 || abi.decode(data, (bool))), 'TF');
+                    if(!success)
+                    {
+                        // Not enough ERC-20 tokens on the pools balance
+                        // Need to convert ERC-223 version to ERC-20 then deliver it to the user.
+
+                        if(IERC20Minimal(token1.erc20).balanceOf(address(this)) < uint256(-amount1))
+                        {
+                            // Approve the converter first if necessary.
+                            // This approval is expected to execute once and forever.
+                            if(IERC20Minimal(token1.erc20).allowance(address(this), address(converter)) < uint256(-amount1))
+                            {
+                                IERC20Minimal(token1.erc20).approve(address(converter), 2**256-1);
+                            }
+                            converter.convertERC20(token1.erc20, uint256(-amount1) - IERC20Minimal(token1.erc20).balanceOf(address(this)));
+                        }
+                        // Now there should be enough tokens to cover the payment.
+                        TransferHelper.safeTransfer(token1.erc20, recipient, uint256(-amount1));
+                    }
+                }
             }
         } else {
-            if (amount0 < 0) TransferHelper.safeTransfer(token0, recipient, uint256(-amount0));
+
+            // Again, first receive the payment, then deliver the tokens.
+            // We don't want to be hacked as TheDAO was.
 
             // ERC-223 depositing logic
-            if (erc223deposit[swap_sender][token1] >= uint256(amount1))
+            if (erc223deposit[swap_sender][token1.erc223] >= uint256(amount1))
             {
-                erc223deposit[swap_sender][token1] -= uint256(amount1);
+                erc223deposit[swap_sender][token1.erc223] -= uint256(amount1);
             }
             // ERC-20 depositing logic
             else
             {
                 uint256 balance1Before = balance1();
                 IUniswapV3SwapCallback(swap_sender).uniswapV3SwapCallback(amount0, amount1, data);
-                uint256 balance1After = balance1();
-                require(balance1Before.add(uint256(amount1)) <= balance1After, 'IIA');
+                require(balance1Before.add(uint256(amount1)) <= balance1(), 'IIA');
             }
+
+
+            //if (amount0 < 0) TransferHelper.safeTransfer(token0.erc20, recipient, uint256(-amount0));
+
+
+            if(prefer223Out)
+                {
+                    // Optimistically attempt to transfer the full amount of tokens to the recipient.
+                    // Optimizes gas usages for situations where there are enough tokens in the pool
+                    // to provide the recipient with the tokens of the chosen standard
+                    // without a need to convert them via ERC-7417.
+                    (bool success, bytes memory data) =
+                        token0.erc223.call(abi.encodeWithSelector(IERC20Minimal.transfer.selector, recipient, uint256(-amount0)));
+
+                        //require(success && (data.length == 0 || abi.decode(data, (bool))), 'TF');
+                    if(!success)
+                    {
+                        // The transfer didn't work and it could be because there are not enough tokens in the contract
+                        // to pay in the selected standard.
+                        // We need to call the converter and transform part of the tokens from pools balance
+                        // to the tokens of desired standard.
+
+                        if(IERC20Minimal(token0.erc223).balanceOf(address(this)) < uint256(-amount0))
+                        {
+                            IERC20Minimal(token0.erc223).transfer(address(converter), uint256(-amount0) - IERC20Minimal(token0.erc223).balanceOf(address(this)));
+                        }
+                        // Now there should be enough tokens to cover the payment.
+                        TransferHelper.safeTransfer(token0.erc223, recipient, uint256(-amount0));
+                    }
+                }
+                else
+                {
+                    // Optimistically attempt to transfer the full amount of tokens to the recipient.
+                    (bool success, bytes memory data) =
+                        token0.erc20.call(abi.encodeWithSelector(IERC20Minimal.transfer.selector, recipient, uint256(-amount0)));
+
+                        //require(success && (data.length == 0 || abi.decode(data, (bool))), 'TF');
+                    if(!success)
+                    {
+                        // Not enough ERC-20 tokens on the pools balance
+                        // Need to convert ERC-223 version to ERC-20 then deliver it to the user.
+
+                        if(IERC20Minimal(token0.erc20).balanceOf(address(this)) < uint256(-amount0))
+                        {
+                            // Approve the converter first if necessary.
+                            // This approval is expected to execute once and forever.
+                            if(IERC20Minimal(token0.erc20).allowance(address(this), address(converter)) < uint256(-amount0))
+                            {
+                                IERC20Minimal(token0.erc20).approve(address(converter), 2**256-1);
+                            }
+                            converter.convertERC20(token0.erc20, uint256(-amount0) - IERC20Minimal(token0.erc20).balanceOf(address(this)));
+                        }
+                        // Now there should be enough tokens to cover the payment.
+                        TransferHelper.safeTransfer(token0.erc20, recipient, uint256(-amount0));
+                    }
+                }
         }
 
         emit Swap(swap_sender, recipient, amount0, amount1, state.sqrtPriceX96, state.liquidity, state.tick);
         slot0.unlocked = true;
     }
+
 }

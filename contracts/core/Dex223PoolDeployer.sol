@@ -10,8 +10,6 @@ contract UniswapV3PoolDeployer is IDex223PoolDeployer {
         address factory;
         address token0_erc20;
         address token1_erc20;
-//        address token0_erc223;
-//        address token1_erc223;
         uint24 fee;
         int24 tickSpacing;
     }
@@ -32,8 +30,6 @@ contract UniswapV3PoolDeployer is IDex223PoolDeployer {
         address factory,
         address token0_erc20,
         address token1_erc20,
-//        address token0_erc223,
-//        address token1_erc223,
         uint24 fee,
         int24 tickSpacing
     ) internal returns (address pool) {
