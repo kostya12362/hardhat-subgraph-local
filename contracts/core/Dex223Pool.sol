@@ -420,9 +420,11 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         int24 tickLower,
         int24 tickUpper,
         uint128 amount0Requested,
-        uint128 amount1Requested
+        uint128 amount1Requested,
+        bool token0_223,
+        bool token1_223
     ) external override lock returns (uint128 amount0, uint128 amount1) {
-        (bool success, bytes memory retdata) = pool_lib.delegatecall(abi.encodeWithSignature("collect(address,int24,int24,uint128,uint128)", recipient, tickLower, tickUpper, amount0Requested, amount1Requested));
+        (bool success, bytes memory retdata) = pool_lib.delegatecall(abi.encodeWithSignature("collect(address,int24,int24,uint128,uint128,bool,bool)", recipient, tickLower, tickUpper, amount0Requested, amount1Requested, token0_223, token1_223));
         require(success);
         return abi.decode(retdata, (uint128, uint128));
     }
@@ -446,13 +448,13 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         bool zeroForOne,
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
-        bool prefer223Out,
+        bool prefer223,
         bytes memory data
     ) external override adjustableSender /*noDelegateCall*/ // noDelegateCall will not prevent delegatecalling
                                                         // this method from the same contract via `tokenReceived` of ERC-223
      returns (int256 amount0, int256 amount1) {
 
-        (bool success, bytes memory retdata) = pool_lib.delegatecall(abi.encodeWithSignature("swap(address,bool,int256,uint160,bool,bytes)", recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, prefer223Out, data));
+        (bool success, bytes memory retdata) = pool_lib.delegatecall(abi.encodeWithSignature("swap(address,bool,int256,uint160,bool,bytes)", recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, prefer223, data));
 
         if (success) {
             (amount0, amount1) = abi.decode(retdata, (int256, int256));
