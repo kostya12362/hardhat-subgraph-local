@@ -147,9 +147,9 @@ contract Dex223PoolLib {
     }
 
     /// @dev Returns the block timestamp truncated to 32 bits, i.e. mod 2**32. This method is overridden in tests.
-    function _blockTimestamp() internal view virtual returns (uint32) {
-        return uint32(block.timestamp); // truncation is desired
-    }
+//    function _blockTimestamp() internal view virtual returns (uint32) {
+//        return uint32(block.timestamp); // truncation is desired
+//    }
 
     /// @dev Get the pool's balance of token0
     /// @dev This function is gas optimized to avoid a redundant extcodesize check in addition to the returndatasize
@@ -363,7 +363,38 @@ contract Dex223PoolLib {
         IUniswapV3MintCallback(msg.sender).uniswapV3MintCallback(amount0, amount1, data);
         if (amount0 > 0) require(balance0Before.add(amount0) <= balance0(), 'M0');
         if (amount1 > 0) require(balance1Before.add(amount1) <= balance1(), 'M1');
+
         emit Mint(msg.sender, recipient, tickLower, tickUpper, amount, amount0, amount1);
+    }
+
+    function optimisticDelivery(address _token, address _recipient, uint256 _amount) internal
+    {
+        bool _is223 = false;
+        if(_token == token0.erc223 || _token == token1.erc223) _is223 = true;
+        // Transfer the tokens and hope that the transfer will succeed i.e. there were
+        // enough tokens of the given standard to cover the cost of the transfer.
+        (bool success, bytes memory data) =
+                            _token.call(abi.encodeWithSelector(IERC20Minimal.transfer.selector, _recipient, _amount));
+
+        //require(success && (data.length == 0 || abi.decode(data, (bool))), 'TF');
+        if(!success)
+        {
+            if(_is223)
+            {
+                IERC20Minimal(_token).transfer(address(converter), _amount - IERC20Minimal(_token).balanceOf(address(this)));
+            }
+            else
+            {
+                // Approve the converter first if necessary.
+                // This approval is expected to execute once and forever.
+                if(IERC20Minimal(_token).allowance(address(this), address(converter)) < _amount)
+                {
+                    IERC20Minimal(_token).approve(address(converter), 2**256-1);
+                }
+                converter.convertERC20(_token, _amount - IERC20Minimal(_token).balanceOf(address(this)));
+            }
+            TransferHelper.safeTransfer(_token, _recipient, _amount);
+        }
     }
 
     function collect(
@@ -371,8 +402,10 @@ contract Dex223PoolLib {
         int24 tickLower,
         int24 tickUpper,
         uint128 amount0Requested,
-        uint128 amount1Requested
-    ) external  returns (uint128 amount0, uint128 amount1) {
+        uint128 amount1Requested,
+        bool token0_223,
+        bool token1_223
+    ) external returns (uint128 amount0, uint128 amount1) {
         // we don't need to checkTicks here, because invalid positions will never have non-zero tokensOwed{0,1}
         Position.Info storage position = positions.get(msg.sender, tickLower, tickUpper);
 
@@ -381,11 +414,15 @@ contract Dex223PoolLib {
 
         if (amount0 > 0) {
             position.tokensOwed0 -= amount0;
-            TransferHelper.safeTransfer(token0.erc20, recipient, amount0);
+            //TransferHelper.safeTransfer(token0.erc20, recipient, amount0);
+            if(token0_223) optimisticDelivery(token0.erc223, recipient, amount0);
+            else optimisticDelivery(token0.erc20, recipient, amount0);
         }
         if (amount1 > 0) {
             position.tokensOwed1 -= amount1;
-            TransferHelper.safeTransfer(token1.erc20, recipient, amount1);
+            //TransferHelper.safeTransfer(token1.erc20, recipient, amount1);
+            if(token1_223) optimisticDelivery(token1.erc223, recipient, amount1);
+            else optimisticDelivery(token1.erc20, recipient, amount1);
         }
 
         emit Collect(msg.sender, recipient, tickLower, tickUpper, amount0, amount1);

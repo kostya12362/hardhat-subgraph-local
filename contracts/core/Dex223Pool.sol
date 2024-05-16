@@ -160,7 +160,8 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         address _t1erc223,
         //uint24 _fee,
         //int24 _tickSpacing,
-        address _library
+        address _library,
+        address _converter
         ) external
     {
         require(msg.sender == factory);
@@ -169,6 +170,7 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         //token1.erc20 = _t1erc20;
         token0.erc223 = _t0erc223;
         token1.erc223 = _t1erc223;
+        converter     = ITokenStandardConverter(_converter);
         //fee = _fee;
         //maxLiquidityPerTick = Tick.tickSpacingToMaxLiquidityPerTick(_tickSpacing);
     }
@@ -276,7 +278,7 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
             uint32 secondsInside
         )
     {
-          checkTicks(tickLower, tickUpper);
+        checkTicks(tickLower, tickUpper);
 
         int56 tickCumulativeLower;
         int56 tickCumulativeUpper;
@@ -341,7 +343,6 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
             );
         }
     }
-
 
     /// @inheritdoc IUniswapV3PoolDerivedState
     function observe(uint32[] calldata secondsAgos)

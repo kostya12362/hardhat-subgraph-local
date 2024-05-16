@@ -16,6 +16,36 @@ import './base/Multicall.sol';
 import './base/PeripheryValidation.sol';
 import './base/PoolInitializer.sol';
 
+interface IDex223PoolActions {
+    function collect(
+        address recipient,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 amount0Requested,
+        uint128 amount1Requested,
+        bool token0_223,
+        bool token1_223
+    ) external returns (uint128 amount0, uint128 amount1);
+
+    function burn(
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 amount
+    ) external returns (uint256 amount0, uint256 amount1);
+
+    function positions(bytes32 key)
+        external
+        view
+        returns (
+            uint128 _liquidity,
+            uint256 feeGrowthInside0LastX128,
+            uint256 feeGrowthInside1LastX128,
+            uint128 tokensOwed0,
+            uint128 tokensOwed1
+        );
+}
+
+
 /// SwapCallbackData memory data = abi.decode(_data, (SwapCallbackData));
 
 ///////////////////// IMPORTING HELL /////////////////////////////////
@@ -23,6 +53,8 @@ import './base/PoolInitializer.sol';
 
 
 //import './base/SelfPermit.sol';
+
+//import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 /*
 interface IERC20 {
@@ -2342,21 +2374,22 @@ contract DexaransNonfungiblePositionManager is
     {
         require(params.amount0Max > 0 || params.amount1Max > 0);
         // allow collecting to the nft position manager address with address 0
-        address recipient = params.recipient == address(0) ? address(this) : params.recipient;
+        //address recipient = params.recipient == address(0) ? address(this) : params.recipient;
+
+        uint8 tokensOut = params.tokensOutCode;
 
         Position storage position = _positions[params.tokenId];
 
-        PoolAddress.PoolKey memory poolKey = _poolIdToPoolKey[position.poolId];
-
-        IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey));
+        //PoolAddress.PoolKey memory poolKey = _poolIdToPoolKey[position.poolId];
+        //IDex223PoolActions pool = IDex223PoolActions(params.pool);
 
         (uint128 tokensOwed0, uint128 tokensOwed1) = (position.tokensOwed0, position.tokensOwed1);
 
         // trigger an update of the position fees owed and fee growth snapshots if it has any liquidity
         if (position.liquidity > 0) {
-            pool.burn(position.tickLower, position.tickUpper, 0);
+            IDex223PoolActions(params.pool).burn(position.tickLower, position.tickUpper, 0);
             (, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128, , ) =
-                pool.positions(PositionKey.compute(address(this), position.tickLower, position.tickUpper));
+                IDex223PoolActions(params.pool).positions(PositionKey.compute(address(this), position.tickLower, position.tickUpper));
 
             tokensOwed0 += uint128(
                 FullMath.mulDiv(
@@ -2384,20 +2417,28 @@ contract DexaransNonfungiblePositionManager is
                 params.amount1Max > tokensOwed1 ? tokensOwed1 : params.amount1Max
             );
 
+
+        // 0 = both ERC-20
+        // 1 = token0 ERC-20 & token1 ERC-223
+        // 2 = token0 ERC-223 & token1 ERC-20
+        // 3 = both ERC-223.
+
         // the actual amounts collected are returned
-        (amount0, amount1) = pool.collect(
-            recipient,
+        (amount0, amount1) = IDex223PoolActions(params.pool).collect(
+            params.recipient == address(0) ? address(this) : params.recipient,
             position.tickLower,
             position.tickUpper,
             amount0Collect,
-            amount1Collect
+            amount1Collect,
+            tokensOut == 3 || tokensOut == 2, // True = request ERC-223 token0
+            tokensOut == 2 || tokensOut == 1  // True = request ERC-223 token1
         );
 
         // sometimes there will be a few less wei than expected due to rounding down in core, but we just subtract the full amount expected
         // instead of the actual amount so we can burn the token
         (position.tokensOwed0, position.tokensOwed1) = (tokensOwed0 - amount0Collect, tokensOwed1 - amount1Collect);
 
-        emit Collect(params.tokenId, recipient, amount0Collect, amount1Collect);
+        emit Collect(params.tokenId, params.recipient == address(0) ? address(this) : params.recipient, amount0Collect, amount1Collect);
     }
 
     /// @inheritdoc INonfungiblePositionManager

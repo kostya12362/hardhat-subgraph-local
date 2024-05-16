@@ -59,7 +59,7 @@ export async function deployPool(
   fee: number,
   price: bigint
 ): Promise<string> {
-  console.log(`Deploy pool: ${token0erc20} | ${token1erc20}`);
+  console.log(`Deploy pool: ${token0erc20} | ${token1erc20} | ${token0erc223} | ${token1erc223}`);
   const [owner] = await ethers.getSigners();
 
   const tx = await nonfungiblePositionManager
@@ -68,6 +68,7 @@ export async function deployPool(
       gasLimit: 15_000_000, //30_000_000
     });
   await tx.wait();
+  console.log(`pool deployed: ${token0erc20} | ${token1erc20} | ${token0erc223} | ${token1erc223}`);
   const poolAddress = await factory.connect(owner).getPool(token0erc20, token1erc20, fee);
   return poolAddress;
 }

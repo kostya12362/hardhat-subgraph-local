@@ -158,10 +158,12 @@ interface INonfungiblePositionManager is
         returns (uint256 amount0, uint256 amount1);
 
     struct CollectParams {
+        address pool;
         uint256 tokenId;
         address recipient;
         uint128 amount0Max;
         uint128 amount1Max;
+        uint8   tokensOutCode;
     }
 
     /// @notice Collects up to a maximum amount of fees owed to a specific position to the recipient

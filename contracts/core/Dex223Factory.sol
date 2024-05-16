@@ -30,7 +30,7 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
     // @inheritdoc IUniswapV3Factory
     mapping(address => mapping(address => mapping(uint24 => address))) public override getPool;
 
-    function set(address _lib, address _converter) public 
+    function set(address _lib, address _converter) public
     {
         require(msg.sender == owner);
         converter = ITokenStandardConverter(_converter);
@@ -97,7 +97,7 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
         require(tickSpacing != 0);
         require(getPool[tokenA_erc20][tokenB_erc20][fee] == address(0));
         pool = deploy(address(this), tokenA_erc20, tokenB_erc20, fee, tickSpacing);
-        Dex223Pool(pool).set(tokenA_erc223, tokenB_erc223, pool_lib);
+        Dex223Pool(pool).set(tokenA_erc223, tokenB_erc223, pool_lib,  address(converter));
         getPool[tokenA_erc20][tokenB_erc20][fee] = pool;
         // populate mapping in ALL directions.
         getPool[tokenB_erc20][tokenA_erc20][fee] = pool;
@@ -137,12 +137,12 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
                     {
                         return (converter.getERC20OriginFor(_token), _token, 20);
                     }
-                    else 
+                    else
                     {
                         return (converter.predictWrapperAddress(_token, false), _token, 223);
                     }
                 }
-                else 
+                else
                 {
                     if(converter.isWrapper(_token))
                     {
@@ -154,7 +154,7 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
                     }
                 }
     }
-    
+
 
     // @inheritdoc IUniswapV3Factory
     function enableFeeAmount(uint24 fee, int24 tickSpacing) public override {
@@ -178,16 +178,16 @@ contract PoolAddressHelper
     function getPoolCreationCode() public pure returns (bytes memory) {
         return type(Dex223Pool).creationCode;
     }
-    
+
     function hashPoolCode(bytes memory creation_code) public pure returns (bytes32 pool_hash){
         pool_hash = keccak256(creation_code);
     }
-    
-    function computeAddress(address factory, 
+
+    function computeAddress(address factory,
                             address tokenA,
                             address tokenB,
-                            uint24 fee) 
-                            external pure returns (address _pool) 
+                            uint24 fee)
+                            external pure returns (address _pool)
     {
         require(tokenA < tokenB, "token1 > token0");
         //---------------- calculate pool address

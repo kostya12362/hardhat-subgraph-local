@@ -8,6 +8,7 @@ import { ERC20Token, IERC223 } from "../../typechain-types";
 
 import USDT from "../../deployments/localhost/dex223/tokens/Tether/result.json";
 import USDC from "../../deployments/localhost/dex223/tokens/USDC/result.json";
+import DAI from "../../deployments/localhost/dex223/tokens/DAI/result.json";
 import TEST_HYBRID_ERC223_C from "../../deployments/localhost/dex223/tokens/testTestHybridC/result.json";
 import TEST_HYBRID_ERC223_D from "../../deployments/localhost/dex223/tokens/testTestHybridD/result.json";
 import WETH9 from "../../deployments/localhost/dex223/WETH9/result.json";
@@ -30,7 +31,7 @@ async function main() {
     USDC.contractAddress,
     USDC.abi,
     provider
-  ) as BaseContract as ERC20Token;
+  ) as BaseContract;
 
   let testERC223_C = new Contract(
     TEST_HYBRID_ERC223_C.contractAddress,
@@ -42,7 +43,7 @@ async function main() {
     TEST_HYBRID_ERC223_D.contractAddress,
     TEST_HYBRID_ERC223_D.abi,
     provider
-  ) as BaseContract as IERC223;
+  ) as BaseContract;
 
   let weth = new Contract(
     WETH9.contractAddress,
@@ -50,9 +51,15 @@ async function main() {
     provider
   ) as BaseContract as ERC20Token;
 
-  /** weth-usdc pool 500 / 3000 */
+  let dai = new Contract(
+      DAI.contractAddress,
+      DAI.abi,
+      provider
+  ) as BaseContract as ERC20Token;
+
+  /** weth-usdt pool 500 / 3000 */
   let wethPair1 = weth;
-  let wethPair2 = usdc;
+  let wethPair2 = dai;
   let wethRatio = 3500;
   if (wethPair1.target > wethPair2.target) {
     console.log("Warning: Swapping weth and usdc");
@@ -67,14 +74,14 @@ async function main() {
   let sqrtPrice = calculateSqrtPriceX96(Number(dec1) ,Number(dec2), wethRatio);
   // console.log(`sqrtPrice: ${sqrtPrice}`);
 
-  // TODO add ERC223 addresses
-  const [_owner, signer2] = await ethers.getSigners();
-  try {
-    await convertContract.connect(signer2).createERC223Wrapper(wethPair1.target);
-    await convertContract.connect(signer2).createERC223Wrapper(wethPair2.target);
-  } catch (e) {
-    //
-  }
+  // add ERC223 addresses
+  // const [_owner, signer2] = await ethers.getSigners();
+  // try {
+  //   await convertContract.connect(signer2).createERC223Wrapper(wethPair1.target);
+  //   await convertContract.connect(signer2).createERC223Wrapper(wethPair2.target);
+  // } catch (e) {
+  //   //
+  // }
   const wethPair2ERC223 = await convertContract.predictWrapperAddress(wethPair2.target, true);
   const wethPair1ERC223 = await convertContract.predictWrapperAddress(wethPair1.target, true);
   console.log("wethPair1ERC223:", wethPair1ERC223);
@@ -85,7 +92,7 @@ async function main() {
       String(wethPair2.target),
       wethPair1ERC223,
       wethPair2ERC223,
-      3000,
+      10000,
       sqrtPrice
   );
 
@@ -116,33 +123,62 @@ async function main() {
   //     sqrtPrice
   // );
   //
-  // /** ERC223_C-ERC223_D pool */
-  // if (testERC223_C.target > testERC223_D.target) {
-  //   console.log("Warning: Swapping testERC223_C and testERC223_D");
-  //   const temp = testERC223_D;
-  //   testERC223_D = testERC223_C;
-  //   testERC223_C = temp;
-  // }
-  //
-  // dec1 = await testERC223_C.decimals();
-  // dec2 = await testERC223_D.decimals();
-  // sqrtPrice = calculateSqrtPriceX96(Number(dec1) ,Number(dec2), 10);
-  // // console.log(`sqrtPrice: ${sqrtPrice}`);
-  //
-  // const erc223_c_erc20_d = await deployPool(
-  //     String(testERC223_C.target),
-  //     String(testERC223_D.target),
-  //     3000,  // 500
-  //     sqrtPrice
-  // );
-  // console.log(`Pool: ERC223_C and ERC223_D = ${erc223_c_erc20_d}`);
+
+  let usdcERC223 = await convertContract.predictWrapperAddress(dai.target, true);
+  let testD_ERC20 = await convertContract.predictWrapperAddress(testERC223_D.target, false);
+  console.log(`usdcERC223: ${usdcERC223}`);
+  console.log(`testD_ERC20: ${testD_ERC20}`);
+  console.log(`testERC223_D: ${testERC223_D.target}`);
+
+  /** USDT-ERC223_D pool */
+  let pool20_23_erc20_0 : ERC20Token;
+  let pool20_23_erc20_1 : ERC20Token;
+  let pool20_23_erc223_0 : IERC223;
+  let pool20_23_erc223_1 : IERC223;
+  let swapped = false;
+  if (String(dai.target) > testD_ERC20) {
+    console.log("Warning: Swapping usdt and testERC223_D");
+    pool20_23_erc20_0 = {target: testD_ERC20} as ERC20Token;
+    pool20_23_erc20_1 = dai as ERC20Token;
+    pool20_23_erc223_0 = testERC223_D as IERC223;
+    pool20_23_erc223_1 = {target: usdcERC223} as IERC223;
+    dec1 = await (testERC223_D as IERC223).decimals();
+    dec2 = await (dai as ERC20Token).decimals();
+    swapped = true;
+  } else {
+    pool20_23_erc20_0 = dai as ERC20Token;
+    pool20_23_erc20_1 = {target: testD_ERC20} as ERC20Token;
+    pool20_23_erc223_0 = {target: usdcERC223} as IERC223;
+    pool20_23_erc223_1 = testERC223_D as IERC223;
+    dec1 = await (dai as ERC20Token).decimals();
+    dec2 = await (testERC223_D as IERC223).decimals();
+  }
+
+  sqrtPrice = calculateSqrtPriceX96(Number(dec1) ,Number(dec2), 1);
+  console.log(`sqrtPrice: ${sqrtPrice}`);
+
+  const erc223_erc20 = await deployPool(
+      String(pool20_23_erc20_0.target),
+      String(pool20_23_erc20_1.target),
+      String(pool20_23_erc223_0.target),
+      String(pool20_23_erc223_1.target),
+      500,  // 500
+      sqrtPrice
+  );
+  console.log(`Pool: ERC223 and ERC20 = ${erc223_erc20}`);
   // console.log(`Pool: USDT and USDC = ${usdtUsdc500}`);
-  console.log(`Pool: WETH and USDC = ${wethUsdc3000}`);
+  console.log(`Pool: WETH and USDT = ${wethUsdc3000}`);
 
   // await addLiquidity(wethUsdc500, wethPair1, wethPair2, "ERC20", 2);
-  await addLiquidity(wethUsdc3000, wethPair1, wethPair2, "ERC20", 10);
+  // await addLiquidity(wethUsdc3000, wethPair1, wethPair2, "ERC20", 0.001, "ERC20");
   // await addLiquidity(usdtUsdc500, usdt, usdc, "ERC20",0.002);
   // await addLiquidity(erc223_c_erc20_d, testERC223_C, testERC223_D, "ERC223", 30000);
+  if (swapped) {
+    await addLiquidity(erc223_erc20, pool20_23_erc223_0, pool20_23_erc20_1, "ERC223", 0.1, "ERC20");
+  } else {
+    await addLiquidity(erc223_erc20, pool20_23_erc20_0, pool20_23_erc223_1, "ERC20", 0.1, "ERC223");
+  }
+
   await makeQuote(wethPair1, wethPair2, 3000, 10000000000);
   // await makeQuote({target: wethPair1ERC223} as IERC223, wethPair2, 3000, 10000000000);
   // await makeQuote({target: wethPair1ERC223} as IERC223, {target: wethPair2ERC223} as IERC223, 3000, 10000000000);
