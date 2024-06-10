@@ -2,59 +2,13 @@
 
 pragma solidity >=0.8.19;
 
-import "./IERC223Recipient.sol";
-import "./Address.sol";
-import "./ERC165.sol";
+import "../tokens/interfaces/IERC20.sol";
+import "../tokens/interfaces/IERC20Metadata.sol";
+import "../tokens/interfaces/IERC223.sol";
+import "../tokens/interfaces/IERC223Recipient.sol";
+import "../libraries/Address.sol";
+import "../introspection/ERC165.sol";
 
-/**
- * @dev Interface of the ERC223 standard token as defined in the EIP-223 https://eips.ethereum.org/EIPS/eip-223.
-        Using a custom IERC223 here as it redefines the "transfer" function as payable.
- */
-
-abstract contract IERC223 {
-
-    function name()        public view virtual returns (string memory);
-    function symbol()      public view virtual returns (string memory);
-    function decimals()    public view virtual returns (uint8);
-    function totalSupply() public view virtual returns (uint256);
-
-    /**
-     * @dev Returns the balance of the `who` address.
-     */
-    function balanceOf(address who) public virtual view returns (uint);
-
-    /**
-     * @dev Transfers `value` tokens from `msg.sender` to `to` address
-     * and returns `true` on success.
-     */
-    function transfer(address to, uint value) public virtual returns (bool success);
-
-    /**
-     * @dev Transfers `value` tokens from `msg.sender` to `to` address with `data` parameter
-     * and returns `true` on success.
-     */
-    function transfer(address to, uint value, bytes calldata data) public payable virtual returns (bool success);
-
-     /**
-     * @dev Event that is fired on successful transfer.
-     */
-    event Transfer(address indexed from, address indexed to, uint value, bytes data);
-}
-
-/**
- * @dev Interface of the ERC20 standard as defined in the EIP.
- */
-interface IERC20 {
-    function name() external view returns (string memory);
-    function symbol() external view returns (string memory);
-    function decimals() external view returns (uint8);
-    function totalSupply() external view returns (uint256);
-    function balanceOf(address account) external view returns (uint256);
-    function transfer(address to, uint256 value) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
-    function approve(address spender, uint256 value) external returns (bool);
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
-}
 
 interface standardERC20
 {
@@ -184,10 +138,10 @@ contract ERC223WrapperToken is IERC223, ERC165
         return true;
     }
 
-    function name() public view override returns (string memory)   { return IERC20(wrapper_for).name(); }
-    function symbol() public view override returns (string memory) { return string.concat(IERC20(wrapper_for).name(), "223"); }
-    function decimals() public view override returns (uint8)       { return IERC20(wrapper_for).decimals(); }
-    function standard() public view returns (string memory)        { return "223"; }
+    function name() public view override returns (string memory)   { return IERC20Metadata(wrapper_for).name(); }
+    function symbol() public view override returns (string memory) { return string.concat(IERC20Metadata(wrapper_for).name(), "223"); }
+    function decimals() public view override returns (uint8)       { return IERC20Metadata(wrapper_for).decimals(); }
+    function standard() public pure returns (string memory)        { return "223"; }
     function origin() public view returns (address)                { return wrapper_for; }
 
     function mint(address _recipient, uint256 _quantity) external
@@ -242,8 +196,8 @@ contract ERC20WrapperToken is IERC20, ERC165
 
     mapping(address account => mapping(address spender => uint256)) private allowances;
 
-    event Transfer(address indexed from, address indexed to, uint256 amount);
-    event Approval(address indexed owner, address indexed spender, uint256 amount);
+    // event Transfer(address indexed from, address indexed to, uint256 amount);
+    // event Approval(address indexed owner, address indexed spender, uint256 amount);
 
     /*
     constructor(address _wrapper_for)
@@ -264,9 +218,9 @@ contract ERC20WrapperToken is IERC20, ERC165
 
     function balanceOf(address _owner) public view override returns (uint256) { return balances[_owner]; }
 
-    function name()        public view override returns (string memory) { return IERC20(wrapper_for).name(); }
-    function symbol()      public view override returns (string memory) { return string.concat(IERC223(wrapper_for).name(), "20"); }
-    function decimals()    public view override returns (uint8)         { return IERC20(wrapper_for).decimals(); }
+    function name()        public view  returns (string memory) { return IERC20Metadata(wrapper_for).name(); }
+    function symbol()      public view  returns (string memory) { return string.concat(IERC223(wrapper_for).name(), "20"); }
+    function decimals()    public view  returns (uint8)         { return IERC20Metadata(wrapper_for).decimals(); }
     function totalSupply() public view override returns (uint256)       { return _totalSupply; }
     function origin()      public view returns (address)                { return wrapper_for; }
 
@@ -394,7 +348,7 @@ contract TokenStandardConverter is IERC223Recipient
         return address(uint160(uint(hash)));
     }
 
-    function tokenReceived(address _from, uint _value, bytes memory _data) public override returns (bytes4)
+    function tokenReceived(address _from, uint _value, bytes memory /* _data */) public override returns (bytes4)
     {
         require(erc223Origins[msg.sender] == address(0), "Error: creating wrapper for a wrapper token.");
         // There are two possible cases:

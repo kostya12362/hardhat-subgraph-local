@@ -4,20 +4,20 @@ pragma abicoder v2;
 
 import './interfaces/callback/IUniswapV3MintCallback.sol';
 import './interfaces/pool/IUniswapV3PoolEvents.sol';
-import './interfaces/IERC20Minimal.sol';
+import '../interfaces/IERC20Minimal.sol';
 import './interfaces/callback/IUniswapV3SwapCallback.sol';
-import './interfaces/ITokenConverter.sol';
+import '../interfaces/ITokenConverter.sol';
 import './interfaces/IUniswapV3Pool.sol';
 
-import './libraries/SqrtPriceMath.sol';
-import './libraries/Position.sol';
-import './libraries/LowGasSafeMath.sol';
-import './libraries/SafeCast.sol';
-import './libraries/Tick.sol';
-import './libraries/TickBitmap.sol';
-import './libraries/Oracle.sol';
-import './libraries/TransferHelper.sol';
-import './libraries/SwapMath.sol';
+import '../libraries/SqrtPriceMath.sol';
+import '../libraries/Position.sol';
+import '../libraries/LowGasSafeMath.sol';
+import '../libraries/SafeCast.sol';
+import '../libraries/Tick.sol';
+import '../libraries/TickBitmap.sol';
+import '../libraries/Oracle.sol';
+import '../libraries/TransferHelper.sol';
+import '../libraries/SwapMath.sol';
 
 contract Dex223PoolLib {
     using LowGasSafeMath for uint256;

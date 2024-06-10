@@ -2,30 +2,30 @@
 pragma solidity >=0.7.6;
 pragma abicoder v2;
 
-import './interfaces/ITokenConverter.sol';
+import '../interfaces/ITokenConverter.sol';
 
 import './interfaces/IUniswapV3Pool.sol';
 
 import './NoDelegateCall.sol';
 
-import './libraries/LowGasSafeMath.sol';
-import './libraries/SafeCast.sol';
-import './libraries/Tick.sol';
-import './libraries/TickBitmap.sol';
-import './libraries/Position.sol';
-import './libraries/Oracle.sol';
+import '../libraries/LowGasSafeMath.sol';
+import '../libraries/SafeCast.sol';
+import '../libraries/Tick.sol';
+import '../libraries/TickBitmap.sol';
+import '../libraries/Position.sol';
+import '../libraries/Oracle.sol';
 
-import './libraries/FullMath.sol';
-import './libraries/FixedPoint128.sol';
-import './libraries/TransferHelper.sol';
-import './libraries/TickMath.sol';
-import './libraries/LiquidityMath.sol';
+import '../libraries/FullMath.sol';
+import '../libraries/FixedPoint128.sol';
+import '../libraries/TransferHelper.sol';
+import '../libraries/TickMath.sol';
+import '../libraries/LiquidityMath.sol';
 // import './libraries/SqrtPriceMath.sol';
-import './libraries/SwapMath.sol';
+import '../libraries/SwapMath.sol';
 
 import './interfaces/IDex223PoolDeployer.sol';
 import './interfaces/IDex223Factory.sol';
-import './interfaces/IERC20Minimal.sol';
+import '../interfaces/IERC20Minimal.sol';
 // import './interfaces/callback/IUniswapV3MintCallback.sol';
 import './interfaces/callback/IUniswapV3SwapCallback.sol';
 /*

@@ -53,6 +53,7 @@
   "scripts": {
     "hardhat:node": "hardhat node",
     "hardhat:compile": "hardhat compile",
+    "hardhat:verify": "hardhat solidity-json",
     "hardhat:compile:force": "hardhat compile --force",
     "hardhat:test": "hardhat test",
     "hardhat:test:coverage": "hardhat coverage",

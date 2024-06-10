@@ -1,7 +1,7 @@
 {
   "contractFile": "dex223/NFTDescriptor",
   "contractName": "NFTDescriptor",
-  "contractAddress": "0x59b670e9fA9D0A427751Af201D676719a970857b",
+  "contractAddress": "0x9A676e781A523b5d0C0e43731313A708CB607508",
   "abi": [
     {
       "type": "function",
@@ -81,5 +81,5 @@
       ]
     }
   ],
-  "startBlock": 25
+  "startBlock": 15
 }

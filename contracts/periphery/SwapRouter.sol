@@ -2,23 +2,23 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import './libraries/SafeCast.sol';
-import './libraries/TickMath.sol';
-import './interfaces/IUniswapV3Pool.sol';
+import '../libraries/SafeCast.sol';
+import '../libraries/TickMath.sol';
+import '../libraries/Multicall.sol';
+import '../libraries/SelfPermit.sol';
+import '../libraries/Path.sol';
+import '../interfaces/IUniswapV3Pool.sol';
+import '../tokens/interfaces/IWETH9.sol';
 
 import './interfaces/ISwapRouter.sol';
 import './base/PeripheryImmutableState.sol';
 import './base/PeripheryValidation.sol';
 import './base/PeripheryPaymentsWithFee.sol';
-import './base/Multicall.sol';
-import './base/SelfPermit.sol';
-import './libraries/Path.sol';
-import './libraries/PoolAddress.sol';
-import './libraries/CallbackValidation.sol';
-import './interfaces/external/IWETH9.sol';
+import './base/PoolAddress.sol';
+import './base/CallbackValidation.sol';
 
 interface IDex223Pool {
-        function swap(
+    function swap(
         address recipient,
         bool zeroForOne,
         int256 amountSpecified,
@@ -31,16 +31,16 @@ interface IDex223Pool {
 abstract contract IERC223Recipient {
 
 
- struct ERC223TransferInfo
+    struct ERC223TransferInfo
     {
         address token_contract;
         address sender;
         uint256 value;
         bytes   data;
     }
-    
+
     ERC223TransferInfo private tkn;
-    
+
 /**
  * @dev Standard ERC223 function that will handle incoming token transfers.
  *
@@ -59,13 +59,13 @@ abstract contract IERC223Recipient {
 /// @title Uniswap V3 Swap Router
 /// @notice Router for stateless execution of swaps against Uniswap V3
 contract ERC223SwapRouter is
-    ISwapRouter,
-    PeripheryImmutableState,
-    PeripheryValidation,
-    PeripheryPaymentsWithFee,
-    Multicall,
-    SelfPermit,
-    IERC223Recipient
+ISwapRouter,
+PeripheryImmutableState,
+PeripheryValidation,
+PeripheryPaymentsWithFee,
+Multicall,
+SelfPermit,
+IERC223Recipient
 {
     using Path for bytes;
     using SafeCast for uint256;
@@ -76,9 +76,9 @@ contract ERC223SwapRouter is
 
     /// @dev Transient storage variable used for returning the computed amount in for an exact output swap.
     uint256 private amountInCached = DEFAULT_AMOUNT_IN_CACHED;
-    
+
     address public call_sender;
-    
+
     modifier adjustableSender() {
         if (call_sender == address(0))
         {
@@ -98,7 +98,7 @@ contract ERC223SwapRouter is
         call_sender = _from;
         if (_data.length != 0)
         {
-             // Standard ERC-223 swapping via ERC-20 pattern
+            // Standard ERC-223 swapping via ERC-20 pattern
             (bool success, bytes memory _data_) = address(this).delegatecall(_data);
             require(success, "23F");
 /*
@@ -163,7 +163,7 @@ contract ERC223SwapRouter is
         uint256 amountIn,
         address recipient,
         uint160 sqrtPriceLimitX96,
-        //bool prefer223Out,
+        bool prefer223Out,
         SwapCallbackData memory data
     ) private returns (uint256 amountOut) {
         // allow swapping to the router address with address 0
@@ -172,36 +172,36 @@ contract ERC223SwapRouter is
         (address tokenIn, address tokenOut, uint24 fee) = data.path.decodeFirstPool();
 
         bool zeroForOne = tokenIn < tokenOut;
+        int256 amountInt = amountIn.toInt256();
 
         (int256 amount0, int256 amount1) =
-            getPool(tokenIn, tokenOut, fee).swap(
+                                getPool(tokenIn, tokenOut, fee).swap(
                 recipient,
                 zeroForOne,
-                amountIn.toInt256(),
+                amountInt,
                 sqrtPriceLimitX96 == 0
                     ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
                     : sqrtPriceLimitX96,
-                false, // FOR TESTING REASONS
-                       // automatically request ERC-20 tokens as an output.
+                prefer223Out,
                 abi.encode(data)
             );
 
         return uint256(-(zeroForOne ? amount1 : amount0));
     }
 
-    function exactInputSingle(ExactInputSingleParams calldata params) 
-        external 
-        payable 
-        override 
-        adjustableSender
-        checkDeadline(params.deadline)
-        returns (uint256 amountOut)
+    function exactInputSingle(ExactInputSingleParams calldata params)
+    external
+    payable
+    override
+    adjustableSender
+    checkDeadline(params.deadline)
+    returns (uint256 amountOut)
     {
         amountOut = exactInputInternal(
             params.amountIn,
             params.recipient,
             params.sqrtPriceLimitX96,
-            //params.prefer223Out,
+            params.prefer223Out,
             //SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: msg.sender})
             SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: call_sender})
         );
@@ -222,18 +222,18 @@ contract ERC223SwapRouter is
         bool prefer223Out;
     }
 
-    function exactInputDoubleStandard(exactInputDoubleStandardData calldata data) 
-        external 
-        payable  
-        adjustableSender
-        checkDeadline(data.deadline)
-        returns (uint256 amountOut)
+    function exactInputDoubleStandard(exactInputDoubleStandardData calldata data)
+    external
+    payable
+    adjustableSender
+    checkDeadline(data.deadline)
+    returns (uint256 amountOut)
     {
         //(address tokenIn, address tokenOut, uint24 fee) = data.path.decodeFirstPool();
         //bool zeroForOne = tokenIn < tokenOut;
 
         (int256 amount0, int256 amount1) =
-            IDex223Pool(data.pool).swap(
+                                IDex223Pool(data.pool).swap(
                 data.recipient,
                 data.zeroForOne,
                 data.amountIn, // int256 << can be negative
@@ -252,11 +252,11 @@ contract ERC223SwapRouter is
 
     /// @inheritdoc ISwapRouter
     function exactInput(ExactInputParams memory params)
-        external
-        payable
-        override
-        checkDeadline(params.deadline)
-        returns (uint256 amountOut)
+    external
+    payable
+    override
+    checkDeadline(params.deadline)
+    returns (uint256 amountOut)
     {
         address payer = msg.sender; // msg.sender pays for the first hop
 
@@ -268,7 +268,7 @@ contract ERC223SwapRouter is
                 params.amountIn,
                 hasMultiplePools ? address(this) : params.recipient, // for intermediate swaps, this contract custodies
                 0,
-                //params.prefer223Out,
+                params.prefer223Out,
                 SwapCallbackData({
                     path: params.path.getFirstPool(), // only the first pool in the path is necessary
                     payer: payer
@@ -303,7 +303,7 @@ contract ERC223SwapRouter is
         bool zeroForOne = tokenIn < tokenOut;
 
         (int256 amount0Delta, int256 amount1Delta) =
-            getPool(tokenIn, tokenOut, fee).swap(
+                                getPool(tokenIn, tokenOut, fee).swap(
                 recipient,
                 zeroForOne,
                 -amountOut.toInt256(),
@@ -325,11 +325,11 @@ contract ERC223SwapRouter is
 
     /// @inheritdoc ISwapRouter
     function exactOutputSingle(ExactOutputSingleParams calldata params)
-        external
-        payable
-        override
-        checkDeadline(params.deadline)
-        returns (uint256 amountIn)
+    external
+    payable
+    override
+    checkDeadline(params.deadline)
+    returns (uint256 amountIn)
     {
         // avoid an SLOAD by using the swap return data
         amountIn = exactOutputInternal(
@@ -346,11 +346,11 @@ contract ERC223SwapRouter is
 
     /// @inheritdoc ISwapRouter
     function exactOutput(ExactOutputParams calldata params)
-        external
-        payable
-        override
-        checkDeadline(params.deadline)
-        returns (uint256 amountIn)
+    external
+    payable
+    override
+    checkDeadline(params.deadline)
+    returns (uint256 amountIn)
     {
         // it's okay that the payer is fixed to msg.sender here, as they're only paying for the "final" exact output
         // swap, which happens first, and subsequent swaps are paid for within nested callback frames

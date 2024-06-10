@@ -1,7 +1,7 @@
 {
   "contractFile": "dex223/tokens/Tether",
   "contractName": "Tether",
-  "contractAddress": "0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f",
+  "contractAddress": "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE",
   "abi": [
     {
       "type": "constructor",
@@ -28,23 +28,6 @@
           "type": "uint256",
           "name": "value",
           "indexed": false
-        }
-      ]
-    },
-    {
-      "type": "event",
-      "anonymous": false,
-      "name": "OwnershipTransferred",
-      "inputs": [
-        {
-          "type": "address",
-          "name": "previousOwner",
-          "indexed": true
-        },
-        {
-          "type": "address",
-          "name": "newOwner",
-          "indexed": true
         }
       ]
     },
@@ -225,28 +208,6 @@
     },
     {
       "type": "function",
-      "name": "owner",
-      "constant": true,
-      "stateMutability": "view",
-      "payable": false,
-      "inputs": [],
-      "outputs": [
-        {
-          "type": "address",
-          "name": ""
-        }
-      ]
-    },
-    {
-      "type": "function",
-      "name": "renounceOwnership",
-      "constant": false,
-      "payable": false,
-      "inputs": [],
-      "outputs": []
-    },
-    {
-      "type": "function",
       "name": "symbol",
       "constant": true,
       "stateMutability": "view",
@@ -320,20 +281,7 @@
           "name": ""
         }
       ]
-    },
-    {
-      "type": "function",
-      "name": "transferOwnership",
-      "constant": false,
-      "payable": false,
-      "inputs": [
-        {
-          "type": "address",
-          "name": "newOwner"
-        }
-      ],
-      "outputs": []
     }
   ],
-  "startBlock": 28
+  "startBlock": 18
 }

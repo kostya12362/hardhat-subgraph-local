@@ -3,8 +3,8 @@ pragma solidity =0.7.6;
 
 import './interfaces/IDex223Factory.sol';
 
-import './interfaces/ITokenConverter.sol';
-import './interfaces/ITokenStandardIntrospection.sol';
+import '../interfaces/ITokenConverter.sol';
+import '../interfaces/ITokenStandardIntrospection.sol';
 
 import './Dex223PoolDeployer.sol';
 import './NoDelegateCall.sol';

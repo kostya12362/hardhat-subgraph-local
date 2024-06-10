@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity =0.7.6;
 
-import '../interfaces/IDex223Factory.sol';
-import '../interfaces/IUniswapV3Pool.sol';
+import '../../interfaces/IDex223Factory.sol';
+import '../../interfaces/IUniswapV3Pool.sol';
 
-import './PeripheryImmutableState.sol';
 import '../interfaces/IPoolInitializer.sol';
+import './PeripheryImmutableState.sol';
 
 /// @title Creates and initializes V3 Pools
 abstract contract PoolInitializer is IPoolInitializer, PeripheryImmutableState {

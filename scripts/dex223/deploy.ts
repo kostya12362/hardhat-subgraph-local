@@ -16,10 +16,10 @@ const artifacts = {
   PoolLibrary: require("../../artifacts/contracts/core/Dex223PoolLib.sol/Dex223PoolLib.json"),
   Factory: require("../../artifacts/contracts/core/Dex223Factory.sol/Dex223Factory.json"),
   PoolAddressHelper: require("../../artifacts/contracts/core/Dex223Factory.sol/PoolAddressHelper.json"),
-  PoolAddress: require("../../artifacts/contracts/periphery/libraries/PoolAddress.sol/PoolAddress.json"),
+  PoolAddress: require("../../artifacts/contracts/periphery/base/PoolAddress.sol/PoolAddress.json"),
   SwapRouter: require("../../artifacts/contracts/periphery/SwapRouter.sol/ERC223SwapRouter.json"),
   Quoter: require("../../artifacts/contracts/periphery/lens/Quoter223.sol/ERC223Quoter.json"),
-  NFTDescriptor: require("../../artifacts/contracts/periphery/libraries/NFTDescriptor.sol/NFTDescriptor.json"),
+  NFTDescriptor: require("../../artifacts/contracts/periphery/base/NFTDescriptor.sol/NFTDescriptor.json"),
   NonfungibleTokenPositionDescriptor: require("../../artifacts/contracts/periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json"),
   WETH9,
   Convertor: require("../../artifacts/contracts/TokenStandardConverter/TokenConverter.sol/TokenStandardConverter.json"),
@@ -162,7 +162,7 @@ async function main() {
     console.log(`PoolHash: ${poolHash}`);
 
     // edit pool hash in PoolAddress.sol
-    const fileName = path.join(__dirname, "../../contracts/periphery/libraries/PoolAddress.sol");
+    const fileName = path.join(__dirname, "../../contracts/periphery/base/PoolAddress.sol");
     const line = `    bytes32 internal constant POOL_INIT_CODE_HASH = ${poolHash};`;
     replaceLineInFile(fileName, line, 5);
 

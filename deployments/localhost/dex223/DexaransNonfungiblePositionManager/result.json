@@ -1,7 +1,7 @@
 {
   "contractFile": "dex223/DexaransNonfungiblePositionManager",
   "contractName": "DexaransNonfungiblePositionManager",
-  "contractAddress": "0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44",
+  "contractAddress": "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1",
   "abi": [
     {
       "type": "constructor",
@@ -332,6 +332,10 @@
           "name": "params",
           "components": [
             {
+              "type": "address",
+              "name": "pool"
+            },
+            {
               "type": "uint256",
               "name": "tokenId"
             },
@@ -346,6 +350,10 @@
             {
               "type": "uint128",
               "name": "amount1Max"
+            },
+            {
+              "type": "uint8",
+              "name": "tokensOutCode"
             }
           ]
         }
@@ -370,11 +378,19 @@
       "inputs": [
         {
           "type": "address",
-          "name": "token0"
+          "name": "token0_20"
         },
         {
           "type": "address",
-          "name": "token1"
+          "name": "token1_20"
+        },
+        {
+          "type": "address",
+          "name": "token0_223"
+        },
+        {
+          "type": "address",
+          "name": "token1_223"
         },
         {
           "type": "uint24",
@@ -1245,5 +1261,5 @@
       "stateMutability": "payable"
     }
   ],
-  "startBlock": 27
+  "startBlock": 17
 }

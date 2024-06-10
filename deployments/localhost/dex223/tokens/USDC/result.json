@@ -1,7 +1,7 @@
 {
   "contractFile": "dex223/tokens/USDC",
   "contractName": "USDC",
-  "contractAddress": "0x4A679253410272dd5232B3Ff7cF5dbB88f295319",
+  "contractAddress": "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
   "abi": [
     {
       "type": "constructor",
@@ -28,23 +28,6 @@
           "type": "uint256",
           "name": "value",
           "indexed": false
-        }
-      ]
-    },
-    {
-      "type": "event",
-      "anonymous": false,
-      "name": "OwnershipTransferred",
-      "inputs": [
-        {
-          "type": "address",
-          "name": "previousOwner",
-          "indexed": true
-        },
-        {
-          "type": "address",
-          "name": "newOwner",
-          "indexed": true
         }
       ]
     },
@@ -225,28 +208,6 @@
     },
     {
       "type": "function",
-      "name": "owner",
-      "constant": true,
-      "stateMutability": "view",
-      "payable": false,
-      "inputs": [],
-      "outputs": [
-        {
-          "type": "address",
-          "name": ""
-        }
-      ]
-    },
-    {
-      "type": "function",
-      "name": "renounceOwnership",
-      "constant": false,
-      "payable": false,
-      "inputs": [],
-      "outputs": []
-    },
-    {
-      "type": "function",
       "name": "symbol",
       "constant": true,
       "stateMutability": "view",
@@ -320,20 +281,7 @@
           "name": ""
         }
       ]
-    },
-    {
-      "type": "function",
-      "name": "transferOwnership",
-      "constant": false,
-      "payable": false,
-      "inputs": [
-        {
-          "type": "address",
-          "name": "newOwner"
-        }
-      ],
-      "outputs": []
     }
   ],
-  "startBlock": 29
+  "startBlock": 19
 }

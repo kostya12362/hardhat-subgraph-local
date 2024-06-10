@@ -4,6 +4,8 @@ import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 
 import { HardhatUserConfig, task } from "hardhat/config";
+import fs from "fs";
+import path from "path";
 
 require("dotenv").config();
 
@@ -19,6 +21,55 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
   for (const account of accounts) {
     console.log(account.address);
+  }
+});
+
+async function makeDirIfNotExists(directory: any) {
+  await new Promise<void>((resolve) => {
+    fs.access(directory, function(err) {
+      if (err && err.code === 'ENOENT') {
+        fs.mkdirSync(directory, {recursive: true});
+      }
+      resolve();
+    });
+  })
+}
+
+task("solidity-json", "Extract Standard Solidity Input JSON", async (taskArgs, hre) => {
+  console.log("solidity-json task");
+  const pathA = await hre.artifacts.getArtifactPaths();
+  console.log(pathA);
+  const names = await hre.artifacts.getAllFullyQualifiedNames();
+  console.dir(names);
+  const baseDir = "./artifacts/solidity-json";
+
+  const handled: any[] = [];
+
+  for (const name of names) {
+
+    const [fileName] = name.split(':');
+
+    // skip, if non-local file
+    if (!fs.existsSync(path.join("./", fileName))) {
+      continue;
+    }
+
+    // only one output per file
+    if (handled.find(x => x === fileName)) {
+      continue;
+    }
+    handled.push(fileName);
+
+    const buildInfo = await hre.artifacts.getBuildInfo(name);
+    const artifactStdJson = JSON.stringify(buildInfo?.input,null, 4);
+
+    const fullFileName = path.join(baseDir, fileName + ".json");
+    const directoryName = path.dirname(fullFileName);
+
+    console.log("> Extracting standard Solidity Input JSON for", fileName);
+
+    await makeDirIfNotExists(directoryName);
+    fs.writeFileSync(fullFileName, artifactStdJson);
   }
 });
 

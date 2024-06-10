@@ -2,16 +2,16 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import './interfaces/IUniswapV3Pool.sol';
-import './libraries/SafeERC20Namer.sol';
+import '../interfaces/IUniswapV3Pool.sol';
+import '../libraries/SafeERC20Namer.sol';
+import '../libraries/TokenRatioSortOrder.sol';
+import '../libraries/ChainId.sol';
+import '../tokens/interfaces/IERC20Metadata.sol';
 
-import './libraries/ChainId.sol';
 import './interfaces/INonfungiblePositionManager.sol';
 import './interfaces/INonfungibleTokenPositionDescriptor.sol';
-import './interfaces/IERC20Metadata.sol';
-import './libraries/PoolAddress.sol';
-import './libraries/NFTDescriptor.sol';
-import './libraries/TokenRatioSortOrder.sol';
+import './base/PoolAddress.sol';
+import './base/NFTDescriptor.sol';
 
 /// @title Describes NFT token positions
 /// @notice Produces a string containing the data URI for a JSON metadata string
