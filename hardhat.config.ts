@@ -1,7 +1,8 @@
 import "@nomicfoundation/hardhat-toolbox";
-import "@typechain/hardhat";
-import "@nomicfoundation/hardhat-ethers";
+// import "@typechain/hardhat";
+// import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
+// import "@nomicfoundation/hardhat-toolbox";
 
 import { HardhatUserConfig, task } from "hardhat/config";
 import fs from "fs";
@@ -147,8 +148,7 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: "typechain-types",
     target: "ethers-v6",
-    alwaysGenerateOverloads: false, // should overloads with full signatures like deposit(uint256) be generated always, even if there are no overloads?
-    externalArtifacts: ["artifacts/*.json"], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
+
   },
   etherscan: {
     apiKey: {

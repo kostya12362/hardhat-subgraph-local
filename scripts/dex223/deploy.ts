@@ -7,7 +7,7 @@ import { ethers, run } from "hardhat";
 import { DeployHelper } from "../helpers/DeployHelper";
 import { setupTokens } from "./deployTokens";
 import WETH9 from "./WETH9.json";
-import ERC223Quoter from "../../deployments/localhost/dex223/Quoter/result.json";
+// import ERC223Quoter from "../../deployments/localhost/dex223/Quoter/result.json";
 
 const contractPath = path.join(__dirname, "../dex223/artifacts");
 
