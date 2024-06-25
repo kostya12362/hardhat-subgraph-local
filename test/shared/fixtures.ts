@@ -51,7 +51,7 @@ interface PoolFixture extends TokensAndFactoryFixture {
 // Monday, October 5, 2020 9:00:00 AM GMT-05:00
 export const TEST_POOL_START_TIME = 1601906400n
 
-export const poolFixture  = async function (): Promise<PoolFixture> {
+export async function poolFixture (): Promise<PoolFixture> {
   const { factory } = await factoryFixture()
   const { token0, token1, token2 } = await tokensFixture()
 

@@ -6,7 +6,9 @@ import { MockTimeDex223Pool } from '../typechain-types/'
 import { TestUniswapV3SwapPay } from '../typechain-types/'
 import checkObservationEquals from './shared/checkObservationEquals'
 import { expect } from 'chai'
-import helpers from "@nomicfoundation/hardhat-network-helpers";
+import {
+  loadFixture,
+} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 import { poolFixture, TEST_POOL_START_TIME } from './shared/fixtures'
 
@@ -75,7 +77,7 @@ describe('UniswapV3Pool', () => {
   })
 
   beforeEach('deploy fixture', async () => {
-    ;({ token0, token1, token2, factory, createPool, swapTargetCallee: swapTarget } = await helpers.loadFixture(poolFixture))
+    ;({ token0, token1, token2, factory, createPool, swapTargetCallee: swapTarget } = await loadFixture(poolFixture))
 
     const oldCreatePool = createPool
     createPool = async (_feeAmount, _tickSpacing) => {

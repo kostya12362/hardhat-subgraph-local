@@ -58,7 +58,7 @@ export function getCreate2Address(
 
 // returns the sqrt price as a 64x96
 export function encodePriceSqrt(reserve1: bigint, reserve0: bigint): bigint {
-  return BigInt(Math.sqrt(Number(reserve1) / Number(reserve0) * 2 ** 96))
+  return BigInt(Math.round(Math.sqrt(Number(reserve1) / Number(reserve0)) * (2 ** 96)))
 }
 
 export function getPositionKey(address: string, lowerTick: bigint, upperTick: bigint): string {

@@ -21,7 +21,9 @@ import {
   MIN_SQRT_RATIO,
   TICK_SPACINGS,
 } from './shared/utilities'
-import helpers from "@nomicfoundation/hardhat-network-helpers";
+import {
+  loadFixture,
+} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 Decimal.config({ toExpNeg: -500, toExpPos: 500 })
 
@@ -346,7 +348,7 @@ const TEST_POOLS: PoolTestCase[] = [
     description: 'low fee, large liquidity around current price (stable swap)',
     feeAmount: FeeAmount.LOW,
     tickSpacing: TICK_SPACINGS[FeeAmount.LOW],
-    startingPrice: encodePriceSqrt(1n, 1)n,
+    startingPrice: encodePriceSqrt(1n, 1n),
     positions: [
       {
         tickLower: Number(-TICK_SPACINGS[FeeAmount.LOW]),
@@ -494,7 +496,7 @@ describe('UniswapV3Pool swap tests', () => {
       let poolFunctions: PoolFunctions
 
       beforeEach('load fixture', async () => {
-        ;({ token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget } = await helpers.loadFixture(
+        ;({ token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget } = await loadFixture(
           poolCaseFixture
         ))
       })

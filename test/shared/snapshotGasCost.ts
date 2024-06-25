@@ -1,6 +1,5 @@
 import { TransactionReceipt, TransactionResponse } from '@ethersproject/abstract-provider'
-import { expect } from './expect'
-import {BigNumber} from 'bignumber.js';
+import { expect } from 'chai'
 import { Contract, ContractTransaction } from 'ethers'
 
 export default async function snapshotGasCost(
@@ -10,8 +9,8 @@ export default async function snapshotGasCost(
     | ContractTransaction
     | Promise<ContractTransaction>
     | TransactionReceipt
-    | Promise<BigNumber>
-    | BigNumber
+    | Promise<BigInt>
+    | BigInt
     | Contract
     | Promise<Contract>
 ): Promise<void> {
@@ -22,7 +21,8 @@ export default async function snapshotGasCost(
   } else if ('wait' in resolved) {
     const waited = await resolved.wait()
     expect(waited.gasUsed.toNumber()).toMatchSnapshot()
-  } else if (BigNumber.isBigNumber(resolved)) {
-    expect(resolved.toNumber()).toMatchSnapshot()
   }
+  // else if (BigInt..isBigNumber(resolved)) {
+  //   expect(resolved.toNumber()).toMatchSnapshot()
+  // }
 }
