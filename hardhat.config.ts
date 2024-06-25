@@ -82,7 +82,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 100,
+            runs: 2000,
           },
         },
       },
@@ -93,7 +93,25 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 100,
+            runs: 2000,
+          }
+        }
+      },
+      "contracts/periphery/NonfungiblePositionManager.sol": {
+        version: "0.7.6",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 5000,
+          }
+        }
+      },
+      "contracts/periphery/SwapRouter.sol": {
+        version: "0.7.6",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 5000,
           }
         }
       },
@@ -102,7 +120,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 100,
+            runs: 2000,
           }
         }
       },
@@ -111,7 +129,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 100,
+            runs: 2000,
           }
         }
       },
@@ -120,7 +138,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 100,
+            runs: 2000,
           }
         }
       },
@@ -129,7 +147,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 100,
+            runs: 2000,
           }
         }
       },
@@ -138,7 +156,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 100,
+            runs: 2000,
           }
         }
       }
