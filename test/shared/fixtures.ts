@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat'
 import { MockTimeDex223Pool} from '../../typechain-types/'
 import { TestERC20 } from '../../typechain-types/'
-import { Dex223Factory, Dex223PoolLib, TokenStandardConverter } from '../../typechain-types/'
+import { Dex223Factory, MockTimeDex223PoolLib, TokenStandardConverter } from '../../typechain-types/'
 import { TestUniswapV3Callee } from '../../typechain-types/'
 import { TestUniswapV3Router } from '../../typechain-types/'
 import { MockTimeDex223PoolDeployer } from '../../typechain-types/'
@@ -9,12 +9,13 @@ import {ContractFactory} from "ethers";
 
 interface FactoryFixture {
   factory: Dex223Factory,
-  library: Dex223PoolLib,
+  library: MockTimeDex223PoolLib,
   converter: TokenStandardConverter
 }
 
 async function factoryFixture(): Promise<FactoryFixture> {
-  const libraryFactory = await ethers.getContractFactory('Dex223PoolLib')
+  const libraryFactory = await ethers.getContractFactory('MockTimeDex223PoolLib')
+  // const libraryFactory = await ethers.getContractFactory('Dex223PoolLib')
   const library = (await libraryFactory.deploy())
 
   const converterFactory = await ethers.getContractFactory('TokenStandardConverter')
@@ -100,8 +101,10 @@ export async function poolFixture (): Promise<PoolFixture> {
       // @ts-ignore
       const poolAddress = receipt?.logs?.[0].args?.[0] as string
       const pool = MockTimeUniswapV3PoolFactory.attach(poolAddress) as MockTimeDex223Pool
+      // TODO set 223 tokens
       await pool.testset(token0, token1, library.target,  converter.target);
-      return MockTimeUniswapV3PoolFactory.attach(poolAddress) as MockTimeDex223Pool
+
+      return pool
     },
   }
 }

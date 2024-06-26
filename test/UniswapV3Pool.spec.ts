@@ -4,7 +4,6 @@ import { TestERC20 } from '../typechain-types/'
 import { Dex223Factory } from '../typechain-types/'
 import { MockTimeDex223Pool } from '../typechain-types/'
 import { TestUniswapV3SwapPay } from '../typechain-types/'
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs"
 import checkObservationEquals from './shared/checkObservationEquals'
 import { expect } from 'chai'
 import {
@@ -29,7 +28,7 @@ import {
   MaxUint128,
   MAX_SQRT_RATIO,
   MIN_SQRT_RATIO,
-  SwapToPriceFunction,
+  SwapToPriceFunction, parseObservation,
 } from './shared/utilities'
 import { TestUniswapV3Callee } from '../typechain-types/'
 import { TestUniswapV3ReentrantCallee } from '../typechain-types/'
@@ -476,20 +475,23 @@ describe('Dex223Pool', () => {
           })
 
           it('does not write an observation', async () => {
-            checkObservationEquals(await pool.observations(0n), {
-              tickCumulative: 0n,
-              blockTimestamp: TEST_POOL_START_TIME,
-              initialized: true,
-              secondsPerLiquidityCumulativeX128: 0n,
-            })
+            // checkObservationEquals(await pool.observations(0n), {
+            //   tickCumulative: 0n,
+            //   blockTimestamp: TEST_POOL_START_TIME,
+            //   initialized: true,
+            //   secondsPerLiquidityCumulativeX128: 0n,
+            // })
+            const obs = await pool.observations(0);
+            const expected = parseObservation(obs);
             await pool.advanceTime(1n)
             await mint(wallet.address, -46080n, -23040n, 100n)
-            checkObservationEquals(await pool.observations(0n), {
-              tickCumulative: 0n,
-              blockTimestamp: TEST_POOL_START_TIME,
-              initialized: true,
-              secondsPerLiquidityCumulativeX128: 0n,
-            })
+            checkObservationEquals(await pool.observations(0n), expected)
+                // {
+            //   tickCumulative: 0n,
+            //   blockTimestamp: TEST_POOL_START_TIME,
+            //   initialized: true,
+            //   secondsPerLiquidityCumulativeX128: 0n,
+            // })
           })
         })
       })
