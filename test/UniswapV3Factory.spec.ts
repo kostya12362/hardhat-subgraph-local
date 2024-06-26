@@ -89,11 +89,16 @@ describe('Dex223Factory', () => {
 
     const poolContractFactory = await ethers.getContractFactory('Dex223Pool')
     const pool = poolContractFactory.attach(create2Address)
+    // @ts-ignore
     expect(await pool.factory(), 'pool factory address').to.eq(String(factory.target))
     // console.dir(await pool.token0())
+    // @ts-ignore
     expect((await pool.token0())[0], 'pool token0').to.eq(TEST_ADDRESSES[0])
+    // @ts-ignore
     expect((await pool.token1())[0], 'pool token1').to.eq(TEST_ADDRESSES[1])
+    // @ts-ignore
     expect(await pool.fee(), 'pool fee').to.eq(feeAmount)
+    // @ts-ignore
     expect(await pool.tickSpacing(), 'pool tick spacing').to.eq(tickSpacing)
   }
 

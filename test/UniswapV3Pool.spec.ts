@@ -40,7 +40,7 @@ import { SwapMathTest } from '../typechain-types/'
 
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T
 
-describe('UniswapV3Pool', () => {
+describe('Dex223Pool', () => {
   let wallet: Wallet, other: Wallet
 
   let token0: TestERC20
@@ -111,8 +111,8 @@ describe('UniswapV3Pool', () => {
   // TODO migrate to Multi-pool
   it('constructor initializes immutables', async () => {
     expect(await pool.factory()).to.eq(factory.target.toString())
-    expect(await pool.token0()).to.eq(token0.target.toString())
-    expect(await pool.token1()).to.eq(token1.target.toString())
+    expect((await pool.token0())[0]).to.eq(token0.target.toString())
+    expect((await pool.token1())[0]).to.eq(token1.target.toString())
     expect(await pool.maxLiquidityPerTick()).to.eq(getMaxLiquidityPerTick(Number(tickSpacing)))
   })
 
@@ -143,12 +143,12 @@ describe('UniswapV3Pool', () => {
 
       const { sqrtPriceX96, observationIndex } = await pool.slot0()
       expect(sqrtPriceX96).to.eq(price)
-      expect(observationIndex).to.eq(0)
+      expect(observationIndex).to.eq(0n)
       expect((await pool.slot0()).tick).to.eq(-6932n)
     })
     it('initializes the first observations slot', async () => {
       await pool.initialize(encodePriceSqrt(1n, 1n))
-      checkObservationEquals(await pool.observations(0), {
+      checkObservationEquals(await pool.observations(0n), {
         secondsPerLiquidityCumulativeX128: 0n,
         initialized: true,
         blockTimestamp: TEST_POOL_START_TIME,
@@ -157,7 +157,7 @@ describe('UniswapV3Pool', () => {
     })
     it('emits a Initialized event with the input tick', async () => {
       const sqrtPriceX96 = encodePriceSqrt(1n, 2n)
-      await expect(pool.initialize(sqrtPriceX96)).to.emit(pool, 'Initialize').withArgs(sqrtPriceX96, -6932)
+      await expect(pool.initialize(sqrtPriceX96)).to.emit(pool, 'Initialize').withArgs(sqrtPriceX96, -6932n)
     })
   })
 
@@ -197,7 +197,9 @@ describe('UniswapV3Pool', () => {
     })
     describe('after initialization', () => {
       beforeEach('initialize the pool at price of 10:1', async () => {
-        await pool.initialize(encodePriceSqrt(1n, 10n))
+        const price: bigint = encodePriceSqrt(1n, 10n);
+        await pool.initialize(price)
+        console.log(`mint: ${minTick} | ${maxTick} | ${price}`);
         await mint(wallet.address, minTick, maxTick, 3161n)
       })
 
@@ -1375,6 +1377,9 @@ describe('UniswapV3Pool', () => {
 
     // add a bunch of liquidity around current price
     const liquidity = expandTo18Decimals(1000)
+    console.log('Trying Mint');
+    console.log(wallet.address);
+    console.log(liquidity);
     await mint(wallet.address, -24082n, -24080n, liquidity)
     expect(await pool.liquidity(), 'current pool liquidity is now liquidity + 1').to.eq(liquidity)
 

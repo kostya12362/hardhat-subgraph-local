@@ -1,19 +1,31 @@
 import { ethers } from 'hardhat'
-import { MockTimeDex223Pool } from '../../typechain-types/'
+import { MockTimeDex223Pool} from '../../typechain-types/'
 import { TestERC20 } from '../../typechain-types/'
-import { Dex223Factory } from '../../typechain-types/'
+import { Dex223Factory, Dex223PoolLib, TokenStandardConverter } from '../../typechain-types/'
 import { TestUniswapV3Callee } from '../../typechain-types/'
 import { TestUniswapV3Router } from '../../typechain-types/'
-import { MockTimeUniswapV3PoolDeployer } from '../../typechain-types/'
+import { MockTimeDex223PoolDeployer } from '../../typechain-types/'
+import {ContractFactory} from "ethers";
 
 interface FactoryFixture {
-  factory: Dex223Factory
+  factory: Dex223Factory,
+  library: Dex223PoolLib,
+  converter: TokenStandardConverter
 }
 
 async function factoryFixture(): Promise<FactoryFixture> {
+  const libraryFactory = await ethers.getContractFactory('Dex223PoolLib')
+  const library = (await libraryFactory.deploy())
+
+  const converterFactory = await ethers.getContractFactory('TokenStandardConverter')
+  const converter = (await converterFactory.deploy())
+
   const factoryFactory = await ethers.getContractFactory('Dex223Factory')
   const factory = (await factoryFactory.deploy()) as Dex223Factory
-  return { factory }
+
+  await factory.set(library.target, converter.target)
+
+  return { factory, library, converter }
 }
 
 interface TokensFixture {
@@ -52,10 +64,10 @@ interface PoolFixture extends TokensAndFactoryFixture {
 export const TEST_POOL_START_TIME = 1601906400n
 
 export async function poolFixture (): Promise<PoolFixture> {
-  const { factory } = await factoryFixture()
+  const { factory, library, converter } = await factoryFixture()
   const { token0, token1, token2 } = await tokensFixture()
 
-  const MockTimeUniswapV3PoolDeployerFactory = await ethers.getContractFactory('MockTimeUniswapV3PoolDeployer')
+  const MockTimeUniswapV3PoolDeployerFactory = await ethers.getContractFactory('MockTimeDex223PoolDeployer')
   const MockTimeUniswapV3PoolFactory = await ethers.getContractFactory('MockTimeDex223Pool')
 
   const calleeContractFactory = await ethers.getContractFactory('TestUniswapV3Callee')
@@ -69,10 +81,12 @@ export async function poolFixture (): Promise<PoolFixture> {
     token1,
     token2,
     factory,
+    library,
+    converter,
     swapTargetCallee,
     swapTargetRouter,
     createPool: async (fee, tickSpacing, firstToken = token0, secondToken = token1) => {
-      const mockTimePoolDeployer = (await MockTimeUniswapV3PoolDeployerFactory.deploy()) as MockTimeUniswapV3PoolDeployer
+      const mockTimePoolDeployer = (await MockTimeUniswapV3PoolDeployerFactory.deploy()) as MockTimeDex223PoolDeployer
       const tx = await mockTimePoolDeployer.deploy(
         factory.target.toString(),
         firstToken.target.toString(),
@@ -82,7 +96,11 @@ export async function poolFixture (): Promise<PoolFixture> {
       )
 
       const receipt = await tx.wait()
-      const poolAddress = receipt?.events?.[0].args?.pool as string
+
+      // @ts-ignore
+      const poolAddress = receipt?.logs?.[0].args?.[0] as string
+      const pool = MockTimeUniswapV3PoolFactory.attach(poolAddress) as MockTimeDex223Pool
+      await pool.testset(token0, token1, library.target,  converter.target);
       return MockTimeUniswapV3PoolFactory.attach(poolAddress) as MockTimeDex223Pool
     },
   }

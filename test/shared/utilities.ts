@@ -1,4 +1,4 @@
-import {Contract, BaseContract, ContractTransaction, Wallet, ContractTransactionResponse} from 'ethers'
+import { BaseContract, Wallet, ContractTransactionResponse} from 'ethers'
 import { ethers } from 'hardhat'
 import { TestUniswapV3Callee } from '../../typechain-types'
 import { TestUniswapV3Router } from '../../typechain-types'
@@ -112,6 +112,7 @@ export function createPoolFunctions({
   ): Promise<ContractTransactionResponse> {
     const method = inputToken === (token0 as BaseContract) ? swapTarget.swapToLowerSqrtPrice : swapTarget.swapToHigherSqrtPrice
 
+    // @ts-ignore
     await inputToken.approve(swapTarget.target, ethers.MaxUint256)
 
     const toAddress = typeof to === 'string' ? to : to.address
@@ -143,6 +144,8 @@ export function createPoolFunctions({
         sqrtPriceLimitX96 = MAX_SQRT_RATIO - (1n)
       }
     }
+
+    // @ts-ignore
     await inputToken.approve(swapTarget.target, ethers.MaxUint256)
 
     const toAddress = typeof to === 'string' ? to : to.address
