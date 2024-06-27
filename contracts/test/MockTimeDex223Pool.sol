@@ -22,6 +22,29 @@ contract MockTimeDex223Pool is Dex223Pool {
         converter     = ITokenStandardConverter(_converter);
     }
 
+    function swap(
+        address recipient,
+        bool zeroForOne,
+        int256 amountSpecified,
+        uint160 sqrtPriceLimitX96,
+        bool prefer223,
+        bytes memory data
+    ) external override adjustableSender // noDelegateCall will not prevent delegatecalling
+        // this method from the same contract via `tokenReceived` of ERC-223
+    returns (int256 amount0, int256 amount1) {
+
+        (bool success, bytes memory retdata) = pool_lib.delegatecall(abi.encodeWithSignature("swap(address,bool,int256,uint160,bool,bytes)", recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, prefer223, data));
+
+        if (success) {
+            (amount0, amount1) = abi.decode(retdata, (int256, int256));
+        } else {
+            if (retdata.length == 0) revert();
+            assembly {
+                revert(add(32, retdata), mload(retdata))
+            }
+        }
+    }
+
     function setFeeGrowthGlobal0X128(uint256 _feeGrowthGlobal0X128) external {
         feeGrowthGlobal0X128 = _feeGrowthGlobal0X128;
     }

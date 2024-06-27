@@ -450,7 +450,7 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         uint160 sqrtPriceLimitX96,
         bool prefer223,
         bytes memory data
-    ) external override adjustableSender // noDelegateCall will not prevent delegatecalling
+    ) external virtual override adjustableSender // noDelegateCall will not prevent delegatecalling
                                                         // this method from the same contract via `tokenReceived` of ERC-223
      returns (int256 amount0, int256 amount1) {
 
