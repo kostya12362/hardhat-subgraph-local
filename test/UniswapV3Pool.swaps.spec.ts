@@ -1,5 +1,5 @@
 import { Decimal } from 'decimal.js'
-import {ContractTransaction, ContractTransactionResponse, Wallet} from 'ethers'
+import { ContractTransactionResponse, Wallet} from 'ethers'
 import { ethers } from 'hardhat'
 import { MockTimeDex223Pool } from '../typechain-types/'
 import { TestERC20 } from '../typechain-types/'
@@ -103,7 +103,7 @@ type PoolFunctions = ReturnType<typeof createPoolFunctions>
 
 // can't use address zero because the ERC20 token does not allow it
 const SWAP_RECIPIENT_ADDRESS = ethers.ZeroAddress.slice(0, -1) + '1'
-const POSITION_PROCEEDS_OUTPUT_ADDRESS = BigInt(ethers.ZeroAddress.slice(0, -1) + '2')
+const POSITION_PROCEEDS_OUTPUT_ADDRESS = ethers.ZeroAddress.slice(0, -1) + '2'
 
 async function executeSwap(
   pool: MockTimeDex223Pool,
@@ -464,7 +464,6 @@ describe('UniswapV3Pool swap tests', () => {
   for (const poolCase of TEST_POOLS) {
     describe(poolCase.description, () => {
       const poolCaseFixture = async () => {
-        // TODO ???
         const { createPool, token0, token1, swapTargetCallee: swapTarget } = await poolFixture(
           // [wallet],
           // ethers.provider
@@ -478,8 +477,8 @@ describe('UniswapV3Pool swap tests', () => {
         }
 
         const [poolBalance0, poolBalance1] = await Promise.all([
-          token0.balanceOf(pool.address),
-          token1.balanceOf(pool.address),
+          token0.balanceOf(pool.target.toString()),
+          token1.balanceOf(pool.target.toString()),
         ])
 
         return { token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget }
@@ -504,8 +503,7 @@ describe('UniswapV3Pool swap tests', () => {
       afterEach('check can burn positions', async () => {
         for (const { liquidity, tickUpper, tickLower } of poolCase.positions) {
           await pool.burn(tickLower, tickUpper, liquidity)
-          // TODO
-          // await pool.collect(POSITION_PROCEEDS_OUTPUT_ADDRESS, BigInt(tickLower), BigInt(tickUpper), MaxUint128, MaxUint128)
+          await pool.collect(POSITION_PROCEEDS_OUTPUT_ADDRESS, BigInt(tickLower), BigInt(tickUpper), MaxUint128, MaxUint128, false, false)
         }
       })
 
@@ -533,8 +531,8 @@ describe('UniswapV3Pool swap tests', () => {
             feeGrowthGlobal0X128,
             feeGrowthGlobal1X128,
           ] = await Promise.all([
-            token0.balanceOf(pool.address),
-            token1.balanceOf(pool.address),
+            token0.balanceOf(pool.target.toString()),
+            token1.balanceOf(pool.target.toString()),
             pool.slot0(),
             pool.liquidity(),
             pool.feeGrowthGlobal0X128(),
@@ -548,21 +546,21 @@ describe('UniswapV3Pool swap tests', () => {
           else if (poolBalance0Delta < 0n)
             await expect(tx)
               .to.emit(token0, 'Transfer')
-              .withArgs(pool.address, SWAP_RECIPIENT_ADDRESS, poolBalance0Delta * (-1n))
-          else await expect(tx).to.emit(token0, 'Transfer').withArgs(wallet.address, pool.address, poolBalance0Delta)
+              .withArgs(pool.target.toString(), SWAP_RECIPIENT_ADDRESS, poolBalance0Delta * (-1n))
+          else await expect(tx).to.emit(token0, 'Transfer').withArgs(wallet.address, pool.target.toString(), poolBalance0Delta)
 
           if (poolBalance1Delta === 0n) await expect(tx).to.not.emit(token1, 'Transfer')
           else if (poolBalance1Delta < 0n)
             await expect(tx)
               .to.emit(token1, 'Transfer')
-              .withArgs(pool.address, SWAP_RECIPIENT_ADDRESS, poolBalance1Delta * (-1n))
-          else await expect(tx).to.emit(token1, 'Transfer').withArgs(wallet.address, pool.address, poolBalance1Delta)
+              .withArgs(pool.target.toString(), SWAP_RECIPIENT_ADDRESS, poolBalance1Delta * (-1n))
+          else await expect(tx).to.emit(token1, 'Transfer').withArgs(wallet.address, pool.target.toString(), poolBalance1Delta)
 
           // check that the swap event was emitted too
           await expect(tx)
             .to.emit(pool, 'Swap')
             .withArgs(
-              swapTarget.address,
+              swapTarget.target.toString(),
               SWAP_RECIPIENT_ADDRESS,
               poolBalance0Delta,
               poolBalance1Delta,

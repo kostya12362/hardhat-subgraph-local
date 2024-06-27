@@ -5,7 +5,6 @@ import { Dex223Factory, MockTimeDex223PoolLib, TokenStandardConverter } from '..
 import { TestUniswapV3Callee } from '../../typechain-types/'
 import { TestUniswapV3Router } from '../../typechain-types/'
 import { MockTimeDex223PoolDeployer } from '../../typechain-types/'
-import {ContractFactory} from "ethers";
 
 interface FactoryFixture {
   factory: Dex223Factory,
@@ -15,7 +14,6 @@ interface FactoryFixture {
 
 async function factoryFixture(): Promise<FactoryFixture> {
   const libraryFactory = await ethers.getContractFactory('MockTimeDex223PoolLib')
-  // const libraryFactory = await ethers.getContractFactory('Dex223PoolLib')
   const library = (await libraryFactory.deploy())
 
   const converterFactory = await ethers.getContractFactory('TokenStandardConverter')

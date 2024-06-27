@@ -423,7 +423,7 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         uint128 amount1Requested,
         bool token0_223,
         bool token1_223
-    ) external override lock returns (uint128 amount0, uint128 amount1) {
+    ) external override lock  returns (uint128 amount0, uint128 amount1) {
         (bool success, bytes memory retdata) = pool_lib.delegatecall(abi.encodeWithSignature("collect(address,int24,int24,uint128,uint128,bool,bool)", recipient, tickLower, tickUpper, amount0Requested, amount1Requested, token0_223, token1_223));
         require(success);
         return abi.decode(retdata, (uint128, uint128));
@@ -435,7 +435,7 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         int24 tickLower,
         int24 tickUpper,
         uint128 amount
-    ) external override lock returns (uint256 amount0, uint256 amount1) {
+    ) external override lock  returns (uint256 amount0, uint256 amount1) {
         (bool success, bytes memory retdata) = pool_lib.delegatecall(abi.encodeWithSignature("burn(int24,int24,uint128)", tickLower, tickUpper, amount));
         require(success);
         return abi.decode(retdata, (uint256, uint256));
@@ -450,7 +450,7 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         uint160 sqrtPriceLimitX96,
         bool prefer223,
         bytes memory data
-    ) external override adjustableSender /*noDelegateCall*/ // noDelegateCall will not prevent delegatecalling
+    ) external override adjustableSender // noDelegateCall will not prevent delegatecalling
                                                         // this method from the same contract via `tokenReceived` of ERC-223
      returns (int256 amount0, int256 amount1) {
 
@@ -532,7 +532,7 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
         address recipient,
         uint128 amount0Requested,
         uint128 amount1Requested
-    ) external override lock onlyFactoryOwner returns (uint128 amount0, uint128 amount1) {
+    ) external override lock onlyFactoryOwner  returns (uint128 amount0, uint128 amount1) {
         amount0 = amount0Requested > protocolFees.token0 ? protocolFees.token0 : amount0Requested;
         amount1 = amount1Requested > protocolFees.token1 ? protocolFees.token1 : amount1Requested;
 
