@@ -4,6 +4,7 @@ import { TestUniswapV3Callee } from '../../typechain-types'
 import { TestUniswapV3Router } from '../../typechain-types'
 import { MockTimeDex223Pool } from '../../typechain-types'
 import { TestERC20 } from '../../typechain-types'
+import bn from 'bignumber.js'
 
 export const MaxUint128 = 2n ** 128n - 1n
 
@@ -54,11 +55,19 @@ export function getCreate2Address(
   return ethers.getAddress(`0x${ethers.keccak256(sanitizedInputs).slice(-40)}`)
 }
 
-// bn.config({ EXPONENTIAL_AT: 999999, DECIMAL_PLACES: 40 })
+bn.config({ EXPONENTIAL_AT: 999999, DECIMAL_PLACES: 40 })
 
 // returns the sqrt price as a 64x96
 export function encodePriceSqrt(reserve1: bigint, reserve0: bigint): bigint {
-  return BigInt(Math.round(Math.sqrt(Number(reserve1) / Number(reserve0)) * (2 ** 96)))
+  return  BigInt(
+      new bn(reserve1.toString())
+          .div(reserve0.toString())
+          .sqrt()
+          .multipliedBy(new bn(2).pow(96))
+          .integerValue(3)
+          .toString()
+  )
+  // return BigInt(Math.round(Math.sqrt(Number(reserve1) / Number(reserve0)) * (2 ** 96)))
 }
 
 export function getPositionKey(address: string, lowerTick: bigint, upperTick: bigint): string {

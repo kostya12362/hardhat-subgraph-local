@@ -88,6 +88,15 @@ const config: HardhatUserConfig = {
       },
     ],
     overrides: {
+      "contracts/ico/ico.sol": {
+        version: "0.8.19",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          }
+        }
+      },
       "contracts/TokenStandardConverter/TokenConverter.sol": {
         version: "0.8.19",
         settings: {

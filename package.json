@@ -12,6 +12,7 @@
     "@uniswap/v3-periphery": "^1.4.4",
     "@uniswap/v3-sdk": "^3.11.0",
     "base64-sol": "^1.1.0",
+    "bignumber.js": "^9.1.2",
     "decimal.js": "^10.4.3",
     "dotenv": "^16.3.1",
     "mocha": "^10.4.0",

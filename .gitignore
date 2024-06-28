@@ -26,3 +26,4 @@ __result__/
 typechain-types/
 /deployments/
 .extractedAbis/
+/contracts/ico/

@@ -20,7 +20,9 @@ import {
 } from './shared/utilities'
 import { TestUniswapV3Router } from '../typechain-types/'
 import { TestUniswapV3Callee } from '../typechain-types/'
-import helpers from "@nomicfoundation/hardhat-network-helpers";
+import {
+  loadFixture,
+} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 const feeAmount = FeeAmount.MEDIUM
 const tickSpacing = TICK_SPACINGS[feeAmount]
@@ -29,7 +31,7 @@ const tickSpacing = TICK_SPACINGS[feeAmount]
 
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T
 
-describe('UniswapV3Pool', () => {
+describe('UniswapV3Router', () => {
   let wallet: Wallet, other: Wallet
 
   let token0: TestERC20
@@ -58,7 +60,7 @@ describe('UniswapV3Pool', () => {
   })
 
   beforeEach('deploy first fixture', async () => {
-    ;({ token0, token1, token2, factory, createPool, swapTargetCallee, swapTargetRouter } = await helpers.loadFixture(
+    ;({ token0, token1, token2, factory, createPool, swapTargetCallee, swapTargetRouter } = await loadFixture(
       poolFixture
     ))
 
@@ -87,11 +89,11 @@ describe('UniswapV3Pool', () => {
 
   it('constructor initializes immutables', async () => {
     expect(await pool0.factory()).to.eq(factory.target.toString())
-    expect(await pool0.token0()).to.eq(token0.target.toString())
-    expect(await pool0.token1()).to.eq(token1.target.toString())
+    expect((await pool0.token0())[0]).to.eq(token0.target.toString())
+    expect((await pool0.token1())[0]).to.eq(token1.target.toString())
     expect(await pool1.factory()).to.eq(factory.target.toString())
-    expect(await pool1.token0()).to.eq(token1.target.toString())
-    expect(await pool1.token1()).to.eq(token2.target.toString())
+    expect((await pool1.token0())[0]).to.eq(token1.target.toString())
+    expect((await pool1.token1())[0]).to.eq(token2.target.toString())
   })
 
   describe('multi-swaps', () => {
@@ -102,16 +104,16 @@ describe('UniswapV3Pool', () => {
       inputToken = token0
       outputToken = token2
 
-      await pool0.initialize(encodePriceSqrt(1, 1))
-      await pool1.initialize(encodePriceSqrt(1, 1))
+      await pool0.initialize(encodePriceSqrt(1n, 1n))
+      await pool1.initialize(encodePriceSqrt(1n, 1n))
 
       await pool0Functions.mint(wallet.address, minTick, maxTick, expandTo18Decimals(1))
       await pool1Functions.mint(wallet.address, minTick, maxTick, expandTo18Decimals(1))
     })
 
     it('multi-swap', async () => {
-      const token0OfPoolOutput = await pool1.token0()
-      const ForExact0 = outputToken.address === token0OfPoolOutput
+      const token0OfPoolOutput = (await pool1.token0())[0]
+      const ForExact0 = outputToken.target.toString() === token0OfPoolOutput
 
       const { swapForExact0Multi, swapForExact1Multi } = createMultiPoolFunctions({
         inputToken: token0,
@@ -124,11 +126,11 @@ describe('UniswapV3Pool', () => {
 
       await expect(method(100n, wallet.address))
         .to.emit(outputToken, 'Transfer')
-        .withArgs(pool1.address, wallet.address, 100n)
+        .withArgs(pool1.target.toString(), wallet.address, 100n)
         .to.emit(token1, 'Transfer')
-        .withArgs(pool0.address, pool1.address, 102n)
+        .withArgs(pool0.target.toString(), pool1.target.toString(), 102n)
         .to.emit(inputToken, 'Transfer')
-        .withArgs(wallet.address, pool0.address, 104n)
+        .withArgs(wallet.address, pool0.target.toString(), 104n)
     })
   })
 })
