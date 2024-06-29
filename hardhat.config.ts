@@ -106,6 +106,15 @@ const config: HardhatUserConfig = {
           }
         }
       },
+      "contracts/core/Autolisting.sol": {
+        version: "0.7.6",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 5000,
+          }
+        }
+      },
       "contracts/periphery/NonfungiblePositionManager.sol": {
         version: "0.7.6",
         settings: {
