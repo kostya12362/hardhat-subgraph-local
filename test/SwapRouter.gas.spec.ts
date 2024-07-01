@@ -27,7 +27,8 @@ describe('SwapRouter gas tests', function () {
       nft , converter} = await completeFixture()
 
     // approve & fund wallets
-    for (const token of tokens) {
+    for (let i = 0; i < 3; i++) {
+      const token = tokens[i];
       await token.approve(router.target.toString(), ethers.MaxUint256)
       await token.approve(nft.target.toString(), ethers.MaxUint256)
       await token.connect(trader).approve(router.target.toString(), ethers.MaxUint256)
@@ -90,6 +91,9 @@ describe('SwapRouter gas tests', function () {
     const pools: IUniswapV3Pool[] = poolAddresses.map((poolAddress) => {
         return (new ethers.Contract(poolAddress, IUniswapV3PoolABI, ethers.provider)) as BaseContract as IUniswapV3Pool
     })
+
+    console.log('pools []');
+    console.log(pools.length);
 
     return {
       weth9,

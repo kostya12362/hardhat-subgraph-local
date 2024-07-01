@@ -57,6 +57,17 @@ export async function  completeFixture():  Promise<{
   tokens.push({target: token4} as TestERC20)
   tokens.push({target: token5} as TestERC20)
 
+  const [owner] = await ethers.getSigners()
+  weth9.connect(owner);
+  factory.connect(owner);
+  router.connect(owner);
+  nft.connect(owner);
+  nftDescriptor.connect(owner);
+  converter.connect(owner);
+  tokens[0].connect(owner);
+  tokens[1].connect(owner);
+  tokens[2].connect(owner);
+
   return {
     weth9,
     factory,

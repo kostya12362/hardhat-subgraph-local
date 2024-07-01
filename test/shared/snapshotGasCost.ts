@@ -9,13 +9,16 @@ export default async function snapshotGasCost(
     | ContractTransaction
     | Promise<ContractTransactionResponse>
     | TransactionReceipt
-    | Promise<BigInt>
-    | BigInt
+    | Promise<bigint>
+    | bigint
     | Contract
     | Promise<Contract>
 ): Promise<void> {
   const resolved = await x
-  if ('deployTransaction' in resolved) {
+
+  if (typeof resolved === 'bigint') {
+    expect(Number(resolved)).toMatchSnapshot()
+  } else if ('deployTransaction' in resolved) {
     // @ts-ignore
     const receipt = await resolved.deployTransaction.wait()
     expect(Number(receipt.gasUsed)).toMatchSnapshot()

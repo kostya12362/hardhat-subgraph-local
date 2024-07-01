@@ -35,7 +35,8 @@ describe('SwapRouter', function () {
       nft , converter} = await completeFixture()
 
     // approve & fund wallets
-    for (const token of tokens) {
+    for (let i = 0; i < 3; i++) {
+      const token = tokens[i]
       await token.approve(router.target.toString(), ethers.MaxUint256)
       await token.approve(nft.target.toString(), ethers.MaxUint256)
       await token.connect(trader).approve(router.target.toString(), ethers.MaxUint256)

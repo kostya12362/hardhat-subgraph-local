@@ -34,7 +34,8 @@ describe('PositionValue', async () => {
     const positionValueFactory = await ethers.getContractFactory('PositionValueTest')
     const positionValue = (await positionValueFactory.deploy()) as PositionValueTest
 
-    for (const token of tokens) {
+    for (let i = 0; i < 3; i++) {
+      const token = tokens[i];
       await token.approve(nft.target.toString(), ethers.MaxUint256)
       await token.connect(owner).approve(nft.target.toString(), ethers.MaxUint256)
       await token.transfer(owner.address, expandTo18Decimals(1000000))

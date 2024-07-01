@@ -42,7 +42,8 @@ describe('NonfungiblePositionManager', () => {
       router , converter} = await completeFixture()
 
     // approve & fund wallets
-    for (const token of tokens) {
+    for (let i = 0; i < 3; i++) {
+      const token = tokens[i]
       await token.approve(nft.target.toString(), ethers.MaxUint256)
       await token.connect(other).approve(nft.target.toString(), ethers.MaxUint256)
       await token.transfer(other.address, expandTo18Decimals(1_000_000))
@@ -229,7 +230,7 @@ describe('NonfungiblePositionManager', () => {
           recipient: wallet.address,
           deadline: 1,
         })
-      ).to.be.revertedWith('STF')
+      ).to.be.reverted ;//With('STF') // messages in NFPM are cutted out
     })
 
     it('creates a token', async () => {
