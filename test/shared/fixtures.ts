@@ -12,7 +12,7 @@ interface FactoryFixture {
   converter: TokenStandardConverter
 }
 
-async function factoryFixture(): Promise<FactoryFixture> {
+export async function factoryFixture(): Promise<FactoryFixture> {
   const libraryFactory = await ethers.getContractFactory('MockTimeDex223PoolLib')
   const library = (await libraryFactory.deploy())
 
