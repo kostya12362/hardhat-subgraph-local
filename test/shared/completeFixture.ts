@@ -6,7 +6,7 @@ import {
   MockTimeSwapRouter,
   NonfungibleTokenPositionDescriptor,
   TestERC20,
-  Dex223Factory,
+  Dex223Factory, TokenStandardConverter,
 } from '../../typechain-types/'
 
 export async function  completeFixture():  Promise<{
@@ -16,6 +16,7 @@ export async function  completeFixture():  Promise<{
   tokens: TestERC20[];
   weth9: IWETH9;
   nft: MockTimeNonfungiblePositionManager
+  converter: TokenStandardConverter
 }> {
   const { weth9, factory, router , converter} = await v3RouterFixture()
 
@@ -49,10 +50,12 @@ export async function  completeFixture():  Promise<{
   tokens.sort((a, b) => (a.target.toString().toLowerCase() < b.target.toString().toLowerCase() ? -1 : 1))
 
   let token3 = await converter.predictWrapperAddress(tokens[0].target, true);
-  let token4 = await converter.predictWrapperAddress(tokens[1].target, false);
+  let token4 = await converter.predictWrapperAddress(tokens[1].target, true);
+  let token5 = await converter.predictWrapperAddress(tokens[2].target, true);
 
   tokens.push({target: token3} as TestERC20)
   tokens.push({target: token4} as TestERC20)
+  tokens.push({target: token5} as TestERC20)
 
   return {
     weth9,
@@ -61,5 +64,6 @@ export async function  completeFixture():  Promise<{
     nft,
     nftDescriptor,
     tokens,
+    converter
   }
 }

@@ -6,8 +6,8 @@ export default async function getPermitNFTSignature(
   wallet: Wallet,
   positionManager: DexaransNonfungiblePositionManager,
   spender: string,
-  tokenId: bigint,
-  deadline: bigint = ethers.MaxUint256,
+  tokenId: bigint | number,
+  deadline: bigint | number = ethers.MaxUint256,
   permitConfig?: { nonce?: bigint; name?: string; chainId?: number; version?: string }
 ): Promise<Signature> {
   const [nonce, name, version, chainId] = await Promise.all([
