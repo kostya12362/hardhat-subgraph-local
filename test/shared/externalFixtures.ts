@@ -27,22 +27,14 @@ async function wethFixture(): Promise<WethFixture> {
 }
 
 export async function v3RouterFixture(): Promise<RouterFixture> {
-  const [owner] = await ethers.getSigners();
-
   const { weth9 } = await wethFixture()
   const { factory, converter} = await factoryFixture()
-
-  weth9.connect(owner);
-  factory.connect(owner);
-  converter.connect(owner);
 
   const routerFactory = await ethers.getContractFactory('MockTimeSwapRouter')
   const router = (await routerFactory.deploy(
       factory.target.toString(),
       weth9.target.toString()
   )) as MockTimeSwapRouter
-
-  router.connect(owner);
 
   return { factory, weth9, router , converter }
 }

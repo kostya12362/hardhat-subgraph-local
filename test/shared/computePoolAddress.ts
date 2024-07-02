@@ -1,4 +1,4 @@
-import { bytecode } from '@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json'
+import { bytecode } from '../../artifacts/contracts/core/Dex223Pool.sol/Dex223Pool.json'
 import { ethers } from 'ethers'
 
 export const POOL_BYTECODE_HASH = ethers.keccak256(bytecode)
