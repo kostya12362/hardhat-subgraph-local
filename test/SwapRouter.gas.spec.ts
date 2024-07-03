@@ -1,16 +1,19 @@
 import { abi as IUniswapV3PoolABI } from '../artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json'
-import {BaseContract, ContractTransaction, ContractTransactionResponse, Wallet} from 'ethers'
+import {BaseContract, ContractTransactionResponse, Wallet} from 'ethers'
 import { ethers } from 'hardhat'
 import {IUniswapV3Pool, IWETH9, MockTimeSwapRouter, TestERC20, TokenStandardConverter} from '../typechain-types/'
 import { completeFixture } from './shared/completeFixture'
 import { FeeAmount, TICK_SPACINGS } from './shared/constants'
 import { encodePriceSqrt, expandTo18Decimals, getMaxTick, getMinTick } from './shared/utilities'
-import { expect } from 'chai'
 import { encodePath } from './shared/path'
 import snapshotGasCost from './shared/snapshotGasCost'
 import {
   loadFixture,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { expect, use } from 'chai'
+import { jestSnapshotPlugin } from 'mocha-chai-jest-snapshot'
+
+use(jestSnapshotPlugin());
 
 describe('SwapRouter gas tests', function () {
   this.timeout(40000)
@@ -47,7 +50,7 @@ describe('SwapRouter gas tests', function () {
           tokenAddressA1,
           tokenAddressB1,
           FeeAmount.MEDIUM,
-          encodePriceSqrt(1n, 1n)
+          encodePriceSqrt(100005n, 100000n)
       )
 
       const liquidityParams = {
@@ -68,7 +71,7 @@ describe('SwapRouter gas tests', function () {
     }
 
     async function createPoolWETH9(tokenAddress: string) {
-      await weth9.deposit({ value: liquidity * 2 })
+      await weth9.deposit({ value: liquidity * 3 })
       await weth9.approve(nft.target.toString(), ethers.MaxUint256)
       // get addresses from converter
       let token3 = await converter.predictWrapperAddress(weth9.target.toString(), true);
@@ -91,9 +94,6 @@ describe('SwapRouter gas tests', function () {
     const pools: IUniswapV3Pool[] = poolAddresses.map((poolAddress) => {
         return (new ethers.Contract(poolAddress, IUniswapV3PoolABI, ethers.provider)) as BaseContract as IUniswapV3Pool
     })
-
-    console.log('pools []');
-    console.log(pools.length);
 
     return {
       weth9,
@@ -233,7 +233,7 @@ describe('SwapRouter gas tests', function () {
   }
 
   // TODO should really throw this in the fixture
-  beforeEach('intialize feeGrowthGlobals', async () => {
+  beforeEach('initialize feeGrowthGlobals', async () => {
     await exactInput([tokens[0].target.toString(), tokens[1].target.toString()], 1, 0)
     await exactInput([tokens[1].target.toString(), tokens[0].target.toString()], 1, 0)
     await exactInput([tokens[1].target.toString(), tokens[2].target.toString()], 1, 0)
@@ -264,6 +264,7 @@ describe('SwapRouter gas tests', function () {
     expect(slots).to.deep.eq([0, 0, 0])
   })
 
+  // TODO fails
   afterEach('ensure ticks are 0 after', async () => {
     const slots = await Promise.all(pools.map((pool) => pool.slot0().then(({ tick }) => tick)))
     expect(slots).to.deep.eq([0, 0, 0])
@@ -271,7 +272,7 @@ describe('SwapRouter gas tests', function () {
 
   describe('#exactInput', () => {
     it('0 -> 1', async () => {
-      await snapshotGasCost(exactInput(tokens.slice(0, 2).map((token) => token.target.toString())))
+      await snapshotGasCost(exactInput([tokens[0].target.toString(), tokens[1].target.toString()]))
     })
 
     it('0 -> 1 minimal', async () => {
@@ -285,7 +286,7 @@ describe('SwapRouter gas tests', function () {
     it('0 -> 1 -> 2', async () => {
       await snapshotGasCost(
         exactInput(
-          tokens.map((token) => token.target.toString()),
+          tokens.slice(0,3).map((token) => token.target.toString()),
           3
         )
       )
@@ -440,7 +441,7 @@ describe('SwapRouter gas tests', function () {
     })
 
     it('0 -> 1 -> 2', async () => {
-      await snapshotGasCost(exactOutput(tokens.map((token) => token.target.toString())))
+      await snapshotGasCost(exactOutput(tokens.slice(0, 3).map((token) => token.target.toString())))
     })
 
     it('WETH9 -> 0', async () => {
