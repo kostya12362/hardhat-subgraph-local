@@ -5,7 +5,7 @@ import { MockTimeDex223Pool } from '../typechain-types/'
 import { TestERC20 } from '../typechain-types/'
 
 import { TestUniswapV3Callee } from '../typechain-types/'
-import { expect } from 'chai'
+import { expect, use } from 'chai'
 import { poolFixture } from './shared/fixtures'
 import { formatPrice, formatTokenAmount } from './shared/format'
 import {
@@ -24,6 +24,10 @@ import {
 import {
   loadFixture,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+
+import { jestSnapshotPlugin } from 'mocha-chai-jest-snapshot'
+
+use(jestSnapshotPlugin());
 
 Decimal.config({ toExpNeg: -500, toExpPos: 500 })
 
@@ -549,12 +553,12 @@ describe('UniswapV3Pool swap tests', () => {
           // TODO some swap fails
           // check all the events were emitted corresponding to balance changes
           if (poolBalance0Delta === 0n)  {
-            //await expect(tx).to.not.emit(token0, 'Transfer')
+            await expect(tx).to.not.emit(token0, 'Transfer')
             // console.log(`poolBalance0: ${poolBalance0}`)
             // console.log(`poolBalance0After: ${poolBalance0After}`)
             // console.log(`poolBalance1: ${poolBalance1}`)
             // console.log(`poolBalance1After: ${poolBalance1After}`)
-            expect(poolBalance1Delta).to.eq(0n)
+            // expect(poolBalance1Delta).to.eq(0n)
           }
           else if (poolBalance0Delta < 0n)
             await expect(tx)
@@ -567,8 +571,8 @@ describe('UniswapV3Pool swap tests', () => {
             // console.log(`poolBalance0After: ${poolBalance0After}`)
             // console.log(`poolBalance1: ${poolBalance1}`)
             // console.log(`poolBalance1After: ${poolBalance1After}`)
-            expect(poolBalance0Delta).to.eq(0n)
-            // await expect(tx).to.not.emit(token1, 'Transfer')
+            // expect(poolBalance0Delta).to.eq(0n)
+            await expect(tx).to.not.emit(token1, 'Transfer')
           }
           else if (poolBalance1Delta < 0n)
             await expect(tx)

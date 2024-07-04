@@ -1,5 +1,6 @@
 import { ethers } from "hardhat";
 import { BaseContract, Contract } from "ethers";
+import bn from 'bignumber.js'
 
 import FACTORY from "../../deployments/localhost/dex223/Factory/result.json";
 import POSITION_MANAGER from "../../deployments/localhost/dex223/DexaransNonfungiblePositionManager/result.json";
@@ -11,17 +12,35 @@ import {
 
 const provider = ethers.provider;
 
-export function calculateSqrtPriceX96(decimalsA: number, decimalsB: number, priceOfTokenBInTermsOfTokenA: number): bigint {
-  let priceRatio = priceOfTokenBInTermsOfTokenA * (10 ** (decimalsB - decimalsA));
-  return encodePriceSqrt(priceRatio)
+export function expandTo18Decimals(n: number): bigint {
+  return BigInt(n) * (10n ** 18n)
 }
 
-export function encodePriceSqrt(ratio: number): bigint {
-  // const ratio = Number(reserve1) / Number(reserve0);
-  const twoPow48 = 2n ** 48n;
-  const sqrtRatio = Math.sqrt(ratio);
-  return  BigInt(Math.floor(sqrtRatio * Number(twoPow48))) * twoPow48;
+bn.config({ EXPONENTIAL_AT: 999999, DECIMAL_PLACES: 40 })
+
+export function encodePriceSqrt(reserve1: bigint, reserve0: bigint): bigint {
+  return  BigInt(
+      new bn(reserve1.toString())
+          .div(reserve0.toString())
+          .sqrt()
+          .multipliedBy(new bn(2).pow(96))
+          .integerValue(3)
+          .toString()
+  )
+  // return BigInt(Math.round(Math.sqrt(Number(reserve1) / Number(reserve0)) * (2 ** 96)))
 }
+
+// export function calculateSqrtPriceX96(decimalsA: number, decimalsB: number, priceOfTokenBInTermsOfTokenA: bigint): bigint {
+//   let priceRatio = priceOfTokenBInTermsOfTokenA * BigInt(10 ** (decimalsB - decimalsA)));
+//   return encodePriceSqrt(priceRatio)
+// }
+//
+// export function encodePriceSqrt(ratio: number): bigint {
+//   // const ratio = Number(reserve1) / Number(reserve0);
+//   const twoPow48 = 2n ** 48n;
+//   const sqrtRatio = Math.sqrt(ratio);
+//   return  BigInt(Math.floor(sqrtRatio * Number(twoPow48))) * twoPow48;
+// }
 
 function sqrt(value: bigint): bigint {
   if (value < 0n) {

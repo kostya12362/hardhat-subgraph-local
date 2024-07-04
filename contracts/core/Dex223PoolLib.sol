@@ -377,7 +377,7 @@ contract Dex223PoolLib {
                             _token.call(abi.encodeWithSelector(IERC20Minimal.transfer.selector, _recipient, _amount));
 
         //require(success && (data.length == 0 || abi.decode(data, (bool))), 'TF');
-        if(!success)
+        if(!success) // || (success && data.length == 0))
         {
             if(_is223)
             {
@@ -696,6 +696,7 @@ contract Dex223PoolLib {
         //           in case of ERC-223 this `swap()` func is called within `tokenReceived()` invocation
         //           so the ERC-223 tokens are already in the contract
         //           and the amount is stored in the `erc223deposit[msg.sender][token]` variable.
+
         if (zeroForOne) {
 
             // SECURITY WARNING!
@@ -708,7 +709,7 @@ contract Dex223PoolLib {
             {
                 erc223deposit[swap_sender][token0.erc223] -= uint256(amount0);
             }
-            // ERC-20 depositing logic
+                // ERC-20 depositing logic
             else
             {
                 uint256 balance0Before = balance0();
@@ -716,8 +717,7 @@ contract Dex223PoolLib {
                 require(balance0Before.add(uint256(amount0)) <= balance0(), 'IIA');
             }
 
-            if (amount1 < 0)
-            {
+            if (amount1 < 0) {
                 if(prefer223Out) optimisticDelivery(token1.erc223, recipient, uint256(-amount1));
                 else optimisticDelivery(token1.erc20, recipient, uint256(-amount1));
             }
@@ -731,7 +731,7 @@ contract Dex223PoolLib {
             {
                 erc223deposit[swap_sender][token1.erc223] -= uint256(amount1);
             }
-            // ERC-20 depositing logic
+                // ERC-20 depositing logic
             else
             {
                 uint256 balance1Before = balance1();
@@ -739,9 +739,10 @@ contract Dex223PoolLib {
                 require(balance1Before.add(uint256(amount1)) <= balance1(), 'IIA');
             }
 
-            if(prefer223Out) optimisticDelivery(token0.erc223, recipient, uint256(-amount0));
-            else optimisticDelivery(token0.erc20, recipient, uint256(-amount0));
-
+            if (amount0 < 0) {
+                if(prefer223Out) optimisticDelivery(token0.erc223, recipient, uint256(-amount0));
+                else optimisticDelivery(token0.erc20, recipient, uint256(-amount0));
+            }
         }
 
         emit Swap(swap_sender, recipient, amount0, amount1, state.sqrtPriceX96, state.liquidity, state.tick);

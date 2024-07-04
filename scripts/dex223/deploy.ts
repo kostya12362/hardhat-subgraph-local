@@ -18,6 +18,7 @@ const artifacts = {
   PoolAddressHelper: require("../../artifacts/contracts/core/Dex223Factory.sol/PoolAddressHelper.json"),
   PoolAddress: require("../../artifacts/contracts/periphery/base/PoolAddress.sol/PoolAddress.json"),
   SwapRouter: require("../../artifacts/contracts/periphery/SwapRouter.sol/ERC223SwapRouter.json"),
+  TestPoolCallee: require("../../artifacts/contracts/test/TestUniswapV3Callee.sol/TestUniswapV3Callee.json"),
   Quoter: require("../../artifacts/contracts/periphery/lens/Quoter223.sol/ERC223Quoter.json"),
   NFTDescriptor: require("../../artifacts/contracts/periphery/base/NFTDescriptor.sol/NFTDescriptor.json"),
   NonfungibleTokenPositionDescriptor: require("../../artifacts/contracts/periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json"),
@@ -181,6 +182,16 @@ async function main() {
   });
 
   await deployHelper.deployState({
+    contractName: "TestPoolCallee",
+    contractFactory: new ContractFactory(
+      artifacts.TestPoolCallee.abi,
+      artifacts.TestPoolCallee.bytecode,
+      owner
+    ),
+    // contractArgs: [factory.target, weth.target],
+  });
+
+  await deployHelper.deployState({
     contractName: "Quoter",
     contractFactory: new ContractFactory(
       artifacts.Quoter.abi,
@@ -207,7 +218,7 @@ async function main() {
           NFTDescriptor: [
             {
               length: 20,
-              start: 1640,
+              start: 1794,
             },
           ],
         },

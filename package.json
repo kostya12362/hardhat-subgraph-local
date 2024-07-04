@@ -68,6 +68,7 @@
     "hardhat:deploy:dex223:local": "hardhat run --network localhost scripts/dex223/deploy.ts",
     "hardhat:deploy:dex223:sepolia": "hardhat run --network sepolia scripts/dex223/deploy.ts",
     "hardhat:setup:dex223:local": "hardhat run --network localhost scripts/dex223/setupFakeData.ts",
+    "hardhat:swap:dex223:local": "hardhat run --network localhost scripts/dex223/testPoolSwap.ts",
     "hardhat:deploy:sepolia": "hardhat run --network sepolia scripts/deploy.ts",
     "hardhat:verify:sepolia": "hardhat verify --network sepolia 0xF72E090f47eB6cDE0f9Eec6BDe3e6BfB91E75280 0x0000000000000000000000000000000000000000000000000000000064d2530c",
     "lint:contracts": "yarn solhint contracts/*.sol",

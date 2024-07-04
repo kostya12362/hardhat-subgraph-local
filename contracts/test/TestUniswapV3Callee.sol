@@ -72,7 +72,7 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback {
         uint160 sqrtPriceX96,
         address recipient
     ) external {
-        IDex223Pool(pool).swap(recipient, true, type(int256).max, sqrtPriceX96, false, abi.encode(msg.sender));
+        IDex223Pool(pool).swap(recipient, true, type(int256).max-1, sqrtPriceX96, false, abi.encode(msg.sender));
     }
 
     function swapToHigherSqrtPrice(
@@ -80,7 +80,7 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback {
         uint160 sqrtPriceX96,
         address recipient
     ) external {
-        IDex223Pool(pool).swap(recipient, false, type(int256).max, sqrtPriceX96, false, abi.encode(msg.sender));
+        IDex223Pool(pool).swap(recipient, false, type(int256).max-1, sqrtPriceX96, false, abi.encode(msg.sender));
     }
 
     event SwapCallback(int256 amount0Delta, int256 amount1Delta);

@@ -12,6 +12,7 @@ const contractPath = path.join(__dirname, "../dex223/artifacts");
 
 const artifacts = {
   tether: require("../../artifacts/contracts/TestTokens/Tether.sol/Tether.json"),
+  berc20: require("../../artifacts/contracts/TestTokens/BaseERC20.sol/BaseErc20.json"),
   usdc: require("../../artifacts/contracts/TestTokens/Usdcoin.sol/UsdCoin.json"),
   wbtc: require("../../artifacts/contracts/TestTokens/WrappedBitcoin.sol/WrappedBitcoin.json"),
   dai: require("../../artifacts/contracts/TestTokens/DAI.sol/Dai.json"),
@@ -48,6 +49,24 @@ export async function setupTokens() {
     contractFactory: new ContractFactory(
       artifacts.dai.abi,
       artifacts.dai.bytecode,
+      owner
+    ),
+  });
+
+  await deployHelper.deployState({
+    contractName: "BER1",
+    contractFactory: new ContractFactory(
+      artifacts.berc20.abi,
+      artifacts.berc20.bytecode,
+      owner
+    ),
+  });
+
+  await deployHelper.deployState({
+    contractName: "BER2",
+    contractFactory: new ContractFactory(
+      artifacts.berc20.abi,
+      artifacts.berc20.bytecode,
       owner
     ),
   });
