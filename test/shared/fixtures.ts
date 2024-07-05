@@ -5,6 +5,43 @@ import { Dex223Factory, MockTimeDex223PoolLib, TokenStandardConverter } from '..
 import { TestUniswapV3Callee } from '../../typechain-types/'
 import { TestUniswapV3Router } from '../../typechain-types/'
 import { MockTimeDex223PoolDeployer } from '../../typechain-types/'
+import { AutoListingsRegistry, Dex223AutoListing } from '../../typechain-types/'
+
+interface ListingFixture {
+  registry: AutoListingsRegistry,
+  listing: Dex223AutoListing,
+  token0: TestERC20
+  token1: TestERC20
+  token2: TestERC20,
+  factory: Dex223Factory,
+  converter: TokenStandardConverter,
+  createPool(
+      fee: number,
+      tickSpacing: number,
+      firstToken?: TestERC20,
+      secondToken?: TestERC20
+  ): Promise<MockTimeDex223Pool>
+}
+
+export async function listingFixture(): Promise<ListingFixture> {
+  const registryFactory = await ethers.getContractFactory('AutoListingsRegistry');
+  const registry = (await registryFactory.deploy());
+
+  const listingName = 'AutoTest listing';
+  const listingUrl = 'none';
+
+  const { token0, token1, token2, factory, converter, createPool } =  await poolFixture();
+
+  const listingFactory = await ethers.getContractFactory('Dex223AutoListing');
+  const listing = (await listingFactory.deploy(
+      factory.target.toString(),
+      registry.target.toString(),
+      listingName,
+      listingUrl
+  ));
+
+  return { registry, listing, token0, token1, token2, factory, converter, createPool };
+}
 
 interface FactoryFixture {
   factory: Dex223Factory,
@@ -99,8 +136,12 @@ export async function poolFixture (): Promise<PoolFixture> {
       // @ts-ignore
       const poolAddress = receipt?.logs?.[0].args?.[0] as string
       const pool = MockTimeUniswapV3PoolFactory.attach(poolAddress) as MockTimeDex223Pool
-      // TODO set 223 tokens
-      await pool.testset(token0, token1, library.target,  converter.target);
+
+      // set 223 tokens
+      let token2 = await converter.predictWrapperAddress(token0.target, true);
+      let token3 = await converter.predictWrapperAddress(token1.target, true);
+
+      await pool.testset(token2, token3, library.target,  converter.target);
 
       return pool
     },

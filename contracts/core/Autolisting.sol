@@ -5,7 +5,6 @@ pragma solidity =0.7.6;
 //import './interfaces/IDex223Factory.sol';
 
 
-
 /// @title The interface for the Uniswap V3 Factory
 /// @notice The Uniswap V3 Factory facilitates creation of Uniswap V3 pools and control over the protocol fees
 interface IDex223Factory {
@@ -158,6 +157,11 @@ contract Dex223AutoListing {
 
     mapping(uint256 => TradeablePair) public pairs; // index => pair
 
+    function getFactory() public view returns (address)
+    {
+        return address(factory);
+    }
+
     function getRegistry() public view returns (address)
     {
         return address(registry);
@@ -189,6 +193,9 @@ contract Dex223AutoListing {
         // Checking if we are listing a token which has a pool at Dex223.
         require(_token0_erc20 != address(0) || _token0_erc223 != address(0), "Token not defined in the pool contract.");
         require(_token1_erc20 != address(0) || _token1_erc223 != address(0), "Token not defined in the pool contract.");
+
+        address  fpool = factory.getPool(_token0_erc20, _token1_erc20, feeTier);
+
         require(factory.getPool(_token0_erc20, _token1_erc20, feeTier) == pool, "Token pool is not a part of Dex223 factory.");
 
         if(!isListed(_token0_erc20) || !isListed(_token0_erc223))
@@ -205,9 +212,9 @@ contract Dex223AutoListing {
         last_update = block.timestamp;
     }
 
-    function checkListing(address _token_erc20, address _token_erc223) internal 
+    function checkListing(address _token_erc20, address _token_erc223) internal
     {
-        
+
             // There are two possible scenarios here:
             // 1. We are listing a new token on Dex223.
             // 2. We are adding a version of an already listed token which previously had
@@ -235,7 +242,7 @@ contract Dex223AutoListing {
                     tokens[listed_tokens[_token_erc20]] = Token(_token_erc20, _token_erc223);
                     listed_tokens[_token_erc223]        = listed_tokens[_token_erc20];
                 }
-                else 
+                else
                 {
                     // Otherwise the token is listed as ERC-223;
                     tokens[listed_tokens[_token_erc223]] = Token(_token_erc20, _token_erc223);
