@@ -14,7 +14,10 @@ import { computePoolAddress } from './shared/computePoolAddress'
 import { completeFixture } from './shared/completeFixture'
 import snapshotGasCost from './shared/snapshotGasCost'
 
-import { expect } from 'chai'
+import { expect, use } from 'chai'
+import { jestSnapshotPlugin } from 'mocha-chai-jest-snapshot'
+
+use(jestSnapshotPlugin());
 
 import { abi as IUniswapV3PoolABI } from '../artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json'
 import {

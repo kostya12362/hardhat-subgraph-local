@@ -387,7 +387,6 @@ const TEST_POOLS: PoolTestCase[] = [
       },
     ],
   },
-    // TODO failed swap
   {
     description: 'close to max price',
     feeAmount: FeeAmount.MEDIUM,
@@ -401,7 +400,6 @@ const TEST_POOLS: PoolTestCase[] = [
       },
     ],
   },
-  // TODO failed swap
   {
     description: 'close to min price',
     feeAmount: FeeAmount.MEDIUM,

@@ -194,8 +194,6 @@ contract Dex223AutoListing {
         require(_token0_erc20 != address(0) || _token0_erc223 != address(0), "Token not defined in the pool contract.");
         require(_token1_erc20 != address(0) || _token1_erc223 != address(0), "Token not defined in the pool contract.");
 
-        address  fpool = factory.getPool(_token0_erc20, _token1_erc20, feeTier);
-
         require(factory.getPool(_token0_erc20, _token1_erc20, feeTier) == pool, "Token pool is not a part of Dex223 factory.");
 
         if(!isListed(_token0_erc20) || !isListed(_token0_erc223))

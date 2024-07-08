@@ -1,6 +1,6 @@
 import { Wallet } from 'ethers'
 import { ethers } from 'hardhat'
-import {AutoListingsRegistry, Dex223AutoListing, TestERC20} from '../typechain-types/'
+import { AutoListingsRegistry, Dex223AutoListing, TestERC20 } from '../typechain-types/'
 import { Dex223Factory } from '../typechain-types/'
 import { TokenStandardConverter } from '../typechain-types/'
 import { expect } from 'chai'

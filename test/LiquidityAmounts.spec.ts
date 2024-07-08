@@ -1,9 +1,13 @@
 import { ethers } from 'hardhat'
 import { LiquidityAmountsTest } from '../typechain-types/'
 import { encodePriceSqrt } from './shared/utilities'
-import { expect } from 'chai'
+import { expect, use } from 'chai'
 
 import snapshotGasCost from './shared/snapshotGasCost'
+
+import { jestSnapshotPlugin } from 'mocha-chai-jest-snapshot'
+
+use(jestSnapshotPlugin());
 
 describe('LiquidityAmounts', async () => {
   let liquidityFromAmounts: LiquidityAmountsTest
