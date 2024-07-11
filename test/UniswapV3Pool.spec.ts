@@ -1,14 +1,18 @@
 import { ethers } from 'hardhat'
-import { Wallet } from 'ethers'
-import { TestERC20 } from '../typechain-types/'
-import { Dex223Factory } from '../typechain-types/'
-import { MockTimeDex223Pool } from '../typechain-types/'
-import { TestUniswapV3SwapPay } from '../typechain-types/'
-import checkObservationEquals from './shared/checkObservationEquals'
+import {BaseContract, Contract, Wallet} from 'ethers'
 import { expect } from 'chai'
 import {
-  loadFixture,
-} from "@nomicfoundation/hardhat-toolbox/network-helpers";
+  TestERC20,
+  ERC223HybridToken,
+  Dex223Factory,
+  MockTimeDex223Pool,
+  TestUniswapV3SwapPay,
+  TestUniswapV3Callee,
+  TickMathTest,
+  SwapMathTest, TokenStandardConverter, ERC20Token
+} from '../typechain-types/'
+import checkObservationEquals from './shared/checkObservationEquals'
+import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 import { poolFixture, TEST_POOL_START_TIME } from './shared/fixtures'
 
@@ -30,24 +34,20 @@ import {
   MIN_SQRT_RATIO,
   SwapToPriceFunction,
 } from './shared/utilities'
-import { TestUniswapV3Callee } from '../typechain-types/'
-// import { TestUniswapV3ReentrantCallee } from '../typechain-types/'
-import { TickMathTest } from '../typechain-types/'
-import { SwapMathTest } from '../typechain-types/'
-
-
-// const createFixtureLoader = waffle.createFixtureLoader
 
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T
 
 describe('Dex223Pool', () => {
   let wallet: Wallet, other: Wallet
 
-  let token0: TestERC20
-  let token1: TestERC20
+  let token0: TestERC20;
+  let token1: TestERC20;
+  let token0_223: ERC223HybridToken;
+  let token1_223: ERC223HybridToken;
   // let token2: TestERC20
 
   let factory: Dex223Factory
+  let converter: TokenStandardConverter
   let pool: MockTimeDex223Pool
 
   let swapTarget: TestUniswapV3Callee
@@ -66,23 +66,36 @@ describe('Dex223Pool', () => {
   let maxTick: bigint
 
   let mint: MintFunction
+  let mint223: MintFunction
+  let mintMixed: MintFunction
   // let flash: FlashFunction
 
-  // let loadFixture: ReturnType<typeof createFixtureLoader>
   let createPool: ThenArg<ReturnType<typeof poolFixture>>['createPool']
 
   before('create fixture loader', async () => {
     ;[wallet, other] = await (ethers as any).getSigners()
-    // loadFixture = createFixtureLoader([wallet, other])
   })
 
   beforeEach('deploy fixture', async () => {
-    ;({ token0, token1, factory, createPool, swapTargetCallee: swapTarget } = await loadFixture(poolFixture))
+    ;({ token0, token1, factory, converter, createPool, swapTargetCallee: swapTarget } = await loadFixture(poolFixture));
 
-    const oldCreatePool = createPool
+    // TODO how to get max tokens ?
+    await token0.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
+    await token1.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
+
+    await converter.wrapERC20toERC223(token0.target, ethers.MaxUint256 / 2n);
+    await converter.wrapERC20toERC223(token1.target, ethers.MaxUint256 / 2n);
+
+    const TokenFactory = await ethers.getContractFactory('ERC223HybridToken');
+    let tokenAddress = await converter.predictWrapperAddress(token0.target, true);
+    token0_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+    tokenAddress = await converter.predictWrapperAddress(token1.target, true);
+    token1_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+
+    const oldCreatePool = createPool;
     createPool = async (_feeAmount, _tickSpacing) => {
-      const pool = await oldCreatePool(_feeAmount, _tickSpacing)
-      ;({
+      const pool = await oldCreatePool(_feeAmount, _tickSpacing);
+      ({
         swapToLowerPrice,
         swapToHigherPrice,
         swapExact0For1,
@@ -90,30 +103,35 @@ describe('Dex223Pool', () => {
         swapExact1For0,
         // swap1ForExact0,
         mint,
+        mint223,
+        mintMixed
         // flash,
       } = createPoolFunctions({
         token0,
         token1,
+        token0_223,
+        token1_223,
         swapTarget,
         pool,
-      }))
-      minTick = getMinTick(_tickSpacing)
-      maxTick = getMaxTick(_tickSpacing)
+      }));
+      minTick = getMinTick(_tickSpacing);
+      maxTick = getMaxTick(_tickSpacing);
       // feeAmount = _feeAmount
-      tickSpacing = BigInt(_tickSpacing)
-      return pool
+      tickSpacing = BigInt(_tickSpacing);
+      return pool;
     }
 
     // default to the 30 bips pool
-    pool = await createPool(FeeAmount.MEDIUM, TICK_SPACINGS[FeeAmount.MEDIUM])
+    pool = await createPool(FeeAmount.MEDIUM, TICK_SPACINGS[FeeAmount.MEDIUM]);
   })
 
-  // TODO migrate to Multi-pool
   it('constructor initializes immutables', async () => {
-    expect(await pool.factory()).to.eq(factory.target.toString())
-    expect((await pool.token0())[0]).to.eq(token0.target.toString())
-    expect((await pool.token1())[0]).to.eq(token1.target.toString())
-    expect(await pool.maxLiquidityPerTick()).to.eq(getMaxLiquidityPerTick(Number(tickSpacing)))
+    const token0_223 = await converter.predictWrapperAddress(token0.target, true);
+    const token1_223 = await converter.predictWrapperAddress(token1.target, true);
+    expect(await pool.factory()).to.eq(factory.target.toString());
+    expect(await pool.token0()).to.deep.eq([token0.target.toString(), token0_223]);
+    expect(await pool.token1()).to.deep.eq([token1.target.toString(), token1_223]);
+    expect(await pool.maxLiquidityPerTick()).to.eq(getMaxLiquidityPerTick(Number(tickSpacing)));
   })
 
   describe('#initialize', () => {
@@ -263,7 +281,17 @@ describe('Dex223Pool', () => {
               .to.not.emit(token1, 'Transfer')
             expect(await token0.balanceOf(pool.target.toString())).to.eq(9996n + 21549n)
             expect(await token1.balanceOf(pool.target.toString())).to.eq(1000n)
-          })
+          });
+
+          it('transfers token0 223 only', async () => {
+            // await mint223(wallet.address, -22980n, 0n, 10000n);
+            await expect(mint223(wallet.address, -22980n, 0n, 10000n))
+                .to.emit(swapTarget, 'MintCallback')
+                .to.emit(token0_223, 'Transfer(address,address,uint256)')
+                .withArgs(swapTarget.target.toString(), pool.target.toString(), 21549n)
+            expect(await token0.balanceOf(pool.target.toString()) + await token0_223.balanceOf(pool.target.toString())).to.eq(9996n + 21549n);
+            expect(await token1.balanceOf(pool.target.toString()) + await token1_223.balanceOf(pool.target.toString())).to.eq(1000n);
+          });
 
           it('max tick with max leverage', async () => {
             await mint(wallet.address, maxTick - tickSpacing, maxTick, 2n ** 102n)

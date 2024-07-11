@@ -72,9 +72,9 @@ interface TokensFixture {
 
 async function tokensFixture(): Promise<TokensFixture> {
   const tokenFactory = await ethers.getContractFactory('TestERC20')
-  const tokenA = (await tokenFactory.deploy(2n ** 255n)) as TestERC20
-  const tokenB = (await tokenFactory.deploy(2n ** 255n)) as TestERC20
-  const tokenC = (await tokenFactory.deploy(2n ** 255n)) as TestERC20
+  const tokenA = (await tokenFactory.deploy(ethers.MaxUint256)) as TestERC20
+  const tokenB = (await tokenFactory.deploy(ethers.MaxUint256)) as TestERC20
+  const tokenC = (await tokenFactory.deploy(ethers.MaxUint256)) as TestERC20
 
   const [token0, token1, token2] = [tokenA, tokenB, tokenC].sort((tokenA, tokenB) =>
     tokenA.target.toString().toLowerCase() < tokenB.target.toString().toLowerCase() ? -1 : 1

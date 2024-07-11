@@ -1,6 +1,6 @@
 import { BaseContract, Wallet, ContractTransactionResponse} from 'ethers'
 import { ethers } from 'hardhat'
-import { TestUniswapV3Callee } from '../../typechain-types'
+import { TestUniswapV3Callee, ERC223HybridToken } from '../../typechain-types'
 import { TestUniswapV3Router } from '../../typechain-types'
 import { MockTimeDex223Pool } from '../../typechain-types'
 import { TestERC20 } from '../../typechain-types'
@@ -93,6 +93,7 @@ export type MintFunction = (
   tickUpper: bigint,
   liquidity: bigint
 ) => Promise<ContractTransactionResponse>
+
 export interface PoolFunctions {
   swapToLowerPrice: SwapToPriceFunction
   swapToHigherPrice: SwapToPriceFunction
@@ -102,16 +103,22 @@ export interface PoolFunctions {
   swap1ForExact0: SwapFunction
   // flash: FlashFunction
   mint: MintFunction
+  mint223: MintFunction
+  mintMixed: MintFunction
 }
 export function createPoolFunctions({
   swapTarget,
   token0,
   token1,
+  token0_223,
+  token1_223,
   pool,
 }: {
   swapTarget: TestUniswapV3Callee
   token0: TestERC20
   token1: TestERC20
+  token0_223: ERC223HybridToken
+  token1_223: ERC223HybridToken
   pool: MockTimeDex223Pool
 }): PoolFunctions {
   async function swapToSqrtPrice(
@@ -186,7 +193,23 @@ export function createPoolFunctions({
     return swap(token1, [0n, amount], to, sqrtPriceLimitX96)
   }
 
+  // TODO add ERC223 mint version - need to modify V3Callee
   const mint: MintFunction = async (recipient, tickLower, tickUpper, liquidity) => {
+    await token0.approve(swapTarget.target, ethers.MaxUint256);
+    await token1.approve(swapTarget.target, ethers.MaxUint256);
+    return swapTarget.mint(pool.target, recipient, tickLower, tickUpper, liquidity);
+  }
+
+  const mint223: MintFunction = async (recipient, tickLower, tickUpper, liquidity) => {
+    // TODO how not to transfer max ?
+    await token0_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 2n - 1n, new Uint8Array());
+    const data = swapTarget.interface.encodeFunctionData('mint',
+        [pool.target.toString(), recipient, tickLower, tickUpper, liquidity]);
+    const bytes = ethers.getBytes(data)
+    return await token1_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 2n - 1n, bytes);
+  }
+
+  const mintMixed: MintFunction = async (recipient, tickLower, tickUpper, liquidity) => {
     await token0.approve(swapTarget.target, ethers.MaxUint256)
     await token1.approve(swapTarget.target, ethers.MaxUint256)
     return swapTarget.mint(pool.target, recipient, tickLower, tickUpper, liquidity)
@@ -219,6 +242,8 @@ export function createPoolFunctions({
     swapExact1For0,
     swap1ForExact0,
     mint,
+    mint223,
+    mintMixed
     // flash,
   }
 }
