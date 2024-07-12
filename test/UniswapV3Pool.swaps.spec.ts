@@ -1,7 +1,7 @@
 import { Decimal } from 'decimal.js'
 import { ContractTransactionResponse, Wallet} from 'ethers'
 import { ethers } from 'hardhat'
-import { MockTimeDex223Pool } from '../typechain-types/'
+import {ERC223HybridToken, MockTimeDex223Pool} from '../typechain-types/'
 import { TestERC20 } from '../typechain-types/'
 
 import { TestUniswapV3Callee } from '../typechain-types/'
@@ -468,12 +468,26 @@ describe('UniswapV3Pool swap tests', () => {
   for (const poolCase of TEST_POOLS) {
     describe(poolCase.description, () => {
       const poolCaseFixture = async () => {
-        const { createPool, token0, token1, swapTargetCallee: swapTarget } = await poolFixture(
+        const { createPool, converter, token0, token1, swapTargetCallee: swapTarget } = await poolFixture(
           // [wallet],
           // ethers.provider
         )
+
+        await token0.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
+        await token1.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
+
+        await converter.wrapERC20toERC223(token0.target, ethers.MaxUint256 / 2n);
+        await converter.wrapERC20toERC223(token1.target, ethers.MaxUint256 / 2n);
+
+        const TokenFactory = await ethers.getContractFactory('ERC223HybridToken');
+        let tokenAddress = await converter.predictWrapperAddress(token0.target, true);
+        const token0_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+        tokenAddress = await converter.predictWrapperAddress(token1.target, true);
+        const token1_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+
         const pool = await createPool(poolCase.feeAmount, poolCase.tickSpacing)
-        const poolFunctions = createPoolFunctions({ swapTarget, token0, token1, pool })
+        const poolFunctions = createPoolFunctions({
+          swapTarget, token0, token1, pool, token0_223, token1_223 })
         await pool.initialize(poolCase.startingPrice)
         // mint all positions
         for (const position of poolCase.positions) {
