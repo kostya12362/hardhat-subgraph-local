@@ -50,8 +50,7 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
 
     function depositERC223(address _user, address _token, uint256 _quantity) internal
     {
-        _erc223Deposits[_user][_token] = _quantity;
-//        emit ERC223Deposit(_token, _user, _quantity);
+        _erc223Deposits[_user][_token] += _quantity;
     }
 
     function depositedTokens(address _user, address _token) public view returns (uint256)
@@ -65,6 +64,7 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
 //        console.log(_from);
 //        console.logUint(_value);
         depositERC223(_from, msg.sender, _value);
+//        erc223deposit[_from][msg.sender] += _value;
 
         call_sender = _from;
         if (_data.length != 0)
@@ -94,7 +94,14 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
         IDex223Pool(pool).swap(recipient, true, amount0In.toInt256(), sqrtPriceLimitX96, false, abi.encode(msg.sender));
     }
 
-    // TODO add same calls with bool prefer223 = true
+    function swapExact0For1_223(
+        address pool,
+        uint256 amount0In,
+        address recipient,
+        uint160 sqrtPriceLimitX96
+    ) external adjustableSender {
+        IDex223Pool(pool).swap(recipient, true, amount0In.toInt256(), sqrtPriceLimitX96, true, abi.encode(call_sender));
+    }
 
     function swap0ForExact1(
         address pool,
@@ -112,6 +119,15 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
         uint160 sqrtPriceLimitX96
     ) external {
         IDex223Pool(pool).swap(recipient, false, amount1In.toInt256(), sqrtPriceLimitX96, false, abi.encode(msg.sender));
+    }
+
+    function swapExact1For0_223(
+        address pool,
+        uint256 amount1In,
+        address recipient,
+        uint160 sqrtPriceLimitX96
+    ) external adjustableSender {
+        IDex223Pool(pool).swap(recipient, false, amount1In.toInt256(), sqrtPriceLimitX96, true, abi.encode(call_sender));
     }
 
     function swap1ForExact0(
@@ -187,33 +203,19 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
 
         emit MintCallback(amount0Owed, amount1Owed);
 
-//        console.log('--uniswapV3MintCallback--');
-//        console.logUint(amount0Owed);
-//        console.logUint(amount1Owed);
-//        console.log(sender);
-
-        // TODO test 223 deposit / mint
         if (amount0Owed > 0) {
             (address _token0_erc20, address _token0_erc223) = IDex223Pool(msg.sender).token0();
 
-//            console.logUint(_erc223Deposits[sender][_token0_erc223]);
-
             if(_erc223Deposits[sender][_token0_erc223] >= amount0Owed)
             {
-                console.log('amount0Owed ERC223');
                 if(IERC20Minimal(_token0_erc223).allowance(address(this), address(this)) < amount0Owed)
                 {
-                    //IERC20(token).approve(address(this), 2**256 - 1);
-                    console.log('making approve  _token0_erc223');
                     IERC20Minimal(_token0_erc223).approve(address(this), 2**256 - 1);
                 }
-                //TransferHelper.safeTransferFrom(token, address(this), recipient, value);
                 IERC20Minimal(_token0_erc223).transferFrom(address(this), msg.sender, amount0Owed);
-//                IERC20Minimal(_token0_erc20).transferFrom(_token0_erc223, sender, msg.sender, value);
             }
             else
             {
-//                console.log('amount0Owed ERC20');
                 IERC20Minimal(_token0_erc20).transferFrom(sender, msg.sender, amount0Owed);
             }
         }
@@ -221,24 +223,16 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
         if (amount1Owed > 0) {
             (address _token1_erc20, address _token1_erc223) = IDex223Pool(msg.sender).token1();
 
-//            console.logUint(_erc223Deposits[sender][_token1_erc223]);
-
             if(_erc223Deposits[sender][_token1_erc223] >= amount1Owed)
             {
-                console.log('amount1Owed ERC223');
                 if(IERC20Minimal(_token1_erc223).allowance(address(this), address(this)) < amount1Owed)
                 {
-                    //IERC20(token).approve(address(this), 2**256 - 1);
-                    console.log('making approve  _token1_erc223');
                     IERC20Minimal(_token1_erc223).approve(address(this), 2**256 - 1);
                 }
-                //TransferHelper.safeTransferFrom(token, address(this), recipient, value);
                 IERC20Minimal(_token1_erc223).transferFrom(address(this), msg.sender, amount1Owed);
-//                IERC20Minimal(_token0_erc20).transferFrom(_token0_erc223, sender, msg.sender, value);
             }
             else
             {
-//                console.log('amount1Owed ERC20');
                 IERC20Minimal(_token1_erc20).transferFrom(sender, msg.sender, amount1Owed);
             }
         }

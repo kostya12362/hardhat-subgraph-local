@@ -1,10 +1,11 @@
-import { BaseContract, Wallet, ContractTransactionResponse} from 'ethers'
+import {BaseContract, Wallet, ContractTransactionResponse, Fragment, FunctionFragment} from 'ethers'
 import { ethers } from 'hardhat'
 import { TestUniswapV3Callee, ERC223HybridToken } from '../../typechain-types'
 import { TestUniswapV3Router } from '../../typechain-types'
 import { MockTimeDex223Pool } from '../../typechain-types'
 import { TestERC20 } from '../../typechain-types'
 import bn from 'bignumber.js'
+import {TypedContractMethod} from "../../typechain-types/common";
 
 export const MaxUint128 = 2n ** 128n - 1n
 
@@ -101,6 +102,8 @@ export interface PoolFunctions {
   swap0ForExact1: SwapFunction
   swapExact1For0: SwapFunction
   swap1ForExact0: SwapFunction
+  swapExact1For0_223: SwapFunction
+  swapExact0For1_223: SwapFunction
   // flash: FlashFunction
   mint: MintFunction
   mint223: MintFunction
@@ -169,6 +172,41 @@ export function createPoolFunctions({
     return method(pool.target, exactInput ? amountIn : amountOut, toAddress, sqrtPriceLimitX96)
   }
 
+  async function swap223(
+    inputToken: BaseContract,
+    [amountIn, amountOut]: [bigint, bigint],
+    to: Wallet | string,
+    sqrtPriceLimitX96?: bigint
+  ): Promise<ContractTransactionResponse> {
+    const exactInput = amountOut === 0n
+
+    const toAddress = typeof to === 'string' ? to : to.address;
+    if (typeof sqrtPriceLimitX96 === 'undefined') {
+      if (inputToken === (token0_223 as BaseContract)) {
+        sqrtPriceLimitX96 = MIN_SQRT_RATIO + 1n
+      } else {
+        sqrtPriceLimitX96 = MAX_SQRT_RATIO - (1n)
+      }
+    }
+    const values = [pool.target.toString(), exactInput ? amountIn : amountOut, toAddress, sqrtPriceLimitX96];
+
+    const data =
+      inputToken.target === token0_223.target
+        ? exactInput
+              // @ts-ignore
+          ? swapTarget.interface.encodeFunctionData('swapExact0For1_223', values)
+              // @ts-ignore
+          : swapTarget.interface.encodeFunctionData('swap0ForExact1', values)
+        : exactInput
+              // @ts-ignore
+          ? swapTarget.interface.encodeFunctionData('swapExact1For0_223', values)
+              // @ts-ignore
+          : swapTarget.interface.encodeFunctionData('swap1ForExact0', values)
+
+    const bytes = ethers.getBytes(data)
+    return await (inputToken as ERC223HybridToken)['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 4n - 1n, bytes);
+  }
+
   const swapToLowerPrice: SwapToPriceFunction = (sqrtPriceX96, to) => {
     return swapToSqrtPrice(token0 , sqrtPriceX96, to)
   }
@@ -181,6 +219,10 @@ export function createPoolFunctions({
     return swap(token0, [amount, 0n], to, sqrtPriceLimitX96)
   }
 
+  const swapExact0For1_223: SwapFunction = (amount, to, sqrtPriceLimitX96) => {
+    return swap223(token0_223, [amount, 0n], to, sqrtPriceLimitX96)
+  }
+
   const swap0ForExact1: SwapFunction = (amount, to, sqrtPriceLimitX96) => {
     return swap(token0, [0n, amount], to, sqrtPriceLimitX96)
   }
@@ -189,11 +231,14 @@ export function createPoolFunctions({
     return swap(token1, [amount, 0n], to, sqrtPriceLimitX96)
   }
 
+  const swapExact1For0_223: SwapFunction = (amount, to, sqrtPriceLimitX96) => {
+    return swap223(token1_223, [amount, 0n], to, sqrtPriceLimitX96)
+  }
+
   const swap1ForExact0: SwapFunction = (amount, to, sqrtPriceLimitX96) => {
     return swap(token1, [0n, amount], to, sqrtPriceLimitX96)
   }
 
-  // TODO add ERC223 mint version - need to modify V3Callee
   const mint: MintFunction = async (recipient, tickLower, tickUpper, liquidity) => {
     await token0.approve(swapTarget.target, ethers.MaxUint256);
     await token1.approve(swapTarget.target, ethers.MaxUint256);
@@ -201,18 +246,18 @@ export function createPoolFunctions({
   }
 
   const mint223: MintFunction = async (recipient, tickLower, tickUpper, liquidity) => {
-    // TODO how not to transfer max ?
-    await token0_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 2n - 1n, new Uint8Array());
+    // NOTE: how not to transfer max ?
+    await token0_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 4n - 1n, new Uint8Array());
     const data = swapTarget.interface.encodeFunctionData('mint',
         [pool.target.toString(), recipient, tickLower, tickUpper, liquidity]);
     const bytes = ethers.getBytes(data)
-    return await token1_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 2n - 1n, bytes);
+    return await token1_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 4n - 1n, bytes);
   }
 
   const mintMixed: MintFunction = async (recipient, tickLower, tickUpper, liquidity) => {
-    await token0.approve(swapTarget.target, ethers.MaxUint256)
-    await token1.approve(swapTarget.target, ethers.MaxUint256)
-    return swapTarget.mint(pool.target, recipient, tickLower, tickUpper, liquidity)
+    await token0_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 4n - 1n, new Uint8Array());
+    await token1.approve(swapTarget.target, ethers.MaxUint256);
+    return swapTarget.mint(pool.target, recipient, tickLower, tickUpper, liquidity);
   }
 
   // const flash: FlashFunction = async (amount0, amount1, to, pay0?: bigint, pay1?: bigint) => {
@@ -243,7 +288,9 @@ export function createPoolFunctions({
     swap1ForExact0,
     mint,
     mint223,
-    mintMixed
+    mintMixed,
+    swapExact0For1_223,
+    swapExact1For0_223
     // flash,
   }
 }

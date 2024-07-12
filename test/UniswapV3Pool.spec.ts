@@ -1,5 +1,5 @@
 import { ethers } from 'hardhat'
-import {BaseContract, Contract, Wallet} from 'ethers'
+import { Wallet} from 'ethers'
 import { expect } from 'chai'
 import {
   TestERC20,
@@ -55,11 +55,10 @@ describe('Dex223Pool', () => {
   let swapToLowerPrice: SwapToPriceFunction
   let swapToHigherPrice: SwapToPriceFunction
   let swapExact0For1: SwapFunction
-  // let swap0ForExact1: SwapFunction
   let swapExact1For0: SwapFunction
-  // let swap1ForExact0: SwapFunction
+  let swapExact0For1_223: SwapFunction
+  let swapExact1For0_223: SwapFunction
 
-  // let feeAmount: number
   let tickSpacing: bigint
 
   let minTick: bigint
@@ -79,7 +78,6 @@ describe('Dex223Pool', () => {
   beforeEach('deploy fixture', async () => {
     ;({ token0, token1, factory, converter, createPool, swapTargetCallee: swapTarget } = await loadFixture(poolFixture));
 
-    // TODO how to get max tokens ?
     await token0.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
     await token1.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
 
@@ -99,9 +97,9 @@ describe('Dex223Pool', () => {
         swapToLowerPrice,
         swapToHigherPrice,
         swapExact0For1,
-        // swap0ForExact1,
         swapExact1For0,
-        // swap1ForExact0,
+        swapExact1For0_223,
+        swapExact0For1_223,
         mint,
         mint223,
         mintMixed
@@ -283,8 +281,7 @@ describe('Dex223Pool', () => {
             expect(await token1.balanceOf(pool.target.toString())).to.eq(1000n)
           });
 
-          it('transfers token0 223 only', async () => {
-            // await mint223(wallet.address, -22980n, 0n, 10000n);
+          it('(223) transfers token0 only', async () => {
             await expect(mint223(wallet.address, -22980n, 0n, 10000n))
                 .to.emit(swapTarget, 'MintCallback')
                 .to.emit(token0_223, 'Transfer(address,address,uint256)')
@@ -293,9 +290,25 @@ describe('Dex223Pool', () => {
             expect(await token1.balanceOf(pool.target.toString()) + await token1_223.balanceOf(pool.target.toString())).to.eq(1000n);
           });
 
+          it('(223-20) transfers token0 only', async () => {
+            await expect(mintMixed(wallet.address, -22980n, 0n, 10000n))
+                .to.emit(swapTarget, 'MintCallback')
+                .to.emit(token0_223, 'Transfer(address,address,uint256)')
+                .withArgs(swapTarget.target.toString(), pool.target.toString(), 21549n)
+                .to.not.emit(token1, 'Transfer')
+            expect(await token0.balanceOf(pool.target.toString()) + await token0_223.balanceOf(pool.target.toString())).to.eq(9996n + 21549n);
+            expect(await token1.balanceOf(pool.target.toString())).to.eq(1000n);
+          });
+
           it('max tick with max leverage', async () => {
             await mint(wallet.address, maxTick - tickSpacing, maxTick, 2n ** 102n)
             expect(await token0.balanceOf(pool.target.toString())).to.eq(9996n + 828011525n)
+            expect(await token1.balanceOf(pool.target.toString())).to.eq(1000n)
+          })
+
+          it('(223) max tick with max leverage', async () => {
+            await mint223(wallet.address, maxTick - tickSpacing, maxTick, 2n ** 102n)
+            expect(await token0.balanceOf(pool.target.toString()) + await token0_223.balanceOf(pool.target.toString())).to.eq(9996n + 828011525n)
             expect(await token1.balanceOf(pool.target.toString())).to.eq(1000n)
           })
 
@@ -304,6 +317,14 @@ describe('Dex223Pool', () => {
               .to.emit(token0, 'Transfer')
               .withArgs(wallet.address, pool.target.toString(), 31549n)
             expect(await token0.balanceOf(pool.target.toString())).to.eq(9996n + 31549n)
+            expect(await token1.balanceOf(pool.target.toString())).to.eq(1000n)
+          })
+
+          it('(223) works for max tick', async () => {
+            await expect(mint223(wallet.address, -22980n, maxTick, 10000n))
+              .to.emit(token0_223, 'Transfer(address,address,uint256)')
+              .withArgs(swapTarget.target, pool.target.toString(), 31549n)
+            expect(await token0.balanceOf(pool.target.toString()) + await token0_223.balanceOf(pool.target.toString())).to.eq(9996n + 31549n)
             expect(await token1.balanceOf(pool.target.toString())).to.eq(1000n)
           })
 
@@ -317,13 +338,23 @@ describe('Dex223Pool', () => {
             expect(amount1, 'amount1').to.eq(0n)
           })
 
-          it('adds liquidity to liquidityGross', async () => {
+          it('(223) removing works', async () => {
+            await mint223(wallet.address, -240n, 0n, 10000n)
+            await pool.burn(-240n, 0n, 10000n)
+            // @ts-ignore
+            const { amount0, amount1 } = await pool.collect.staticCall(
+                wallet.address, -240n, 0n, MaxUint128, MaxUint128, false, false)
+            expect(amount0, 'amount0').to.eq(120n)
+            expect(amount1, 'amount1').to.eq(0n)
+          })
+
+          it('(223) adds liquidity to liquidityGross', async () => {
             await mint(wallet.address, -240n, 0n, 100n)
             expect((await pool.ticks(-240n)).liquidityGross).to.eq(100n)
             expect((await pool.ticks(0n)).liquidityGross).to.eq(100n)
             expect((await pool.ticks(tickSpacing)).liquidityGross).to.eq(0n)
             expect((await pool.ticks(tickSpacing * 2n)).liquidityGross).to.eq(0n)
-            await mint(wallet.address, -240n, tickSpacing, 150n)
+            await mint223(wallet.address, -240n, tickSpacing, 150n)
             expect((await pool.ticks(-240n)).liquidityGross).to.eq(250n)
             expect((await pool.ticks(0n)).liquidityGross).to.eq(100n)
             expect((await pool.ticks(tickSpacing)).liquidityGross).to.eq(150n)
@@ -335,9 +366,9 @@ describe('Dex223Pool', () => {
             expect((await pool.ticks(tickSpacing * 2n)).liquidityGross).to.eq(60n)
           })
 
-          it('removes liquidity from liquidityGross', async () => {
+          it('(223) removes liquidity from liquidityGross', async () => {
             await mint(wallet.address, -240n, 0n, 100n)
-            await mint(wallet.address, -240n, 0n, 40n)
+            await mint223(wallet.address, -240n, 0n, 40n)
             await pool.burn(-240n, 0n, 90n)
             expect((await pool.ticks(-240n)).liquidityGross).to.eq(50n)
             expect((await pool.ticks(0n)).liquidityGross).to.eq(50n)
@@ -360,9 +391,10 @@ describe('Dex223Pool', () => {
             expect(feeGrowthOutside0X128).to.eq(0n)
             expect(feeGrowthOutside1X128).to.eq(0n)
           })
-          it('only clears the tick that is not used at all', async () => {
+
+          it('(223) only clears the tick that is not used at all', async () => {
             await mint(wallet.address, -240n, 0n, 100n)
-            await mint(wallet.address, -tickSpacing, 0n, 250n)
+            await mint223(wallet.address, -tickSpacing, 0n, 250n)
             await pool.burn(-240n, 0n, 100n)
 
             let { liquidityGross, feeGrowthOutside0X128, feeGrowthOutside1X128 } = await pool.ticks(-240n)
@@ -404,6 +436,26 @@ describe('Dex223Pool', () => {
             expect(await token1.balanceOf(pool.target.toString())).to.eq(1000n + 32n)
           })
 
+          it('(223) price within range: transfers current price of both tokens', async () => {
+            await expect(mint223(wallet.address, minTick + tickSpacing, maxTick - tickSpacing, 100n))
+                .to.emit(token0_223, 'Transfer(address,address,uint256)')
+                .withArgs(swapTarget.target, pool.target.toString(), 317n)
+                .to.emit(token1_223, 'Transfer(address,address,uint256)')
+                .withArgs(swapTarget.target, pool.target.toString(), 32n)
+            expect(await token0.balanceOf(pool.target.toString()) + await token0_223.balanceOf(pool.target.toString())).to.eq(9996n + 317n)
+            expect(await token1.balanceOf(pool.target.toString()) + await token1_223.balanceOf(pool.target.toString())).to.eq(1000n + 32n)
+          })
+
+          it('(223-20) price within range: transfers current price of both tokens', async () => {
+            await expect(mintMixed(wallet.address, minTick + tickSpacing, maxTick - tickSpacing, 100n))
+                .to.emit(token0_223, 'Transfer(address,address,uint256)')
+                .withArgs(swapTarget.target, pool.target, 317n)
+                .to.emit(token1, 'Transfer')
+                .withArgs(wallet.address, pool.target, 32n)
+            expect(await token0.balanceOf(pool.target) + await token0_223.balanceOf(pool.target)).to.eq(9996n + 317n)
+            expect(await token1.balanceOf(pool.target)).to.eq(1000n + 32n)
+          })
+
           it('initializes lower tick', async () => {
             await mint(wallet.address, minTick + tickSpacing, maxTick - tickSpacing, 100n)
             const { liquidityGross } = await pool.ticks(minTick + tickSpacing)
@@ -424,6 +476,16 @@ describe('Dex223Pool', () => {
               .withArgs(wallet.address, pool.target.toString(), 3163n)
             expect(await token0.balanceOf(pool.target.toString())).to.eq(9996n + 31623n)
             expect(await token1.balanceOf(pool.target.toString())).to.eq(1000n + 3163n)
+          })
+
+          it('(223) works for min/max tick', async () => {
+            await expect(mint223(wallet.address, minTick, maxTick, 10000n))
+              .to.emit(token0_223, 'Transfer(address,address,uint256)')
+              .withArgs(swapTarget.target, pool.target, 31623n)
+              .to.emit(token1_223, 'Transfer(address,address,uint256)')
+              .withArgs(swapTarget.target, pool.target, 3163n)
+            expect(await token0.balanceOf(pool.target) + await token0_223.balanceOf(pool.target)).to.eq(9996n + 31623n)
+            expect(await token1.balanceOf(pool.target) + await token1_223.balanceOf(pool.target)).to.eq(1000n + 3163n)
           })
 
           it('removing works', async () => {
@@ -469,6 +531,15 @@ describe('Dex223Pool', () => {
               .to.not.emit(token0, 'Transfer')
             expect(await token0.balanceOf(pool.target.toString())).to.eq(9996n)
             expect(await token1.balanceOf(pool.target.toString())).to.eq(1000n + 2162n)
+          })
+
+          it('(223) transfers token1 only', async () => {
+            await expect(mint223(wallet.address, -46080n, -23040n, 10000n))
+              .to.emit(token1_223, 'Transfer(address,address,uint256)')
+              .withArgs(swapTarget.target, pool.target, 2162n)
+              // .to.not.emit(token0, 'Transfer')
+            expect(await token0.balanceOf(pool.target)).to.eq(9996n)
+            expect(await token1.balanceOf(pool.target) + await token1_223.balanceOf(pool.target)).to.eq(1000n + 2162n)
           })
 
           it('min tick with max leverage', async () => {
@@ -534,6 +605,18 @@ describe('Dex223Pool', () => {
         expect(token1ProtocolFees).to.eq(5000000000000n)
       })
 
+      it('(223) protocol fees accumulate as expected during swap', async () => {
+        await pool.setFeeProtocol(6n, 6n)
+
+        await mint223(wallet.address, minTick + tickSpacing, maxTick - tickSpacing, expandTo18Decimals(1))
+        await swapExact0For1_223(expandTo18Decimals(1) / 10n, wallet.address)
+        await swapExact1For0_223(expandTo18Decimals(1) / 100n, wallet.address)
+
+        let { token0: token0ProtocolFees, token1: token1ProtocolFees } = await pool.protocolFees()
+        expect(token0ProtocolFees).to.eq(50000000000000n)
+        expect(token1ProtocolFees).to.eq(5000000000000n)
+      })
+
       it('positions are protected before protocol fee is turned on', async () => {
         await mint(wallet.address, minTick + tickSpacing, maxTick - tickSpacing, expandTo18Decimals(1))
         await swapExact0For1(expandTo18Decimals(1) / 10n, wallet.address)
@@ -549,10 +632,10 @@ describe('Dex223Pool', () => {
         expect(token1ProtocolFees).to.eq(0n)
       })
 
-      it('poke is not allowed on uninitialized position', async () => {
-        await mint(other.address, minTick + tickSpacing, maxTick - tickSpacing, expandTo18Decimals(1))
-        await swapExact0For1(expandTo18Decimals(1) / 10n, wallet.address)
-        await swapExact1For0(expandTo18Decimals(1) / 100n, wallet.address)
+      it('(223) poke is not allowed on uninitialized position', async () => {
+        await mint223(other.address, minTick + tickSpacing, maxTick - tickSpacing, expandTo18Decimals(1))
+        await swapExact0For1_223(expandTo18Decimals(1) / 10n, wallet.address)
+        await swapExact1For0_223(expandTo18Decimals(1) / 100n, wallet.address)
 
         // missing revert reason due to hardhat
         await expect(pool.burn(minTick + tickSpacing, maxTick - tickSpacing, 0n)).to.be.reverted
@@ -637,26 +720,26 @@ describe('Dex223Pool', () => {
       await checkTickIsClear(tickUpper)
     })
 
-    it('clears only the lower tick if upper is still used', async () => {
+    it('(223) clears only the lower tick if upper is still used', async () => {
       const tickLower = minTick + tickSpacing
       const tickUpper = maxTick - tickSpacing
       // some activity that would make the ticks non-zero
       await pool.advanceTime(10n)
       await mint(wallet.address, tickLower, tickUpper, 1n)
-      await mint(wallet.address, tickLower + tickSpacing, tickUpper, 1n)
+      await mint223(wallet.address, tickLower + tickSpacing, tickUpper, 1n)
       await swapExact0For1(expandTo18Decimals(1), wallet.address)
       await pool.burn(tickLower, tickUpper, 1n)
       await checkTickIsClear(tickLower)
       await checkTickIsNotClear(tickUpper)
     })
 
-    it('clears only the upper tick if lower is still used', async () => {
+    it('(223-20) clears only the upper tick if lower is still used', async () => {
       const tickLower = minTick + tickSpacing
       const tickUpper = maxTick - tickSpacing
       // some activity that would make the ticks non-zero
       await pool.advanceTime(10)
       await mint(wallet.address, tickLower, tickUpper, 1n)
-      await mint(wallet.address, tickLower, tickUpper - tickSpacing, 1n)
+      await mintMixed(wallet.address, tickLower, tickUpper - tickSpacing, 1n)
       await swapExact0For1(expandTo18Decimals(1), wallet.address)
       await pool.burn(tickLower, tickUpper, 1n)
       await checkTickIsNotClear(tickLower)
@@ -806,7 +889,6 @@ describe('Dex223Pool', () => {
       const token1BalanceBeforeWallet = await token1.balanceOf(wallet.address)
 
       await pool.burn(lowerTick, upperTick, 0)
-      // TODO add collect in 223 form
       await pool.collect(wallet.address, lowerTick, upperTick, MaxUint128, MaxUint128, false, false)
 
       await pool.burn(lowerTick, upperTick, 0)
@@ -826,6 +908,55 @@ describe('Dex223Pool', () => {
       const token1BalanceAfterWallet = await token1.balanceOf(wallet.address)
       const token0BalanceAfterPool = await token0.balanceOf(pool.target.toString())
       const token1BalanceAfterPool = await token1.balanceOf(pool.target.toString())
+
+      expect(token0BalanceAfterWallet).to.be.gt(token0BalanceBeforeWallet)
+      expect(token1BalanceAfterWallet).to.be.eq(token1BalanceBeforeWallet)
+
+      expect(token0BalanceAfterPool).to.be.lt(token0BalanceBeforePool)
+      expect(token1BalanceAfterPool).to.be.eq(token1BalanceBeforePool)
+    })
+
+    it('(223) collect fees within the current price after swap', async () => {
+      const liquidityDelta = expandTo18Decimals(100)
+      const lowerTick = -tickSpacing * 100n
+      const upperTick = tickSpacing * 100n
+
+      await mint223(wallet.address, lowerTick, upperTick, liquidityDelta)
+
+      const liquidityBefore = await pool.liquidity()
+
+      const amount0In = expandTo18Decimals(1)
+      await swapExact0For1_223(amount0In, wallet.address)
+
+      const liquidityAfter = await pool.liquidity()
+      expect(liquidityAfter, 'k increases').to.be.gte(liquidityBefore)
+
+      const token0BalanceBeforePool = await token0_223.balanceOf(pool.target)
+      const token1BalanceBeforePool = await token1_223.balanceOf(pool.target)
+      const token0BalanceBeforeWallet = await token0_223.balanceOf(wallet.address)
+      const token1BalanceBeforeWallet = await token1_223.balanceOf(wallet.address)
+
+      await pool.burn(lowerTick, upperTick, 0)
+      // collect in ERC223 - no conversion required
+      await pool.collect(wallet.address, lowerTick, upperTick, MaxUint128, MaxUint128, true, true)
+
+      await pool.burn(lowerTick, upperTick, 0)
+      const { amount0: fees0, amount1: fees1 } = await pool.collect.staticCall(
+        wallet.address,
+        lowerTick,
+        upperTick,
+        MaxUint128,
+        MaxUint128,
+          false,
+          false
+      )
+      expect(fees0).to.be.eq(0n)
+      expect(fees1).to.be.eq(0n)
+
+      const token0BalanceAfterWallet = await token0_223.balanceOf(wallet.address)
+      const token1BalanceAfterWallet = await token1_223.balanceOf(wallet.address)
+      const token0BalanceAfterPool = await token0_223.balanceOf(pool.target)
+      const token1BalanceAfterPool = await token1_223.balanceOf(pool.target)
 
       expect(token0BalanceAfterWallet).to.be.gt(token0BalanceBeforeWallet)
       expect(token1BalanceAfterWallet).to.be.eq(token1BalanceBeforeWallet)
@@ -926,6 +1057,26 @@ describe('Dex223Pool', () => {
         .to.not.emit(token0, 'Transfer')
       expect((await pool.slot0()).tick).to.be.gte(120n)
     })
+
+    // NOTE: 223 version
+    it('(223) limit selling 0 for 1 at tick 0 thru 1', async () => {
+      await expect(mint223(wallet.address, 0n, 120n, expandTo18Decimals(1)))
+        .to.emit(token0_223, 'Transfer(address,address,uint256)')
+        .withArgs(swapTarget.target, pool.target, '5981737760509663')
+      // somebody takes the limit order
+      await swapExact1For0_223(expandTo18Decimals(2), other.address)
+      await expect(pool.burn(0n, 120n, expandTo18Decimals(1)))
+        .to.emit(pool, 'Burn')
+        .withArgs(wallet.address, 0n, 120n, expandTo18Decimals(1), 0n, '6017734268818165')
+        .to.not.emit(token0_223, 'Transfer(address,address,uint256)')
+        .to.not.emit(token1_223, 'Transfer(address,address,uint256)')
+      await expect(pool.collect(wallet.address, 0n, 120n, MaxUint128, MaxUint128, true, true))
+        .to.emit(token1_223, 'Transfer(address,address,uint256)')
+        .withArgs(pool.target, wallet.address, 6017734268818165n + 18107525382602n) // roughly 0.3% despite other liquidity
+        .to.not.emit(token0_223, 'Transfer(address,address,uint256)')
+      expect((await pool.slot0()).tick).to.be.gte(120n)
+    })
+
     it('limit selling 1 for 0 at tick 0 thru -1', async () => {
       await expect(mint(wallet.address, -120n, 0n, expandTo18Decimals(1)))
         .to.emit(token1, 'Transfer')
@@ -944,8 +1095,8 @@ describe('Dex223Pool', () => {
     })
 
     describe('fee is on', () => {
-      // TODO no setFeeProtocol ???
       beforeEach(() => pool.setFeeProtocol(6n, 6n))
+
       it('limit selling 0 for 1 at tick 0 thru 1', async () => {
         await expect(mint(wallet.address, 0n, 120n, expandTo18Decimals(1)))
           .to.emit(token0, 'Transfer')
@@ -963,6 +1114,26 @@ describe('Dex223Pool', () => {
           .to.not.emit(token0, 'Transfer')
         expect((await pool.slot0()).tick).to.be.gte(120n)
       })
+
+      // NOTE: 223 version
+      it('(223) limit selling 0 for 1 at tick 0 thru 1', async () => {
+        await expect(mint223(wallet.address, 0n, 120n, expandTo18Decimals(1)))
+          .to.emit(token0_223, 'Transfer(address,address,uint256)')
+          .withArgs(swapTarget.target, pool.target, '5981737760509663')
+        // somebody takes the limit order
+        await swapExact1For0_223(expandTo18Decimals(2), other.address)
+        await expect(pool.burn(0n, 120n, expandTo18Decimals(1)))
+          .to.emit(pool, 'Burn')
+          .withArgs(wallet.address, 0n, 120n, expandTo18Decimals(1), 0n, '6017734268818165')
+          .to.not.emit(token0_223, 'Transfer(address,address,uint256)')
+          .to.not.emit(token1_223, 'Transfer(address,address,uint256)')
+        await expect(pool.collect(wallet.address, 0n, 120n, MaxUint128, MaxUint128, true, true))
+          .to.emit(token1_223, 'Transfer(address,address,uint256)')
+          .withArgs(pool.target, wallet.address, 6017734268818165n + 15089604485501n) // roughly 0.25% despite other liquidity
+          .to.not.emit(token0_223, 'Transfer(address,address,uint256)')
+        expect((await pool.slot0()).tick).to.be.gte(120n)
+      })
+
       it('limit selling 1 for 0 at tick 0 thru -1', async () => {
         await expect(mint(wallet.address, -120n, 0n, expandTo18Decimals(1)))
           .to.emit(token1, 'Transfer')
@@ -988,9 +1159,10 @@ describe('Dex223Pool', () => {
       await pool.initialize(encodePriceSqrt(1n, 1n))
     })
 
-    it('works with multiple LPs', async () => {
+    // NOTE: includes 223 version tokens
+    it('(223) works with multiple LPs', async () => {
       await mint(wallet.address, minTick, maxTick, expandTo18Decimals(1))
-      await mint(wallet.address, minTick + tickSpacing, maxTick - tickSpacing, expandTo18Decimals(2))
+      await mint223(wallet.address, minTick + tickSpacing, maxTick - tickSpacing, expandTo18Decimals(2))
 
       await swapExact0For1(expandTo18Decimals(1), wallet.address)
 
@@ -1005,7 +1177,6 @@ describe('Dex223Pool', () => {
         getPositionKey(wallet.address, minTick + tickSpacing, maxTick - tickSpacing)
       )
 
-      // TODO string or BigInt ?
       expect(tokensOwed0Position0).to.be.eq('166666666666667')
       expect(tokensOwed0Position1).to.be.eq('333333333333334')
     })
@@ -2053,6 +2224,8 @@ describe('Dex223Pool', () => {
       await pool.initialize(encodePriceSqrt(1n, 1n))
       await mint(wallet.address, minTick, maxTick, expandTo18Decimals(1))
     })
+
+    // TODO erc223 version ?
 
     it('underpay zero for one and exact in', async () => {
       await expect( underpay.swap(pool.target.toString(), wallet.address, true, MIN_SQRT_RATIO + (1n), 1000n, 1n, 0n)
