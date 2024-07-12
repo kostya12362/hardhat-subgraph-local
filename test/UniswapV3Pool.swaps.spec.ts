@@ -562,15 +562,9 @@ describe('UniswapV3Pool swap tests', () => {
           const poolBalance0Delta = poolBalance0After - (poolBalance0)
           const poolBalance1Delta = poolBalance1After - (poolBalance1)
 
-          // TODO some swap fails
           // check all the events were emitted corresponding to balance changes
           if (poolBalance0Delta === 0n)  {
             await expect(tx).to.not.emit(token0, 'Transfer')
-            // console.log(`poolBalance0: ${poolBalance0}`)
-            // console.log(`poolBalance0After: ${poolBalance0After}`)
-            // console.log(`poolBalance1: ${poolBalance1}`)
-            // console.log(`poolBalance1After: ${poolBalance1After}`)
-            // expect(poolBalance1Delta).to.eq(0n)
           }
           else if (poolBalance0Delta < 0n)
             await expect(tx)
@@ -579,11 +573,6 @@ describe('UniswapV3Pool swap tests', () => {
           else await expect(tx).to.emit(token0, 'Transfer').withArgs(wallet.address, pool.target.toString(), poolBalance0Delta)
 
           if (poolBalance1Delta === 0n) {
-            // console.log(`poolBalance0: ${poolBalance0}`)
-            // console.log(`poolBalance0After: ${poolBalance0After}`)
-            // console.log(`poolBalance1: ${poolBalance1}`)
-            // console.log(`poolBalance1After: ${poolBalance1After}`)
-            // expect(poolBalance0Delta).to.eq(0n)
             await expect(tx).to.not.emit(token1, 'Transfer')
           }
           else if (poolBalance1Delta < 0n)
