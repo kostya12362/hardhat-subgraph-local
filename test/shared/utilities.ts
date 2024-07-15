@@ -204,7 +204,7 @@ export function createPoolFunctions({
           : swapTarget.interface.encodeFunctionData('swap1ForExact0', values)
 
     const bytes = ethers.getBytes(data)
-    return await (inputToken as ERC223HybridToken)['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 4n - 1n, bytes);
+    return await (inputToken as ERC223HybridToken)['transfer(address,uint256,bytes)'](swapTarget.target, amountIn /*ethers.MaxUint256 / 4n - 1n */, bytes);
   }
 
   const swapToLowerPrice: SwapToPriceFunction = (sqrtPriceX96, to) => {
@@ -247,15 +247,15 @@ export function createPoolFunctions({
 
   const mint223: MintFunction = async (recipient, tickLower, tickUpper, liquidity) => {
     // NOTE: how not to transfer max ?
-    await token0_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 4n - 1n, new Uint8Array());
+    await token0_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 6n - 1n, new Uint8Array());
     const data = swapTarget.interface.encodeFunctionData('mint',
         [pool.target.toString(), recipient, tickLower, tickUpper, liquidity]);
     const bytes = ethers.getBytes(data)
-    return await token1_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 4n - 1n, bytes);
+    return await token1_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 6n - 1n, bytes);
   }
 
   const mintMixed: MintFunction = async (recipient, tickLower, tickUpper, liquidity) => {
-    await token0_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 4n - 1n, new Uint8Array());
+    await token0_223['transfer(address,uint256,bytes)'](swapTarget.target, ethers.MaxUint256 / 6n - 1n, new Uint8Array());
     await token1.approve(swapTarget.target, ethers.MaxUint256);
     return swapTarget.mint(pool.target, recipient, tickLower, tickUpper, liquidity);
   }

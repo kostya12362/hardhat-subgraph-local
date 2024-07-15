@@ -110,13 +110,17 @@ const SWAP_RECIPIENT_ADDRESS = ethers.ZeroAddress.slice(0, -1) + '1'
 const POSITION_PROCEEDS_OUTPUT_ADDRESS = ethers.ZeroAddress.slice(0, -1) + '2'
 
 async function executeSwap(
-  pool: MockTimeDex223Pool,
+  // pool: MockTimeDex223Pool,
   testCase: SwapTestCase,
-  poolFunctions: PoolFunctions
-): Promise<ContractTransactionResponse> {
+  poolFunctions: PoolFunctions,
+  swapErc223: boolean
+): Promise<ContractTransactionResponse | undefined> {
   let swap: ContractTransactionResponse
   if ('exactOut' in testCase) {
     if (testCase.exactOut) {
+      if (swapErc223) {
+        return undefined;
+      }
       if (testCase.zeroForOne) {
         swap = await poolFunctions.swap0ForExact1(testCase.amount1, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit)
       } else {
@@ -124,9 +128,17 @@ async function executeSwap(
       }
     } else {
       if (testCase.zeroForOne) {
-        swap = await poolFunctions.swapExact0For1(testCase.amount0, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit)
+        if (swapErc223) {
+          swap = await poolFunctions.swapExact0For1_223(testCase.amount0, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit);
+        } else {
+          swap = await poolFunctions.swapExact0For1(testCase.amount0, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit);
+        }
       } else {
-        swap = await poolFunctions.swapExact1For0(testCase.amount1, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit)
+        if (swapErc223) {
+          swap = await poolFunctions.swapExact1For0_223(testCase.amount1, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit);
+        } else {
+          swap = await poolFunctions.swapExact1For0(testCase.amount1, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit);
+        }
       }
     }
   } else {
@@ -457,160 +469,228 @@ const TEST_POOLS: PoolTestCase[] = [
 describe('UniswapV3Pool swap tests', () => {
   let wallet: Wallet, other: Wallet
 
-  // let loadFixture: ReturnType<typeof createFixtureLoader>
-
   before('create fixture loader', async () => {
     ;[wallet, other] = await (ethers as any).getSigners()
-
-    // loadFixture = createFixtureLoader([wallet])
   })
 
-  for (const poolCase of TEST_POOLS) {
-    describe(poolCase.description, () => {
-      const poolCaseFixture = async () => {
-        const { createPool, converter, token0, token1, swapTargetCallee: swapTarget } = await poolFixture(
-          // [wallet],
-          // ethers.provider
-        )
+  for (let i = 0; i < 2; i++) {
+    let description = (i > 0) ? 'ERC223 swap tests' : 'ERC20 swap tests';
 
-        await token0.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
-        await token1.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
+    describe(description, () => {
+    for (const poolCase of TEST_POOLS) {
+      describe(poolCase.description, () => {
+        const poolCaseFixture = async () => {
+          const {createPool, converter, token0, token1, swapTargetCallee: swapTarget} = await poolFixture()
 
-        await converter.wrapERC20toERC223(token0.target, ethers.MaxUint256 / 2n);
-        await converter.wrapERC20toERC223(token1.target, ethers.MaxUint256 / 2n);
+          await token0.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
+          await token1.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
 
-        const TokenFactory = await ethers.getContractFactory('ERC223HybridToken');
-        let tokenAddress = await converter.predictWrapperAddress(token0.target, true);
-        const token0_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
-        tokenAddress = await converter.predictWrapperAddress(token1.target, true);
-        const token1_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+          await converter.wrapERC20toERC223(token0.target, ethers.MaxUint256 / 2n);
+          await converter.wrapERC20toERC223(token1.target, ethers.MaxUint256 / 2n);
 
-        const pool = await createPool(poolCase.feeAmount, poolCase.tickSpacing)
-        const poolFunctions = createPoolFunctions({
-          swapTarget, token0, token1, pool, token0_223, token1_223 })
-        await pool.initialize(poolCase.startingPrice)
-        // mint all positions
-        for (const position of poolCase.positions) {
-          await poolFunctions.mint(wallet.address, BigInt(position.tickLower), BigInt(position.tickUpper), BigInt(position.liquidity))
-        }
+          const TokenFactory = await ethers.getContractFactory('ERC223HybridToken');
+          let tokenAddress = await converter.predictWrapperAddress(token0.target, true);
+          const token0_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+          tokenAddress = await converter.predictWrapperAddress(token1.target, true);
+          const token1_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
 
-        const [poolBalance0, poolBalance1] = await Promise.all([
-          token0.balanceOf(pool.target.toString()),
-          token1.balanceOf(pool.target.toString()),
-        ])
-
-        return { token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget }
-      }
-
-      let token0: TestERC20
-      let token1: TestERC20
-
-      let poolBalance0: bigint
-      let poolBalance1: bigint
-
-      let pool: MockTimeDex223Pool
-      let swapTarget: TestUniswapV3Callee
-      let poolFunctions: PoolFunctions
-
-      beforeEach('load fixture', async () => {
-        ;({ token0, token1, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget } = await loadFixture(
-          poolCaseFixture
-        ))
-      })
-
-      afterEach('check can burn positions', async () => {
-        for (const { liquidity, tickUpper, tickLower } of poolCase.positions) {
-          await pool.burn(tickLower, tickUpper, liquidity)
-          await pool.collect(POSITION_PROCEEDS_OUTPUT_ADDRESS, BigInt(tickLower), BigInt(tickUpper), MaxUint128, MaxUint128, false, false)
-        }
-      })
-
-      for (const testCase of poolCase.swapTests ?? DEFAULT_POOL_SWAP_TESTS) {
-        it(swapCaseToDescription(testCase), async () => {
-          const slot0 = await pool.slot0()
-          const tx = executeSwap(pool, testCase, poolFunctions)
-          try {
-            await tx
-          } catch (error) {
-            expect({
-              swapError: (error as any).message,
-              poolBalance0: poolBalance0.toString(),
-              poolBalance1: poolBalance1.toString(),
-              poolPriceBefore: formatPrice(slot0.sqrtPriceX96),
-              tickBefore: slot0.tick,
-            }).to.matchSnapshot('swap error')
-            return
+          const pool = await createPool(poolCase.feeAmount, poolCase.tickSpacing)
+          const poolFunctions = createPoolFunctions({
+            swapTarget, token0, token1, pool, token0_223, token1_223
+          })
+          await pool.initialize(poolCase.startingPrice)
+          // mint all positions
+          for (const position of poolCase.positions) {
+            await poolFunctions.mint(wallet.address, BigInt(position.tickLower), BigInt(position.tickUpper), BigInt(position.liquidity))
           }
-          const [
-            poolBalance0After,
-            poolBalance1After,
-            slot0After,
-            liquidityAfter,
-            feeGrowthGlobal0X128,
-            feeGrowthGlobal1X128,
-          ] = await Promise.all([
-            token0.balanceOf(pool.target.toString()),
-            token1.balanceOf(pool.target.toString()),
-            pool.slot0(),
-            pool.liquidity(),
-            pool.feeGrowthGlobal0X128(),
-            pool.feeGrowthGlobal1X128(),
+
+          const [balance0, balance1, balance0_223, balance1_223] = await Promise.all([
+            token0.balanceOf(pool.target),
+            token1.balanceOf(pool.target),
+            token0_223.balanceOf(pool.target),
+            token1_223.balanceOf(pool.target),
           ])
 
+          const poolBalance0 = balance0 + balance0_223;
+          const poolBalance1 = balance1 + balance1_223;
 
+          return {token0, token1, token0_223, token1_223, pool, poolFunctions, poolBalance0, poolBalance1, swapTarget}
+        }
 
-          const poolBalance0Delta = poolBalance0After - (poolBalance0)
-          const poolBalance1Delta = poolBalance1After - (poolBalance1)
+        let token0: TestERC20
+        let token1: TestERC20
+        let token0_223: ERC223HybridToken
+        let token1_223: ERC223HybridToken
 
-          // check all the events were emitted corresponding to balance changes
-          if (poolBalance0Delta === 0n)  {
-            await expect(tx).to.not.emit(token0, 'Transfer')
+        let poolBalance0: bigint
+        let poolBalance1: bigint
+
+        let pool: MockTimeDex223Pool
+        let swapTarget: TestUniswapV3Callee
+        let poolFunctions: PoolFunctions
+
+        // first cycle - use ERC20, second - ERC223
+        let tokenOut0_223 = false;
+        let tokenOut1_223 = false;
+        let swapErc223 = false;
+        let eventName = 'Transfer';
+        let eventToken0: TestERC20 | ERC223HybridToken;
+        let eventToken1: TestERC20 | ERC223HybridToken;
+        let poolTarget: string;
+        let walletTarget: string;
+
+        beforeEach('load fixture', async () => {
+          ;({
+            token0,
+            token1,
+            token0_223,
+            token1_223,
+            pool,
+            poolFunctions,
+            poolBalance0,
+            poolBalance1,
+            swapTarget
+          } = await loadFixture(
+              poolCaseFixture
+          ));
+
+          if (i > 0) {
+            eventToken0 = token0_223;
+            eventToken1 = token1_223;
+            // walletTarget = swapTarget.target.toString();
+            walletTarget = wallet.address;
+            poolTarget = swapTarget.target.toString();
+            // poolTarget = pool.target.toString();
+          } else {
+            eventToken0 = token0;
+            eventToken1 = token1;
+            walletTarget = wallet.address;
+                poolTarget = pool.target.toString();
           }
-          else if (poolBalance0Delta < 0n)
-            await expect(tx)
-              .to.emit(token0, 'Transfer')
-              .withArgs(pool.target.toString(), SWAP_RECIPIENT_ADDRESS, poolBalance0Delta * (-1n))
-          else await expect(tx).to.emit(token0, 'Transfer').withArgs(wallet.address, pool.target.toString(), poolBalance0Delta)
 
-          if (poolBalance1Delta === 0n) {
-            await expect(tx).to.not.emit(token1, 'Transfer')
-          }
-          else if (poolBalance1Delta < 0n)
-            await expect(tx)
-              .to.emit(token1, 'Transfer')
-              .withArgs(pool.target.toString(), SWAP_RECIPIENT_ADDRESS, poolBalance1Delta * (-1n))
-          else await expect(tx).to.emit(token1, 'Transfer').withArgs(wallet.address, pool.target.toString(), poolBalance1Delta)
-
-          // check that the swap event was emitted too
-          await expect(tx)
-            .to.emit(pool, 'Swap')
-            .withArgs(
-              swapTarget.target.toString(),
-              SWAP_RECIPIENT_ADDRESS,
-              poolBalance0Delta,
-              poolBalance1Delta,
-              slot0After.sqrtPriceX96,
-              liquidityAfter,
-              slot0After.tick
-            )
-
-          const executionPrice = new Decimal(poolBalance1Delta.toString()).div(poolBalance0Delta.toString()).mul(-1)
-
-          expect({
-            amount0Before: poolBalance0.toString(),
-            amount1Before: poolBalance1.toString(),
-            amount0Delta: poolBalance0Delta.toString(),
-            amount1Delta: poolBalance1Delta.toString(),
-            feeGrowthGlobal0X128Delta: feeGrowthGlobal0X128.toString(),
-            feeGrowthGlobal1X128Delta: feeGrowthGlobal1X128.toString(),
-            tickBefore: slot0.tick,
-            poolPriceBefore: formatPrice(slot0.sqrtPriceX96),
-            tickAfter: slot0After.tick,
-            poolPriceAfter: formatPrice(slot0After.sqrtPriceX96),
-            executionPrice: executionPrice.toPrecision(5),
-          }).to.matchSnapshot('balances')
+          // console.log(`pool: ${pool.target}`);
+          // console.log(`swapHelper: ${swapTarget.target}`);
+          // console.log(`wallet: ${wallet.address}`);
+          // console.log(`token0: ${token0.target}`);
+          // console.log(`token1: ${token1.target}`);
+          // console.log(`token0_223 ${token0_223.target}`);
+          // console.log(`token1_223 ${token1_223.target}`);
         })
-      }
+
+        if (i > 0) {
+          tokenOut0_223 = true;
+          tokenOut1_223 = true;
+          swapErc223 = true;
+          eventName = 'Transfer(address,address,uint256)';
+        }
+
+        afterEach('check can burn positions', async () => {
+          for (const {liquidity, tickUpper, tickLower} of poolCase.positions) {
+            await pool.burn(tickLower, tickUpper, liquidity)
+            // collect in different tokens based on cycle config
+            await pool.collect(POSITION_PROCEEDS_OUTPUT_ADDRESS, BigInt(tickLower), BigInt(tickUpper), MaxUint128, MaxUint128, tokenOut0_223, tokenOut1_223);
+          }
+        })
+
+        for (const testCase of poolCase.swapTests ?? DEFAULT_POOL_SWAP_TESTS) {
+          it(swapCaseToDescription(testCase), async () => {
+            const slot0 = await pool.slot0()
+            // NOTE swapErc223 - to change swap between ERC20 / ERC223 based on cycle config
+            const tx = executeSwap(testCase, poolFunctions, swapErc223);
+
+            try {
+              const res = await tx;
+              if (!res) {
+                // NOTE: skipping reverse test
+                return;
+              }
+            } catch (error) {
+              expect({
+                swapError: (error as any).message,
+                poolBalance0: poolBalance0.toString(),
+                poolBalance1: poolBalance1.toString(),
+                poolPriceBefore: formatPrice(slot0.sqrtPriceX96),
+                tickBefore: slot0.tick,
+              }).to.matchSnapshot('swap error')
+              return
+            }
+            const [
+              token0BalanceAfter,
+              token1BalanceAfter,
+              token0_223BalanceAfter,
+              token1_223BalanceAfter,
+              slot0After,
+              liquidityAfter,
+              feeGrowthGlobal0X128,
+              feeGrowthGlobal1X128,
+            ] = await Promise.all([
+              token0.balanceOf(pool.target),
+              token1.balanceOf(pool.target),
+              token0_223.balanceOf(pool.target),
+              token1_223.balanceOf(pool.target),
+              pool.slot0(),
+              pool.liquidity(),
+              pool.feeGrowthGlobal0X128(),
+              pool.feeGrowthGlobal1X128(),
+            ])
+
+            const poolBalance0After = token0BalanceAfter + token0_223BalanceAfter;
+            const poolBalance1After = token1BalanceAfter + token1_223BalanceAfter;
+
+            const poolBalance0Delta = poolBalance0After - (poolBalance0);
+            const poolBalance1Delta = poolBalance1After - (poolBalance1);
+
+            // check all the events were emitted corresponding to balance changes
+            if (poolBalance0Delta === 0n) {
+              await expect(tx).to.not.emit(eventToken0, eventName)
+            } else if (poolBalance0Delta < 0n)
+              await expect(tx)
+                  .to.emit(eventToken0, eventName)
+                  .withArgs(pool.target, SWAP_RECIPIENT_ADDRESS, poolBalance0Delta * (-1n))
+            else await expect(tx).to.emit(eventToken0, eventName).withArgs(walletTarget, poolTarget, poolBalance0Delta)
+
+            if (poolBalance1Delta === 0n) {
+              await expect(tx).to.not.emit(eventToken1, eventName)
+            } else if (poolBalance1Delta < 0n)
+              await expect(tx)
+                  .to.emit(eventToken1, eventName)
+                  .withArgs(pool.target, SWAP_RECIPIENT_ADDRESS, poolBalance1Delta * (-1n))
+            else await expect(tx).to.emit(eventToken1, eventName).withArgs(walletTarget, poolTarget, poolBalance1Delta)
+
+            // check that the swap event was emitted too
+            await expect(tx)
+                .to.emit(pool, 'Swap')
+                .withArgs(
+                    swapTarget.target.toString(),
+                    SWAP_RECIPIENT_ADDRESS,
+                    poolBalance0Delta,
+                    poolBalance1Delta,
+                    slot0After.sqrtPriceX96,
+                    liquidityAfter,
+                    slot0After.tick
+                )
+
+            const executionPrice = new Decimal(poolBalance1Delta.toString()).div(poolBalance0Delta.toString()).mul(-1)
+
+            expect({
+              amount0Before: poolBalance0.toString(),
+              amount1Before: poolBalance1.toString(),
+              amount0Delta: poolBalance0Delta.toString(),
+              amount1Delta: poolBalance1Delta.toString(),
+              feeGrowthGlobal0X128Delta: feeGrowthGlobal0X128.toString(),
+              feeGrowthGlobal1X128Delta: feeGrowthGlobal1X128.toString(),
+              tickBefore: slot0.tick,
+              poolPriceBefore: formatPrice(slot0.sqrtPriceX96),
+              tickAfter: slot0After.tick,
+              poolPriceAfter: formatPrice(slot0After.sqrtPriceX96),
+              executionPrice: executionPrice.toPrecision(5),
+            }).to.matchSnapshot('balances')
+          })
+        }
+      })
+    }
     })
   }
+
+
 })

@@ -81,6 +81,9 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
             }
 */
         }
+        // NOTE this is needed only on mint, but not on swap
+//        if (_erc223Deposits[_from][msg.sender] != 0) IERC20Minimal(msg.sender).transfer(_from, _erc223Deposits[_from][msg.sender]);
+
         call_sender = address(0);
         return 0x8943ec02;
     }
