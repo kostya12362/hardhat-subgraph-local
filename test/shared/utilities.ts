@@ -104,6 +104,8 @@ export interface PoolFunctions {
   swap1ForExact0: SwapFunction
   swapExact1For0_223: SwapFunction
   swapExact0For1_223: SwapFunction
+  swapToHigherPrice_223: SwapFunction
+  swapToLowerPrice_223: SwapFunction
   // flash: FlashFunction
   mint: MintFunction
   mint223: MintFunction
@@ -178,7 +180,7 @@ export function createPoolFunctions({
     to: Wallet | string,
     sqrtPriceLimitX96?: bigint
   ): Promise<ContractTransactionResponse> {
-    const exactInput = amountOut === 0n
+    // const exactInput = amountOut === 0n
 
     const toAddress = typeof to === 'string' ? to : to.address;
     if (typeof sqrtPriceLimitX96 === 'undefined') {
@@ -188,31 +190,58 @@ export function createPoolFunctions({
         sqrtPriceLimitX96 = MAX_SQRT_RATIO - (1n)
       }
     }
-    const values = [pool.target.toString(), exactInput ? amountIn : amountOut, toAddress, sqrtPriceLimitX96];
+    // const values = [pool.target.toString(), exactInput ? amountIn : amountOut, toAddress, sqrtPriceLimitX96];
+    const encoded  = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['address'],
+        [toAddress]
+    )
+    const swapValues = [toAddress, inputToken.target == token0_223.target, amountIn, sqrtPriceLimitX96, true, encoded];
 
-    const data =
-      inputToken.target === token0_223.target
-        ? exactInput
+    // address recipient,
+    //     bool zeroForOne,
+    //     int256 amountSpecified,
+    //     uint160 sqrtPriceLimitX96,
+    //     bool prefer223,
+    //     bytes memory data
+
+    // const target = exactInput ? pool.target : swapTarget.target;
+
+    // @ts-ignore
+    const data = pool.interface.encodeFunctionData('swap', swapValues);
+      // inputToken.target === token0_223.target
+        // ? exactInput
               // @ts-ignore
-          ? swapTarget.interface.encodeFunctionData('swapExact0For1_223', values)
-              // @ts-ignore
-          : swapTarget.interface.encodeFunctionData('swap0ForExact1', values)
-        : exactInput
-              // @ts-ignore
-          ? swapTarget.interface.encodeFunctionData('swapExact1For0_223', values)
-              // @ts-ignore
-          : swapTarget.interface.encodeFunctionData('swap1ForExact0', values)
+          // ? swapTarget.interface.encodeFunctionData('swapExact0For1_223', values)
+        //   ? pool.interface.encodeFunctionData('swap', swapValues)
+        //       // @ts-ignore
+        //   : swapTarget.interface.encodeFunctionData('swap0ForExact1', values)
+        // : exactInput
+        //       // @ts-ignore
+        //   // ? swapTarget.interface.encodeFunctionData('swapExact1For0_223', values)
+        //   ? pool.interface.encodeFunctionData('swap', swapValues)
+        //       // @ts-ignore
+        //   : swapTarget.interface.encodeFunctionData('swap1ForExact0', values)
 
     const bytes = ethers.getBytes(data)
-    return await (inputToken as ERC223HybridToken)['transfer(address,uint256,bytes)'](swapTarget.target, amountIn /*ethers.MaxUint256 / 4n - 1n */, bytes);
+    return await (inputToken as ERC223HybridToken)['transfer(address,uint256,bytes)'](pool.target, amountIn /*ethers.MaxUint256 / 4n - 1n */, bytes);
   }
 
   const swapToLowerPrice: SwapToPriceFunction = (sqrtPriceX96, to) => {
     return swapToSqrtPrice(token0 , sqrtPriceX96, to)
   }
 
+  const swapToLowerPrice_223: SwapToPriceFunction = (sqrtPriceX96, to) => {
+    const val = ethers.MaxInt256 - 1n;
+    return swap223(token0_223 , [val, 0n], to, sqrtPriceX96);
+  }
+
   const swapToHigherPrice: SwapToPriceFunction = (sqrtPriceX96, to) => {
     return swapToSqrtPrice(token1, sqrtPriceX96, to)
+  }
+
+  const swapToHigherPrice_223: SwapToPriceFunction = (sqrtPriceX96, to) => {
+    const val = ethers.MaxInt256 - 1n;
+    return swap223(token1_223 , [val, 0n], to, sqrtPriceX96);
   }
 
   const swapExact0For1: SwapFunction = (amount, to, sqrtPriceLimitX96) => {
@@ -290,7 +319,9 @@ export function createPoolFunctions({
     mint223,
     mintMixed,
     swapExact0For1_223,
-    swapExact1For0_223
+    swapExact1For0_223,
+    swapToLowerPrice_223,
+    swapToHigherPrice_223
     // flash,
   }
 }

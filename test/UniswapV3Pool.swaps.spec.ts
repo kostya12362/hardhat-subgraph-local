@@ -129,12 +129,14 @@ async function executeSwap(
     } else {
       if (testCase.zeroForOne) {
         if (swapErc223) {
+          console.log('swapExact0For1_223');
           swap = await poolFunctions.swapExact0For1_223(testCase.amount0, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit);
         } else {
           swap = await poolFunctions.swapExact0For1(testCase.amount0, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit);
         }
       } else {
         if (swapErc223) {
+          console.log('swapExact1For0_223');
           swap = await poolFunctions.swapExact1For0_223(testCase.amount1, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit);
         } else {
           swap = await poolFunctions.swapExact1For0(testCase.amount1, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit);
@@ -143,9 +145,19 @@ async function executeSwap(
     }
   } else {
     if (testCase.zeroForOne) {
-      swap = await poolFunctions.swapToLowerPrice(testCase.sqrtPriceLimit, SWAP_RECIPIENT_ADDRESS)
+      if (swapErc223) {
+        console.log('swapToLowerPrice_223');
+        swap = await poolFunctions.swapToLowerPrice_223(testCase.sqrtPriceLimit, SWAP_RECIPIENT_ADDRESS);
+      } else {
+        swap = await poolFunctions.swapToLowerPrice(testCase.sqrtPriceLimit, SWAP_RECIPIENT_ADDRESS);
+      }
     } else {
-      swap = await poolFunctions.swapToHigherPrice(testCase.sqrtPriceLimit, SWAP_RECIPIENT_ADDRESS)
+      if (swapErc223) {
+        console.log('swapToHigherPrice_223');
+        swap = await poolFunctions.swapToHigherPrice_223(testCase.sqrtPriceLimit, SWAP_RECIPIENT_ADDRESS);
+      } else {
+        swap = await poolFunctions.swapToHigherPrice(testCase.sqrtPriceLimit, SWAP_RECIPIENT_ADDRESS);
+      }
     }
   }
   return swap
@@ -498,10 +510,12 @@ describe('UniswapV3Pool swap tests', () => {
           const poolFunctions = createPoolFunctions({
             swapTarget, token0, token1, pool, token0_223, token1_223
           })
-          await pool.initialize(poolCase.startingPrice)
+          await pool.initialize(poolCase.startingPrice);
+
           // mint all positions
+          let mintFn = (i > 0) ? poolFunctions.mint223 : poolFunctions.mint;
           for (const position of poolCase.positions) {
-            await poolFunctions.mint(wallet.address, BigInt(position.tickLower), BigInt(position.tickUpper), BigInt(position.liquidity))
+            await mintFn(wallet.address, BigInt(position.tickLower), BigInt(position.tickUpper), BigInt(position.liquidity))
           }
 
           const [balance0, balance1, balance0_223, balance1_223] = await Promise.all([
@@ -536,7 +550,7 @@ describe('UniswapV3Pool swap tests', () => {
         let eventName = 'Transfer';
         let eventToken0: TestERC20 | ERC223HybridToken;
         let eventToken1: TestERC20 | ERC223HybridToken;
-        let poolTarget: string;
+        let swapTargetAddress: string;
         let walletTarget: string;
 
         beforeEach('load fixture', async () => {
@@ -557,15 +571,16 @@ describe('UniswapV3Pool swap tests', () => {
           if (i > 0) {
             eventToken0 = token0_223;
             eventToken1 = token1_223;
-            // walletTarget = swapTarget.target.toString();
+            swapTargetAddress = wallet.address;
             walletTarget = wallet.address;
-            poolTarget = swapTarget.target.toString();
+            // poolTarget = swapTarget.target.toString();
             // poolTarget = pool.target.toString();
           } else {
             eventToken0 = token0;
             eventToken1 = token1;
             walletTarget = wallet.address;
-                poolTarget = pool.target.toString();
+            swapTargetAddress = swapTarget.target.toString();
+            // poolTarget = pool.target.toString();
           }
 
           // console.log(`pool: ${pool.target}`);
@@ -640,6 +655,13 @@ describe('UniswapV3Pool swap tests', () => {
             const poolBalance0Delta = poolBalance0After - (poolBalance0);
             const poolBalance1Delta = poolBalance1After - (poolBalance1);
 
+            // console.log(`pool balance before 0: ${poolBalance0}`);
+            // console.log(`pool balance after 0: ${token0BalanceAfter}`);
+            // console.log(`pool balance after 0_223: ${token0_223BalanceAfter}`);
+            // console.log(`pool balance before 1: ${poolBalance1}`);
+            // console.log(`pool balance after 1: ${token1BalanceAfter}`);
+            // console.log(`pool balance after 1_223: ${token1_223BalanceAfter}`);
+
             // check all the events were emitted corresponding to balance changes
             if (poolBalance0Delta === 0n) {
               await expect(tx).to.not.emit(eventToken0, eventName)
@@ -647,7 +669,13 @@ describe('UniswapV3Pool swap tests', () => {
               await expect(tx)
                   .to.emit(eventToken0, eventName)
                   .withArgs(pool.target, SWAP_RECIPIENT_ADDRESS, poolBalance0Delta * (-1n))
-            else await expect(tx).to.emit(eventToken0, eventName).withArgs(walletTarget, poolTarget, poolBalance0Delta)
+            else {
+              if (i > 0) {
+                // in ERC223 will be no such event
+              } else {
+                await expect(tx).to.emit(eventToken0, eventName).withArgs(walletTarget, pool.target, poolBalance0Delta);
+              }
+            }
 
             if (poolBalance1Delta === 0n) {
               await expect(tx).to.not.emit(eventToken1, eventName)
@@ -655,13 +683,19 @@ describe('UniswapV3Pool swap tests', () => {
               await expect(tx)
                   .to.emit(eventToken1, eventName)
                   .withArgs(pool.target, SWAP_RECIPIENT_ADDRESS, poolBalance1Delta * (-1n))
-            else await expect(tx).to.emit(eventToken1, eventName).withArgs(walletTarget, poolTarget, poolBalance1Delta)
+            else {
+              if (i > 0) {
+                // in ERC223 will be no such event
+              } else {
+                await expect(tx).to.emit(eventToken1, eventName).withArgs(walletTarget, pool.target, poolBalance1Delta);
+              }
+            }
 
             // check that the swap event was emitted too
             await expect(tx)
                 .to.emit(pool, 'Swap')
                 .withArgs(
-                    swapTarget.target.toString(),
+                    swapTargetAddress,
                     SWAP_RECIPIENT_ADDRESS,
                     poolBalance0Delta,
                     poolBalance1Delta,

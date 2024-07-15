@@ -81,6 +81,7 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
             }
 */
         }
+//        console.log('Callee operation success');
         // NOTE this is needed only on mint, but not on swap
 //        if (_erc223Deposits[_from][msg.sender] != 0) IERC20Minimal(msg.sender).transfer(_from, _erc223Deposits[_from][msg.sender]);
 
@@ -95,15 +96,6 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
         uint160 sqrtPriceLimitX96
     ) external {
         IDex223Pool(pool).swap(recipient, true, amount0In.toInt256(), sqrtPriceLimitX96, false, abi.encode(msg.sender));
-    }
-
-    function swapExact0For1_223(
-        address pool,
-        uint256 amount0In,
-        address recipient,
-        uint160 sqrtPriceLimitX96
-    ) external adjustableSender {
-        IDex223Pool(pool).swap(recipient, true, amount0In.toInt256(), sqrtPriceLimitX96, true, abi.encode(call_sender));
     }
 
     function swap0ForExact1(
@@ -122,15 +114,6 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
         uint160 sqrtPriceLimitX96
     ) external {
         IDex223Pool(pool).swap(recipient, false, amount1In.toInt256(), sqrtPriceLimitX96, false, abi.encode(msg.sender));
-    }
-
-    function swapExact1For0_223(
-        address pool,
-        uint256 amount1In,
-        address recipient,
-        uint160 sqrtPriceLimitX96
-    ) external adjustableSender {
-        IDex223Pool(pool).swap(recipient, false, amount1In.toInt256(), sqrtPriceLimitX96, true, abi.encode(call_sender));
     }
 
     function swap1ForExact0(
@@ -168,6 +151,10 @@ contract TestUniswapV3Callee is IUniswapV3MintCallback, IUniswapV3SwapCallback, 
         address sender = abi.decode(data, (address));
 
         emit SwapCallback(amount0Delta, amount1Delta);
+
+//        console.log('uniswapV3SwapCallback');
+//        console.logInt(amount0Delta);
+//        console.logInt(amount1Delta);
 
         if (amount0Delta > 0) {
             (address _token0_erc20, address _token0_erc223) = IDex223Pool(msg.sender).token0();
