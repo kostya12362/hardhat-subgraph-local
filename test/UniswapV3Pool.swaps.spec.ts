@@ -129,14 +129,12 @@ async function executeSwap(
     } else {
       if (testCase.zeroForOne) {
         if (swapErc223) {
-          console.log('swapExact0For1_223');
           swap = await poolFunctions.swapExact0For1_223(testCase.amount0, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit);
         } else {
           swap = await poolFunctions.swapExact0For1(testCase.amount0, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit);
         }
       } else {
         if (swapErc223) {
-          console.log('swapExact1For0_223');
           swap = await poolFunctions.swapExact1For0_223(testCase.amount1, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit);
         } else {
           swap = await poolFunctions.swapExact1For0(testCase.amount1, SWAP_RECIPIENT_ADDRESS, testCase.sqrtPriceLimit);
@@ -146,14 +144,12 @@ async function executeSwap(
   } else {
     if (testCase.zeroForOne) {
       if (swapErc223) {
-        console.log('swapToLowerPrice_223');
         swap = await poolFunctions.swapToLowerPrice_223(testCase.sqrtPriceLimit, SWAP_RECIPIENT_ADDRESS);
       } else {
         swap = await poolFunctions.swapToLowerPrice(testCase.sqrtPriceLimit, SWAP_RECIPIENT_ADDRESS);
       }
     } else {
       if (swapErc223) {
-        console.log('swapToHigherPrice_223');
         swap = await poolFunctions.swapToHigherPrice_223(testCase.sqrtPriceLimit, SWAP_RECIPIENT_ADDRESS);
       } else {
         swap = await poolFunctions.swapToHigherPrice(testCase.sqrtPriceLimit, SWAP_RECIPIENT_ADDRESS);
@@ -664,7 +660,11 @@ describe('UniswapV3Pool swap tests', () => {
 
             // check all the events were emitted corresponding to balance changes
             if (poolBalance0Delta === 0n) {
-              await expect(tx).to.not.emit(eventToken0, eventName)
+              if (i > 0) {
+                // in ERC223 still exists transfer event (at least back transfer of unspent value)
+              } else {
+                await expect(tx).to.not.emit(eventToken0, eventName);
+              }
             } else if (poolBalance0Delta < 0n)
               await expect(tx)
                   .to.emit(eventToken0, eventName)
@@ -678,7 +678,11 @@ describe('UniswapV3Pool swap tests', () => {
             }
 
             if (poolBalance1Delta === 0n) {
-              await expect(tx).to.not.emit(eventToken1, eventName)
+              if (i > 0) {
+                // in ERC223 still exists transfer event (at least back transfer of unspent value)
+              } else {
+                await expect(tx).to.not.emit(eventToken1, eventName);
+              }
             } else if (poolBalance1Delta < 0n)
               await expect(tx)
                   .to.emit(eventToken1, eventName)

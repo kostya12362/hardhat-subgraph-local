@@ -197,31 +197,8 @@ export function createPoolFunctions({
     )
     const swapValues = [toAddress, inputToken.target == token0_223.target, amountIn, sqrtPriceLimitX96, true, encoded];
 
-    // address recipient,
-    //     bool zeroForOne,
-    //     int256 amountSpecified,
-    //     uint160 sqrtPriceLimitX96,
-    //     bool prefer223,
-    //     bytes memory data
-
-    // const target = exactInput ? pool.target : swapTarget.target;
-
     // @ts-ignore
     const data = pool.interface.encodeFunctionData('swap', swapValues);
-      // inputToken.target === token0_223.target
-        // ? exactInput
-              // @ts-ignore
-          // ? swapTarget.interface.encodeFunctionData('swapExact0For1_223', values)
-        //   ? pool.interface.encodeFunctionData('swap', swapValues)
-        //       // @ts-ignore
-        //   : swapTarget.interface.encodeFunctionData('swap0ForExact1', values)
-        // : exactInput
-        //       // @ts-ignore
-        //   // ? swapTarget.interface.encodeFunctionData('swapExact1For0_223', values)
-        //   ? pool.interface.encodeFunctionData('swap', swapValues)
-        //       // @ts-ignore
-        //   : swapTarget.interface.encodeFunctionData('swap1ForExact0', values)
-
     const bytes = ethers.getBytes(data)
     return await (inputToken as ERC223HybridToken)['transfer(address,uint256,bytes)'](pool.target, amountIn /*ethers.MaxUint256 / 4n - 1n */, bytes);
   }
