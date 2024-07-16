@@ -1,6 +1,6 @@
 import { Wallet } from 'ethers'
 import { ethers } from 'hardhat'
-import { TestERC20 } from '../typechain-types/'
+import {ERC223HybridToken, TestERC20, TokenStandardConverter} from '../typechain-types/'
 import { Dex223Factory } from '../typechain-types/'
 import { MockTimeDex223Pool } from '../typechain-types/'
 import { expect } from 'chai'
@@ -20,16 +20,14 @@ import {
 } from './shared/utilities'
 import { TestUniswapV3Router } from '../typechain-types/'
 import { TestUniswapV3Callee } from '../typechain-types/'
-import {
-  loadFixture,
-} from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
-const feeAmount = FeeAmount.MEDIUM
-const tickSpacing = TICK_SPACINGS[feeAmount]
+const feeAmount = FeeAmount.MEDIUM;
+const tickSpacing = TICK_SPACINGS[feeAmount];
 
 // const createFixtureLoader = waffle.createFixtureLoader
 
-type ThenArg<T> = T extends PromiseLike<infer U> ? U : T
+type ThenArg<T> = T extends PromiseLike<infer U> ? U : T;
 
 describe('UniswapV3Router', () => {
   let wallet: Wallet, other: Wallet
@@ -38,6 +36,7 @@ describe('UniswapV3Router', () => {
   let token1: TestERC20
   let token2: TestERC20
   let factory: Dex223Factory
+  let converter: TokenStandardConverter
   let pool0: MockTimeDex223Pool
   let pool1: MockTimeDex223Pool
 
@@ -50,31 +49,31 @@ describe('UniswapV3Router', () => {
   let swapTargetCallee: TestUniswapV3Callee
   let swapTargetRouter: TestUniswapV3Router
 
-  // let loadFixture: ReturnType<typeof createFixtureLoader>
-  let createPool: ThenArg<ReturnType<typeof poolFixture>>['createPool']
+  let createPool: ThenArg<ReturnType<typeof poolFixture>>['createPool'];
 
   before('create fixture loader', async () => {
-    ;[wallet, other] = await (ethers as any).getSigners()
-
-    // loadFixture = createFixtureLoader([wallet, other])
-  })
+    [wallet, other] = await (ethers as any).getSigners();
+  });
 
   beforeEach('deploy first fixture', async () => {
-    ;({ token0, token1, token2, factory, createPool, swapTargetCallee, swapTargetRouter } = await loadFixture(
-      poolFixture
-    ))
+    ({ token0, token1, token2, factory, converter, createPool, swapTargetCallee, swapTargetRouter }
+        = await loadFixture( poolFixture ));
 
     const createPoolWrapped = async (
       amount: number,
       spacing: number,
       firstToken: TestERC20,
-      secondToken: TestERC20
+      secondToken: TestERC20,
+      thirdToken: ERC223HybridToken,
+      fourthToken: ERC223HybridToken
     ): Promise<[MockTimeDex223Pool, any]> => {
       const pool = await createPool(amount, spacing, firstToken, secondToken)
       const poolFunctions = createPoolFunctions({
         swapTarget: swapTargetCallee,
         token0: firstToken,
         token1: secondToken,
+        token0_223: thirdToken,
+        token1_223: fourthToken,
         pool,
       })
       minTick = getMinTick(spacing)
@@ -82,9 +81,25 @@ describe('UniswapV3Router', () => {
       return [pool, poolFunctions]
     }
 
+    await token0.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
+    await token1.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
+    await token2.approve(converter.target.toString(), ethers.MaxUint256 / 2n);
+
+    await converter.wrapERC20toERC223(token0.target, ethers.MaxUint256 / 2n);
+    await converter.wrapERC20toERC223(token1.target, ethers.MaxUint256 / 2n);
+    await converter.wrapERC20toERC223(token2.target, ethers.MaxUint256 / 2n);
+
+    const TokenFactory = await ethers.getContractFactory('ERC223HybridToken');
+    let tokenAddress = await converter.predictWrapperAddress(token0.target, true);
+    const token0_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+    tokenAddress = await converter.predictWrapperAddress(token1.target, true);
+    const token1_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+    tokenAddress = await converter.predictWrapperAddress(token2.target, true);
+    const token2_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+
     // default to the 30 bips pool
-    ;[pool0, pool0Functions] = await createPoolWrapped(feeAmount, tickSpacing, token0, token1)
-    ;[pool1, pool1Functions] = await createPoolWrapped(feeAmount, tickSpacing, token1, token2)
+    [pool0, pool0Functions] = await createPoolWrapped(feeAmount, tickSpacing, token0, token1, token0_223, token1_223);
+    [pool1, pool1Functions] = await createPoolWrapped(feeAmount, tickSpacing, token1, token2, token1_223, token2_223);
   })
 
   it('constructor initializes immutables', async () => {
