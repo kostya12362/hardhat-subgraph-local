@@ -1,15 +1,19 @@
 import { abi as IUniswapV3PoolABI } from '../artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json'
-import {BaseContract, ContractTransactionResponse, Wallet} from 'ethers'
+import { BaseContract, ContractTransactionResponse, Wallet } from 'ethers'
 import { ethers } from 'hardhat'
-import {IUniswapV3Pool, IWETH9, MockTimeSwapRouter, TestERC20, TokenStandardConverter} from '../typechain-types/'
+import {
+  ERC223HybridToken,
+  IUniswapV3Pool,
+  IWETH9,
+  MockTimeSwapRouter,
+  TestERC20
+} from '../typechain-types/'
 import { completeFixture } from './shared/completeFixture'
 import { FeeAmount, TICK_SPACINGS } from './shared/constants'
 import { encodePriceSqrt, expandTo18Decimals, getMaxTick, getMinTick } from './shared/utilities'
 import { encodePath } from './shared/path'
 import snapshotGasCost from './shared/snapshotGasCost'
-import {
-  loadFixture,
-} from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect, use } from 'chai'
 import { jestSnapshotPlugin } from 'mocha-chai-jest-snapshot'
 
@@ -23,7 +27,7 @@ describe('SwapRouter gas tests', function () {
   async function swapRouterFixture(): Promise<{
     weth9: IWETH9
     router: MockTimeSwapRouter
-    tokens: TestERC20[]
+    tokens: (TestERC20 | ERC223HybridToken)[]
     pools: IUniswapV3Pool[]
   }> {
     const { weth9, factory, router, tokens,
@@ -31,7 +35,7 @@ describe('SwapRouter gas tests', function () {
 
     // approve & fund wallets
     for (let i = 0; i < 3; i++) {
-      const token = tokens[i];
+      const token = tokens[i] as TestERC20;
       await token.approve(router.target.toString(), ethers.MaxUint256)
       await token.approve(nft.target.toString(), ethers.MaxUint256)
       await token.connect(trader).approve(router.target.toString(), ethers.MaxUint256)
@@ -105,7 +109,7 @@ describe('SwapRouter gas tests', function () {
 
   let weth9: IWETH9
   let router: MockTimeSwapRouter
-  let tokens: TestERC20[]
+  let tokens: (TestERC20 | ERC223HybridToken)[]
   let pools: IUniswapV3Pool[]
   // let converter: TokenStandardConverter
 

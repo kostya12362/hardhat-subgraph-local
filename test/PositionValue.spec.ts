@@ -5,7 +5,7 @@ import {
   ERC223SwapRouter,
   MockTimeNonfungiblePositionManager,
   TestERC20,
-  Dex223Factory,
+  Dex223Factory, ERC223HybridToken,
 } from '../typechain-types/'
 import { FeeAmount, MaxUint128, TICK_SPACINGS } from './shared/constants'
 import { getMaxTick, getMinTick, encodePriceSqrt, expandTo18Decimals } from './shared/utilities'
@@ -13,22 +13,18 @@ import { encodePath } from './shared/path'
 import { computePoolAddress } from './shared/computePoolAddress'
 import { completeFixture } from './shared/completeFixture'
 import snapshotGasCost from './shared/snapshotGasCost'
-
 import { expect, use } from 'chai'
 import { jestSnapshotPlugin } from 'mocha-chai-jest-snapshot'
+import { abi as IUniswapV3PoolABI } from '../artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json'
+import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 use(jestSnapshotPlugin());
-
-import { abi as IUniswapV3PoolABI } from '../artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json'
-import {
-  loadFixture,
-} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 describe('PositionValue', async () => {
   const [owner] = await ethers.getSigners()
   async function positionValueCompleteFixture(): Promise<{
     positionValue: PositionValueTest
-    tokens: TestERC20[]
+    tokens: (TestERC20 | ERC223HybridToken)[]
     nft: MockTimeNonfungiblePositionManager
     router: ERC223SwapRouter
     factory: Dex223Factory
@@ -38,7 +34,7 @@ describe('PositionValue', async () => {
     const positionValue = (await positionValueFactory.deploy()) as PositionValueTest
 
     for (let i = 0; i < 3; i++) {
-      const token = tokens[i];
+      const token = tokens[i] as TestERC20;
       await token.approve(nft.target.toString(), ethers.MaxUint256)
       await token.connect(owner).approve(nft.target.toString(), ethers.MaxUint256)
       await token.transfer(owner.address, expandTo18Decimals(1000000))
@@ -54,18 +50,12 @@ describe('PositionValue', async () => {
   }
 
   let pool: Contract
-  let tokens: TestERC20[]
+  let tokens: (TestERC20 | ERC223HybridToken)[]
   let positionValue: PositionValueTest
   let nft: MockTimeNonfungiblePositionManager
   let router: ERC223SwapRouter
   let factory: Dex223Factory
-
   let amountDesired: bigint
-  //
-  // let loadFixture: ReturnType<typeof waffle.createFixtureLoader>
-  // before('create fixture loader', async () => {
-  //   loadFixture = waffle.createFixtureLoader(wallets)
-  // })
 
   beforeEach(async () => {
     ;({ positionValue, tokens, nft, router, factory } = await loadFixture(positionValueCompleteFixture))

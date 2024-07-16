@@ -6,14 +6,14 @@ import {
   MockTimeSwapRouter,
   NonfungibleTokenPositionDescriptor,
   TestERC20,
-  Dex223Factory, TokenStandardConverter,
+  Dex223Factory, TokenStandardConverter, ERC223HybridToken,
 } from '../../typechain-types/'
 
 export async function  completeFixture():  Promise<{
   factory: Dex223Factory;
   router: MockTimeSwapRouter;
   nftDescriptor: NonfungibleTokenPositionDescriptor;
-  tokens: TestERC20[];
+  tokens: (TestERC20 | ERC223HybridToken)[];
   weth9: IWETH9;
   nft: MockTimeNonfungiblePositionManager
   converter: TokenStandardConverter
@@ -21,10 +21,10 @@ export async function  completeFixture():  Promise<{
   const { weth9, factory, router , converter} = await v3RouterFixture()
 
   const tokenFactory = await ethers.getContractFactory('TestERC20')
-  const tokens: TestERC20[] = [
-    (await tokenFactory.deploy(ethers.MaxUint256 / 2n)) as TestERC20, // do not use maxu256 to avoid overflowing
-    (await tokenFactory.deploy(ethers.MaxUint256 / 2n)) as TestERC20,
-    (await tokenFactory.deploy(ethers.MaxUint256 / 2n)) as TestERC20,
+  const tokens: (TestERC20 | ERC223HybridToken)[] = [
+    (await tokenFactory.deploy(ethers.MaxUint256)) as TestERC20, // do not use maxu256 to avoid overflowing
+    (await tokenFactory.deploy(ethers.MaxUint256)) as TestERC20,
+    (await tokenFactory.deploy(ethers.MaxUint256)) as TestERC20,
   ]
 
   const nftDescriptorLibraryFactory = await ethers.getContractFactory('NFTDescriptor')
@@ -45,17 +45,29 @@ export async function  completeFixture():  Promise<{
     factory.target.toString(),
     weth9.target.toString(),
     // nftDescriptor.target
-  )) as MockTimeNonfungiblePositionManager
+  )) as MockTimeNonfungiblePositionManager;
 
   tokens.sort((a, b) => (a.target.toString().toLowerCase() < b.target.toString().toLowerCase() ? -1 : 1))
 
-  let token3 = await converter.predictWrapperAddress(tokens[0].target, true);
-  let token4 = await converter.predictWrapperAddress(tokens[1].target, true);
-  let token5 = await converter.predictWrapperAddress(tokens[2].target, true);
+  await tokens[0].approve(converter.target.toString(), ethers.MaxUint256 / 2n);
+  await tokens[1].approve(converter.target.toString(), ethers.MaxUint256 / 2n);
+  await tokens[2].approve(converter.target.toString(), ethers.MaxUint256 / 2n);
 
-  tokens.push({target: token3} as TestERC20)
-  tokens.push({target: token4} as TestERC20)
-  tokens.push({target: token5} as TestERC20)
+  await converter.wrapERC20toERC223(tokens[0].target, ethers.MaxUint256 / 2n);
+  await converter.wrapERC20toERC223(tokens[1].target, ethers.MaxUint256 / 2n);
+  await converter.wrapERC20toERC223(tokens[2].target, ethers.MaxUint256 / 2n);
+
+  const TokenFactory = await ethers.getContractFactory('ERC223HybridToken');
+  let tokenAddress = await converter.predictWrapperAddress(tokens[0].target, true);
+  const token0_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+  tokenAddress = await converter.predictWrapperAddress(tokens[1].target, true);
+  const token1_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+  tokenAddress = await converter.predictWrapperAddress(tokens[2].target, true);
+  const token2_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+
+  tokens.push(token0_223);
+  tokens.push(token1_223);
+  tokens.push(token2_223);
 
   return {
     weth9,

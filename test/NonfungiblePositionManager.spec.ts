@@ -1,5 +1,5 @@
 import { abi as IUniswapV3PoolABI } from '../artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json'
-import { Wallet, Signer } from 'ethers'
+import { Wallet } from 'ethers'
 import { ethers } from 'hardhat'
 import {
   Dex223Factory,
@@ -8,42 +8,41 @@ import {
   NonfungiblePositionManagerPositionsGasTest,
   ERC223SwapRouter,
   TestERC20,
-  TestPositionNFTOwner, TokenStandardConverter,
+  TestPositionNFTOwner, TokenStandardConverter, ERC223HybridToken,
 } from '../typechain-types/'
 import { completeFixture } from './shared/completeFixture'
 import { computePoolAddress } from './shared/computePoolAddress'
 import { FeeAmount, MaxUint128, TICK_SPACINGS } from './shared/constants'
 import { encodePriceSqrt, expandTo18Decimals, getMaxTick, getMinTick } from './shared/utilities'
-import { expect } from 'chai'
-import { extractJSONFromURI } from './shared/extractJSONFromURI'
+import { expect, use } from 'chai'
 import getPermitNFTSignature from './shared/getPermitNFTSignature'
 import { encodePath } from './shared/path'
 import poolAtAddress from './shared/poolAtAddress'
-import snapshotGasCost from './shared/snapshotGasCost'
 import { sortedTokens } from './shared/tokenSort'
-import {
-  loadFixture,
-} from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import snapshotGasCost from './shared/snapshotGasCost'
+import { jestSnapshotPlugin } from 'mocha-chai-jest-snapshot'
+
+use(jestSnapshotPlugin());
 
 describe('NonfungiblePositionManager', () => {
   let wallets: Wallet[]
   let wallet: Wallet, other: Wallet
 
-
   async function nftFixture(): Promise<{
     nft: MockTimeNonfungiblePositionManager
     factory: Dex223Factory
-    tokens: TestERC20[]
+    tokens: (TestERC20 | ERC223HybridToken)[]
     weth9: IWETH9
     router: ERC223SwapRouter,
     converter: TokenStandardConverter
   }> {
     const { weth9, factory, tokens, nft,
-      router , converter} = await completeFixture()
+      router , converter} = await completeFixture();
 
     // approve & fund wallets
     for (let i = 0; i < 3; i++) {
-      const token = tokens[i]
+      const token: TestERC20 = tokens[i] as TestERC20
       await token.approve(nft.target.toString(), ethers.MaxUint256)
       await token.connect(other).approve(nft.target.toString(), ethers.MaxUint256)
       await token.transfer(other.address, expandTo18Decimals(1_000_000))
@@ -61,25 +60,23 @@ describe('NonfungiblePositionManager', () => {
 
   let factory: Dex223Factory
   let nft: MockTimeNonfungiblePositionManager
-  let tokens: TestERC20[]
+  let tokens: (TestERC20 | ERC223HybridToken)[]
   let weth9: IWETH9
   let router: ERC223SwapRouter
   let converter: TokenStandardConverter
 
-  // let loadFixture: ReturnType<typeof waffle.createFixtureLoader>
-
   before('create fixture loader', async () => {
-    wallets = await (ethers as any).getSigners()
-    ;[wallet, other] = wallets
-  })
+    wallets = await (ethers as any).getSigners();
+    [wallet, other] = wallets;
+  });
 
   beforeEach('load fixture', async () => {
-    ;({ nft, factory, tokens, weth9, router, converter } = await loadFixture(nftFixture))
-  })
+    ({ nft, factory, tokens, weth9, router, converter } = await loadFixture(nftFixture));
+  });
 
   it('bytecode size', async () => {
-    expect(((await ethers.provider.getCode(nft.target.toString())).length - 2) / 2).to.matchSnapshot()
-  })
+    expect(((await ethers.provider.getCode(nft.target.toString())).length - 2) / 2).to.matchSnapshot();
+  });
 
   describe('#createAndInitializePoolIfNecessary', () => {
     it('creates the pool at the expected address', async () => {
@@ -160,7 +157,7 @@ describe('NonfungiblePositionManager', () => {
     })
 
     it('could theoretically use eth via multicall', async () => {
-      const [token0, token1] = sortedTokens(weth9, tokens[0])
+      const [token0, token1] = sortedTokens(weth9, tokens[0]);
 
       const token01 = await converter.predictWrapperAddress(token0.target, true);
       const token11 = await converter.predictWrapperAddress(token1.target, true);
@@ -168,10 +165,10 @@ describe('NonfungiblePositionManager', () => {
       const createAndInitializePoolIfNecessaryData = nft.interface.encodeFunctionData(
         'createAndInitializePoolIfNecessary',
         [token0.target.toString(), token1.target.toString(), token01, token11, FeeAmount.MEDIUM, encodePriceSqrt(1n, 1n)]
-      )
+      );
 
-      await nft.multicall([createAndInitializePoolIfNecessaryData], { value: expandTo18Decimals(1) })
-    })
+      await nft.multicall([createAndInitializePoolIfNecessaryData], { value: expandTo18Decimals(1) });
+    });
 
     it('gas', async () => {
       await snapshotGasCost(

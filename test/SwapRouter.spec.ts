@@ -1,7 +1,7 @@
 import { ContractTransactionResponse, Wallet} from 'ethers'
 import { ethers } from 'hardhat'
 import {
-  Dex223Factory,
+  Dex223Factory, ERC223HybridToken,
   IWETH9,
   MockTimeNonfungiblePositionManager,
   MockTimeSwapRouter,
@@ -14,9 +14,7 @@ import { encodePriceSqrt, expandTo18Decimals, getMaxTick, getMinTick } from './s
 import { expect } from 'chai'
 import { encodePath } from './shared/path'
 import { computePoolAddress } from './shared/computePoolAddress'
-import {
-  loadFixture,
-} from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 describe('SwapRouter', function () {
   this.timeout(40000)
@@ -28,7 +26,7 @@ describe('SwapRouter', function () {
     factory: Dex223Factory
     router: MockTimeSwapRouter
     nft: MockTimeNonfungiblePositionManager
-    tokens: TestERC20[],
+    tokens: (TestERC20 | ERC223HybridToken)[],
     converter: TokenStandardConverter
   }> {
     const { weth9, factory, router, tokens,
@@ -36,7 +34,7 @@ describe('SwapRouter', function () {
 
     // approve & fund wallets
     for (let i = 0; i < 3; i++) {
-      const token = tokens[i]
+      const token = tokens[i] as TestERC20;
       await token.approve(router.target.toString(), ethers.MaxUint256)
       await token.approve(nft.target.toString(), ethers.MaxUint256)
       await token.connect(trader).approve(router.target.toString(), ethers.MaxUint256)
@@ -58,7 +56,7 @@ describe('SwapRouter', function () {
   let router: MockTimeSwapRouter
   let nft: MockTimeNonfungiblePositionManager
   let converter: TokenStandardConverter
-  let tokens: TestERC20[]
+  let tokens: (TestERC20 | ERC223HybridToken)[]
   let getBalances: (
     who: string
   ) => Promise<{
