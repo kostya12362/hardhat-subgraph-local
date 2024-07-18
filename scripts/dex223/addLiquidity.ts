@@ -6,7 +6,8 @@ import JSBI from "jsbi";
 import {
   ERC20Token,
   IERC223,
-  DexaransNonfungiblePositionManager,
+  // ERC223HybridToken,
+  DexaransNonfungiblePositionManager, TokenStandardConverter,
 } from "../../typechain-types";
 
 import UniswapV3Pool from "../../artifacts/contracts/core/Dex223Pool.sol/Dex223Pool.json";
@@ -67,7 +68,7 @@ export async function addLiquidity(
   const convertContract = new Contract(
       CONVERTER.contractAddress,
       CONVERTER.abi,
-      provider) as BaseContract;
+      provider) as BaseContract  as TokenStandardConverter;
 
   const t0 = await getToken(_token0);
   const t1 = await getToken(_token1);
@@ -104,7 +105,7 @@ export async function addLiquidity(
   if (_type === "ERC223") {
     console.log(`transfer token 0: ${_token0.target}`);
     token0address = await convertContract.predictWrapperAddress(_token0.target, false);
-    await _token0
+    await (_token0 as BaseContract as ERC20Token)
       .connect(signer2)
       .transfer(
         NONFUNGIBLE_POSITION_MANAGER.contractAddress,
@@ -112,7 +113,7 @@ export async function addLiquidity(
       );
   } else {
     console.log(`approve token 0: ${_token0.target}`);
-    await _token0
+    await (_token0 as BaseContract as ERC20Token)
       .connect(signer2)
       .approve(
         NONFUNGIBLE_POSITION_MANAGER.contractAddress,
@@ -123,7 +124,7 @@ export async function addLiquidity(
   if (_type1 === "ERC223") {
     console.log(`transfer token 1: ${_token1.target}`);
     token1address = await convertContract.predictWrapperAddress(_token1.target, false);
-    await _token1
+    await (_token1 as BaseContract as ERC20Token)
         .connect(signer2)
         .transfer(
             NONFUNGIBLE_POSITION_MANAGER.contractAddress,
@@ -131,7 +132,7 @@ export async function addLiquidity(
         );
   } else {
     console.log(`approve token 1: ${_token1.target}`);
-    await _token1
+    await (_token1 as BaseContract as ERC20Token)
         .connect(signer2)
         .approve(
             NONFUNGIBLE_POSITION_MANAGER.contractAddress,

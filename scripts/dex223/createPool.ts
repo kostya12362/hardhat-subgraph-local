@@ -6,7 +6,7 @@ import FACTORY from "../../deployments/localhost/dex223/Factory/result.json";
 import POSITION_MANAGER from "../../deployments/localhost/dex223/DexaransNonfungiblePositionManager/result.json";
 
 import {
-  UniswapV3Factory,
+  Dex223Factory,
   DexaransNonfungiblePositionManager,
 } from "../../typechain-types";
 
@@ -68,7 +68,7 @@ const factory = new Contract(
   FACTORY.contractAddress,
   FACTORY.abi,
   provider
-) as BaseContract as UniswapV3Factory;
+) as BaseContract as Dex223Factory;
 
 export async function deployPool(
   token0erc20: string,
@@ -87,7 +87,7 @@ export async function deployPool(
       gasLimit: 15_000_000, //30_000_000
     });
   await tx.wait();
-  console.log(`pool deployed: ${token0erc20} | ${token1erc20} | ${token0erc223} | ${token1erc223}`);
+  // console.log(`pool deployed: ${token0erc20} | ${token1erc20} | ${token0erc223} | ${token1erc223}`);
   const poolAddress = await factory.connect(owner).getPool(token0erc20, token1erc20, fee);
   return poolAddress;
 }

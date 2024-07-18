@@ -185,7 +185,6 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
     function tokenReceived(address _from, uint _value, bytes memory _data) public returns (bytes4)
     {
         // TODO: Reentrancy safety checks.
-
         swap_sender = _from;
         erc223deposit[_from][msg.sender] += _value;   // add token to user balance
         if (_data.length != 0) {
@@ -454,7 +453,6 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall {
     ) external virtual override adjustableSender // noDelegateCall will not prevent delegatecalling
                                                         // this method from the same contract via `tokenReceived` of ERC-223
      returns (int256 amount0, int256 amount1) {
-
         (bool success, bytes memory retdata) = pool_lib.delegatecall(abi.encodeWithSignature("swap(address,bool,int256,uint160,bool,bytes)", recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, prefer223, data));
 
         if (success) {

@@ -78,6 +78,8 @@ IERC223Recipient
     uint256 private amountInCached = DEFAULT_AMOUNT_IN_CACHED;
 
     address public call_sender;
+    // store ERC223 token on deposit
+    address public token_sender;
 
     modifier adjustableSender() {
         if (call_sender == address(0))
@@ -96,6 +98,7 @@ IERC223Recipient
     {
         depositERC223(_from, msg.sender, _value);
         call_sender = _from;
+        token_sender = msg.sender;
         if (_data.length != 0)
         {
             // Standard ERC-223 swapping via ERC-20 pattern
@@ -111,6 +114,7 @@ IERC223Recipient
 */
         }
         call_sender = address(0);
+        token_sender = address(0);
         return 0x8943ec02;
     }
 
@@ -174,19 +178,52 @@ IERC223Recipient
         bool zeroForOne = tokenIn < tokenOut;
         int256 amountInt = amountIn.toInt256();
 
-        (int256 amount0, int256 amount1) =
-                                getPool(tokenIn, tokenOut, fee).swap(
-                recipient,
-                zeroForOne,
-                amountInt,
-                sqrtPriceLimitX96 == 0
-                    ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
-                    : sqrtPriceLimitX96,
-                prefer223Out,
-                abi.encode(data)
-            );
+        int256 amount0;
+        int256 amount1;
 
-        return uint256(-(zeroForOne ? amount1 : amount0));
+        if (depositedTokens(call_sender, token_sender) >= amountIn)
+        {
+            // NOTE than make 223 transfer with SWAP call encoded
+            uint160 _sqrtPrice = sqrtPriceLimitX96 == 0
+                ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
+                : sqrtPriceLimitX96;
+
+            // NOTE encode swap
+            bytes memory _data = abi.encodeWithSignature("swap(address,bool,int256,uint160,bool,bytes)", recipient, zeroForOne, amountInt, _sqrtPrice, prefer223Out, data);
+
+            // NOTE MAKE transfer to POOL
+            address target = recipient;
+            uint balance1before = IERC20(tokenOut).balanceOf(target);
+
+            address pool = address (getPool(tokenIn, tokenOut, fee));
+            bool res = IERC223(token_sender).transfer(pool, uint(amountInt), _data);
+            require(res);
+
+            // NOTE: way get amountOut
+            uint balance1after = IERC20(tokenOut).balanceOf(target);
+            amountOut = uint(balance1after - balance1before);
+
+            // NOTE: Auto-extract excess of deposited ERC-223 tokens after the main logic of the func.
+            uint _deposited = IERC223(token_sender).balanceOf(address(this));  //depositedTokens(call_sender, token_sender);
+            if (_deposited > 0) TransferHelper.safeTransfer(token_sender, call_sender, _deposited);
+
+            return amountOut;
+        } else {
+
+            (amount0, amount1) =
+                    getPool(tokenIn, tokenOut, fee).swap(
+                    recipient,
+                    zeroForOne,
+                    amountInt,
+                    sqrtPriceLimitX96 == 0
+                        ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
+                        : sqrtPriceLimitX96,
+                    prefer223Out,
+                    abi.encode(data)
+                );
+            return uint256(-(zeroForOne ? amount1 : amount0));
+        }
+
     }
 
     function exactInputSingle(ExactInputSingleParams calldata params)
@@ -255,10 +292,11 @@ IERC223Recipient
     external
     payable
     override
+    adjustableSender
     checkDeadline(params.deadline)
     returns (uint256 amountOut)
     {
-        address payer = msg.sender; // msg.sender pays for the first hop
+        address payer = call_sender; //msg.sender; // msg.sender pays for the first hop
 
         while (true) {
             bool hasMultiplePools = params.path.hasMultiplePools();
@@ -268,7 +306,7 @@ IERC223Recipient
                 params.amountIn,
                 hasMultiplePools ? address(this) : params.recipient, // for intermediate swaps, this contract custodies
                 0,
-                params.prefer223Out,
+                hasMultiplePools ? false : params.prefer223Out, // intermediate swap should always return ERC20
                 SwapCallbackData({
                     path: params.path.getFirstPool(), // only the first pool in the path is necessary
                     payer: payer
@@ -279,6 +317,7 @@ IERC223Recipient
             if (hasMultiplePools) {
                 payer = address(this); // at this point, the caller has paid
                 params.path = params.path.skipToken();
+                token_sender = address(0);
             } else {
                 amountOut = params.amountIn;
                 break;

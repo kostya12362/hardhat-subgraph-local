@@ -522,7 +522,6 @@ contract Dex223PoolLib {
     ) external /*noDelegateCall*/ // noDelegateCall will not prevent delegatecalling
                                                         // this method from the same contract via `tokenReceived` of ERC-223
      returns (int256 amount0, int256 amount1) {
-
         require(amountSpecified != 0, 'AS');
 
         Slot0 memory slot0Start = slot0;

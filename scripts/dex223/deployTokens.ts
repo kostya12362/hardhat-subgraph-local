@@ -111,7 +111,8 @@ export async function setupTokens() {
     const contract = deployHelper.cacheContract[i];
     await contract
       .connect(owner)
-      .mint(signer2.address, ethers.parseEther("100000"));
+      // .mint(signer2.address, ethers.parseEther("100000"));
+      .mint(signer2.address, ethers.MaxUint256);
   }
 
   const WETH9 = require( "../../deployments/localhost/dex223/WETH9/result.json");
@@ -121,7 +122,7 @@ export async function setupTokens() {
       WETH9.contractAddress,
       WETH9.abi,
       provider
-  );
+  ) as BaseContract as ERC20Token;
 
   const balance = await weth.connect(signer2).balanceOf(signer2.address);
   if (!balance) {
