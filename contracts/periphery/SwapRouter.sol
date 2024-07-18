@@ -203,10 +203,6 @@ IERC223Recipient
             uint balance1after = IERC20(tokenOut).balanceOf(target);
             amountOut = uint(balance1after - balance1before);
 
-            // NOTE: Auto-extract excess of deposited ERC-223 tokens after the main logic of the func.
-            uint _deposited = IERC223(token_sender).balanceOf(address(this));  //depositedTokens(call_sender, token_sender);
-            if (_deposited > 0) TransferHelper.safeTransfer(token_sender, call_sender, _deposited);
-
             return amountOut;
         } else {
 
