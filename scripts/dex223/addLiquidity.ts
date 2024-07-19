@@ -16,7 +16,7 @@ import CONVERTER from "../../deployments/localhost/dex223/TokenConvertor/result.
 
 const provider = ethers.provider;
 
-async function getPoolData(poolContract: Contract) {
+export async function getPoolData(poolContract: Contract) {
   const [tickSpacing, fee, liquidity, slot0] = await Promise.all([
     poolContract.tickSpacing(),
     poolContract.fee(),

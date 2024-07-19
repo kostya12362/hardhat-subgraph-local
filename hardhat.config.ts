@@ -222,7 +222,8 @@ const config: HardhatUserConfig = {
     },
     sepolia: {
       // url: `https://sepolia.infura.io/v3/${INFURA_API_KEY}`,
-      url: "https://rpc2.sepolia.org",
+      url: "https://rpc2.sepolia.org", // https://sepolia.drpc.org
+      chainId: 11155111,
       accounts: {
         mnemonic: MNEMONIC,
       },
