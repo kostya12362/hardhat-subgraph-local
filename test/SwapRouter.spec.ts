@@ -1,4 +1,4 @@
-import { ContractTransactionResponse, Wallet} from 'ethers'
+import {BaseContract, Contract, ContractTransactionResponse, Wallet} from 'ethers'
 import { ethers } from 'hardhat'
 import {
   Dex223Factory, ERC223HybridToken,
@@ -11,10 +11,14 @@ import {
 import { completeFixture } from './shared/completeFixture'
 import { FeeAmount, TICK_SPACINGS } from './shared/constants'
 import { encodePriceSqrt, expandTo18Decimals, getMaxTick, getMinTick } from './shared/utilities'
-import { expect } from 'chai'
+import { expect, use } from 'chai'
 import { encodePath } from './shared/path'
 import { computePoolAddress } from './shared/computePoolAddress'
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { jestSnapshotPlugin } from 'mocha-chai-jest-snapshot'
+import TEST_HYBRID_ERC223_C from "../deployments/localhost/dex223/tokens/testTestHybridC/result.json";
+
+use(jestSnapshotPlugin());
 
 describe('SwapRouter', function () {
   this.timeout(40000)
@@ -35,9 +39,14 @@ describe('SwapRouter', function () {
     // approve & fund wallets
     for (let i = 0; i < 3; i++) {
       const token = tokens[i] as TestERC20;
-      await token.approve(router.target.toString(), ethers.MaxUint256)
-      await token.approve(nft.target.toString(), ethers.MaxUint256)
-      await token.connect(trader).approve(router.target.toString(), ethers.MaxUint256)
+      await token.approve(router.target.toString(), ethers.MaxUint256);
+      await token.approve(nft.target.toString(), ethers.MaxUint256);
+      await token.connect(trader).approve(router.target.toString(), ethers.MaxUint256);
+      // await token.transfer(trader.address, expandTo18Decimals(1_000_000));
+    }
+
+    for (let i = 0; i < 6; i++) {
+      const token = tokens[i] as TestERC20;
       await token.transfer(trader.address, expandTo18Decimals(1_000_000))
     }
 
@@ -57,6 +66,7 @@ describe('SwapRouter', function () {
   let nft: MockTimeNonfungiblePositionManager
   let converter: TokenStandardConverter
   let tokens: (TestERC20 | ERC223HybridToken)[]
+
   let getBalances: (
     who: string
   ) => Promise<{
@@ -64,31 +74,32 @@ describe('SwapRouter', function () {
     token0: bigint
     token1: bigint
     token2: bigint
-  }>
-  //
-  // let loadFixture: ReturnType<typeof waffle.createFixtureLoader>
-  //
+  }>;
+
   before('create fixture loader', async () => {
-    ;[wallet, trader] = await (ethers as any).getSigners()
-  //   loadFixture = waffle.createFixtureLoader([wallet, trader])
-  })
+    [wallet, trader] = await (ethers as any).getSigners();
+  });
 
   // helper for getting weth and token balances
   beforeEach('load fixture', async () => {
-    ;({ router, weth9, factory, tokens, nft, converter } = await loadFixture(swapRouterFixture))
+    ({ router, weth9, factory, tokens, nft, converter } = await loadFixture(swapRouterFixture));
 
     getBalances = async (who: string) => {
+      // NOTE added 223 balances (tokens 3-5)
       const balances = await Promise.all([
         weth9.balanceOf(who),
         tokens[0].balanceOf(who),
         tokens[1].balanceOf(who),
         tokens[2].balanceOf(who),
+        tokens[3].balanceOf(who),
+        tokens[4].balanceOf(who),
+        tokens[5].balanceOf(who),
       ])
       return {
         weth9: balances[0],
-        token0: balances[1],
-        token1: balances[2],
-        token2: balances[3],
+        token0: balances[1] + balances[4],
+        token1: balances[2] + balances[5],
+        token2: balances[3] + balances[6],
       }
     }
   })
@@ -99,6 +110,8 @@ describe('SwapRouter', function () {
     expect(Object.values(balances).every((b) => b == 0n)).to.be.eq(true)
     const balance = await ethers.provider.getBalance(router.target.toString())
     expect(balance == 0n).to.be.eq(true)
+    // const balancesT = await getBalances(trader.address);
+    // console.dir(balancesT);
   })
 
   it('bytecode size', async () => {
@@ -135,6 +148,8 @@ describe('SwapRouter', function () {
         deadline: 1,
       }
 
+      // console.dir(liquidityParams);
+
       return nft.mint(liquidityParams)
     }
 
@@ -159,10 +174,10 @@ describe('SwapRouter', function () {
         amountIn: number = 3,
         amountOutMinimum: number = 1
       ): Promise<ContractTransactionResponse> {
-        const inputIsWETH = weth9.target.toString() === tokens[0]
-        const outputIsWETH9 = tokens[tokens.length - 1] === weth9.target.toString()
+        const inputIsWETH = weth9.target.toString() === tokens[0];
+        const outputIsWETH9 = tokens[tokens.length - 1] === weth9.target.toString();
 
-        const value = inputIsWETH ? amountIn : 0
+        const value = inputIsWETH ? amountIn : 0;
 
         const params = {
           path: encodePath(tokens, new Array(tokens.length - 1).fill(FeeAmount.MEDIUM)),
@@ -171,21 +186,61 @@ describe('SwapRouter', function () {
           amountIn,
           amountOutMinimum,
           prefer223Out: false
-        }
+        };
 
-        const data = [router.interface.encodeFunctionData('exactInput', [params])]
+        const data = [router.interface.encodeFunctionData('exactInput', [params])];
         if (outputIsWETH9)
-          data.push(router.interface.encodeFunctionData('unwrapWETH9', [amountOutMinimum, trader.address]))
+          data.push(router.interface.encodeFunctionData('unwrapWETH9', [amountOutMinimum, trader.address]));
 
         // ensure that the swap fails if the limit is any tighter
-        params.amountOutMinimum += 1
-        await expect(router.connect(trader).exactInput(params, { value })).to.be.reverted // With('Too little received')
-        params.amountOutMinimum -= 1
+        params.amountOutMinimum += 1;
+        await expect(router.connect(trader).exactInput(params, { value })).to.be.reverted; // With('Too little received')
+        params.amountOutMinimum -= 1;
 
         // optimized for the gas test
         return data.length === 1
           ? router.connect(trader).exactInput(params, { value })
-          : router.connect(trader).multicall(data, { value })
+          : router.connect(trader).multicall(data, { value });
+      }
+
+      async function exactInput223(
+        tokens: string[],
+        tokenIn: string,
+        amountIn: number = 3,
+        amountOutMinimum: number = 1,
+        prefer223out: boolean = false
+      ): Promise<ContractTransactionResponse> {
+        // NOTE cases with WETH not implemented
+        const params = {
+          path: encodePath(tokens, new Array(tokens.length - 1).fill(FeeAmount.MEDIUM)),
+          recipient: trader.address, // outputIsWETH9 ? ethers.ZeroAddress :
+          deadline: 1,
+          amountIn,
+          amountOutMinimum,
+          prefer223Out: prefer223out
+        };
+
+        params.amountOutMinimum += 1;
+        const data0 = router.interface.encodeFunctionData('exactInput', [params]);
+        const bytes0 = ethers.getBytes(data0);
+
+        const tokenContract = new Contract(
+            tokenIn,
+            TEST_HYBRID_ERC223_C.abi,
+            ethers.provider
+        ) as BaseContract as ERC223HybridToken;
+
+        // ensure that the swap fails if the limit is any tighter
+        // console.log('failing tx...');
+        await expect(tokenContract.connect(trader)['transfer(address,uint256,bytes)'](router.target, amountIn, bytes0)).to.be.reverted; // With('Too little received')
+
+        params.amountOutMinimum -= 1;
+        const data1 = router.interface.encodeFunctionData('exactInput', [params]);
+        const bytes1 = ethers.getBytes(data1);
+
+        // console.log('normal tx...');
+        // call swap  via transfer 223
+        return tokenContract.connect(trader)['transfer(address,uint256,bytes)'](router.target, amountIn, bytes1);
       }
 
       describe('single-pool', () => {
@@ -206,7 +261,56 @@ describe('SwapRouter', function () {
           expect(traderAfter.token1).to.be.eq(traderBefore.token1 + 1n)
           expect(poolAfter.token0).to.be.eq(poolBefore.token0 + 3n)
           expect(poolAfter.token1).to.be.eq(poolBefore.token1 - 1n)
-        })
+        });
+
+        it('(223->20) 0 -> 1', async () => {
+          const pool = await factory.getPool(tokens[0].target.toString(), tokens[1].target.toString(), FeeAmount.MEDIUM);
+
+          // get balances before
+          const poolBefore = await getBalances(pool);
+          const traderBefore = await getBalances(trader.address);
+
+          // NOTE erc223 ver should include ERC223 token which will be called for Transfer
+          await exactInput223(
+              tokens.slice(0, 2).map((token) => token.target.toString()),
+              tokens[3].target.toString()
+          );
+
+          // get balances after
+          const poolAfter = await getBalances(pool);
+          const traderAfter = await getBalances(trader.address);
+
+          expect(traderAfter.token0).to.be.eq(traderBefore.token0 - 3n);
+          expect(traderAfter.token1).to.be.eq(traderBefore.token1 + 1n);
+          expect(poolAfter.token0).to.be.eq(poolBefore.token0 + 3n);
+          expect(poolAfter.token1).to.be.eq(poolBefore.token1 - 1n);
+        });
+
+        it('(223->223) 0 -> 1', async () => {
+          const pool = await factory.getPool(tokens[0].target.toString(), tokens[1].target.toString(), FeeAmount.MEDIUM);
+
+          // get balances before
+          const poolBefore = await getBalances(pool);
+          const traderBefore = await getBalances(trader.address);
+
+          // NOTE erc223 ver should include ERC223 token which will be called for Transfer
+          await exactInput223(
+              tokens.slice(0, 2).map((token) => token.target.toString()),
+              tokens[3].target.toString(),
+              undefined,
+              undefined,
+              true
+          );
+
+          // get balances after
+          const poolAfter = await getBalances(pool);
+          const traderAfter = await getBalances(trader.address);
+
+          expect(traderAfter.token0).to.be.eq(traderBefore.token0 - 3n);
+          expect(traderAfter.token1).to.be.eq(traderBefore.token1 + 1n);
+          expect(poolAfter.token0).to.be.eq(poolBefore.token0 + 3n);
+          expect(poolAfter.token1).to.be.eq(poolBefore.token1 - 1n);
+        });
 
         it('1 -> 0', async () => {
           const pool = await factory.getPool(tokens[1].target.toString(), tokens[0].target.toString(), FeeAmount.MEDIUM)
@@ -231,34 +335,152 @@ describe('SwapRouter', function () {
           expect(poolAfter.token0).to.be.eq(poolBefore.token0 - 1n)
           expect(poolAfter.token1).to.be.eq(poolBefore.token1 + 3n)
         })
-      })
+
+        it('(223->20) 1 -> 0', async () => {
+          const pool = await factory.getPool(tokens[1].target.toString(), tokens[0].target.toString(), FeeAmount.MEDIUM);
+
+          // get balances before
+          const poolBefore = await getBalances(pool);
+          const traderBefore = await getBalances(trader.address);
+
+          await exactInput223(
+            tokens
+              .slice(0, 2)
+              .reverse()
+              .map((token) => token.target.toString()),
+            tokens[4].target.toString()
+          );
+
+          // get balances after
+          const poolAfter = await getBalances(pool);
+          const traderAfter = await getBalances(trader.address);
+
+          expect(traderAfter.token0).to.be.eq(traderBefore.token0 + 1n);
+          expect(traderAfter.token1).to.be.eq(traderBefore.token1 - 3n);
+          expect(poolAfter.token0).to.be.eq(poolBefore.token0 - 1n);
+          expect(poolAfter.token1).to.be.eq(poolBefore.token1 + 3n);
+        });
+
+        it('(223->223) 1 -> 0', async () => {
+          const pool = await factory.getPool(tokens[1].target.toString(), tokens[0].target.toString(), FeeAmount.MEDIUM);
+
+          // get balances before
+          const poolBefore = await getBalances(pool);
+          const traderBefore = await getBalances(trader.address);
+
+          await exactInput223(
+            tokens
+              .slice(0, 2)
+              .reverse()
+              .map((token) => token.target.toString()),
+            tokens[4].target.toString()  ,
+              undefined,
+              undefined,
+              true
+          );
+
+          // get balances after
+          const poolAfter = await getBalances(pool);
+          const traderAfter = await getBalances(trader.address);
+
+          expect(traderAfter.token0).to.be.eq(traderBefore.token0 + 1n);
+          expect(traderAfter.token1).to.be.eq(traderBefore.token1 - 3n);
+          expect(poolAfter.token0).to.be.eq(poolBefore.token0 - 1n);
+          expect(poolAfter.token1).to.be.eq(poolBefore.token1 + 3n);
+        });
+      });
 
       describe('multi-pool', () => {
         it('0 -> 1 -> 2', async () => {
-          const traderBefore = await getBalances(trader.address)
+          const traderBefore = await getBalances(trader.address);
 
           await exactInput(
             tokens.slice(0,3).map((token) => token.target.toString()),
             5,
             1
-          )
+          );
 
-          const traderAfter = await getBalances(trader.address)
+          const traderAfter = await getBalances(trader.address);
 
-          expect(traderAfter.token0).to.be.eq(traderBefore.token0 - 5n)
-          expect(traderAfter.token2).to.be.eq(traderBefore.token2 + 1n)
-        })
+          expect(traderAfter.token0).to.be.eq(traderBefore.token0 - 5n);
+          expect(traderAfter.token2).to.be.eq(traderBefore.token2 + 1n);
+        });
+
+        it('(223->20) 0 -> 1 -> 2', async () => {
+          const traderBefore = await getBalances(trader.address);
+
+          await exactInput223(
+            tokens.slice(0,3).map((token) => token.target.toString()),
+              tokens[3].target.toString(),
+            5,
+            1
+          );
+
+          const traderAfter = await getBalances(trader.address);
+
+          expect(traderAfter.token0).to.be.eq(traderBefore.token0 - 5n);
+          expect(traderAfter.token2).to.be.eq(traderBefore.token2 + 1n);
+        });
+
+        it('(223->223) 0 -> 1 -> 2', async () => {
+          const traderBefore = await getBalances(trader.address);
+
+          await exactInput223(
+            tokens.slice(0,3).map((token) => token.target.toString()),
+              tokens[3].target.toString(),
+            5,
+            1,
+              true
+          );
+
+          const traderAfter = await getBalances(trader.address);
+
+          expect(traderAfter.token0).to.be.eq(traderBefore.token0 - 5n);
+          expect(traderAfter.token2).to.be.eq(traderBefore.token2 + 1n);
+        });
 
         it('2 -> 1 -> 0', async () => {
-          const traderBefore = await getBalances(trader.address)
+          const traderBefore = await getBalances(trader.address);
 
-          await exactInput(tokens.slice(0,3).map((token) => token.target.toString()).reverse(), 5, 1)
+          await exactInput(tokens.slice(0,3).map((token) => token.target.toString()).reverse(), 5, 1);
 
-          const traderAfter = await getBalances(trader.address)
+          const traderAfter = await getBalances(trader.address);
 
-          expect(traderAfter.token2).to.be.eq(traderBefore.token2 - 5n)
-          expect(traderAfter.token0).to.be.eq(traderBefore.token0 + 1n)
-        })
+          expect(traderAfter.token2).to.be.eq(traderBefore.token2 - 5n);
+          expect(traderAfter.token0).to.be.eq(traderBefore.token0 + 1n);
+        });
+
+        it('(223-20) 2 -> 1 -> 0', async () => {
+          const traderBefore = await getBalances(trader.address);
+
+          await exactInput223(
+              tokens.slice(0,3).map((token) => token.target.toString()).reverse(),
+              tokens[5].target.toString(),
+              5,
+              1
+          );
+
+          const traderAfter = await getBalances(trader.address);
+
+          expect(traderAfter.token2).to.be.eq(traderBefore.token2 - 5n);
+          expect(traderAfter.token0).to.be.eq(traderBefore.token0 + 1n);
+        });
+
+        it('(223-223) 2 -> 1 -> 0', async () => {
+          const traderBefore = await getBalances(trader.address);
+
+          await exactInput223(
+              tokens.slice(0,3).map((token) => token.target.toString()).reverse(),
+              tokens[5].target.toString(),
+              5,
+              1,
+              true
+          );
+          const traderAfter = await getBalances(trader.address);
+
+          expect(traderAfter.token2).to.be.eq(traderBefore.token2 - 5n);
+          expect(traderAfter.token0).to.be.eq(traderBefore.token0 + 1n);
+        });
 
         it('events', async () => {
           await expect(

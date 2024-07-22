@@ -89,7 +89,7 @@ export async function makeRouteSwap223(
 
         // @ts-ignore
         const data = routerContract.interface.encodeFunctionData('exactInputSingle', [swapValues]);
-        const bytes = ethers.getBytes(data)
+        const bytes = ethers.getBytes(data);
         // const result =
             await (tokenContract0 as ERC223HybridToken).connect(signer2)['transfer(address,uint256,bytes)'](routerContract.target, _val, bytes);
         // console.log('result:', result);

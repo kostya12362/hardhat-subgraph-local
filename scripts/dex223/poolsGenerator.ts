@@ -313,9 +313,6 @@ async function main() {
                 await addLiquidity(address, token0, token1, 1, nfpmContract, Number(chainId));
                 console.log(`Liquidity added: ${token0.symbol} | ${token1.symbol}: ${address}`);
             }
-
-            // TODO process only one for test
-            return;
         }
     }
 }

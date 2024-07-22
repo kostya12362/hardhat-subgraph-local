@@ -18,6 +18,8 @@ import './base/PoolAddress.sol';
 import './base/CallbackValidation.sol';
 
 interface IDex223Pool {
+    function token0() external view returns (address, address);
+    function token1() external view returns (address, address);
     function swap(
         address recipient,
         bool zeroForOne,
@@ -170,7 +172,6 @@ IERC223Recipient
         bool prefer223Out,
         SwapCallbackData memory data
     ) private returns (uint256 amountOut) {
-        // allow swapping to the router address with address 0
         if (recipient == address(0)) recipient = address(this);
 
         (address tokenIn, address tokenOut, uint24 fee) = data.path.decodeFirstPool();
@@ -178,49 +179,106 @@ IERC223Recipient
         bool zeroForOne = tokenIn < tokenOut;
         int256 amountInt = amountIn.toInt256();
 
+        address pool = address(getPool(tokenIn, tokenOut, fee));
+
+        if (depositedTokens(call_sender, token_sender) >= amountIn) {
+            return executeSwapWithDeposit(
+                amountIn,
+                recipient,
+                zeroForOne,
+                sqrtPriceLimitX96,
+                prefer223Out,
+                data,
+                pool,
+                tokenIn,
+                tokenOut
+            );
+        } else {
+            return executeSwapWithoutDeposit(
+                recipient,
+                zeroForOne,
+                amountInt,
+                sqrtPriceLimitX96,
+                prefer223Out,
+                data,
+                pool
+            );
+        }
+    }
+
+    function executeSwapWithDeposit(
+        uint256 amountIn,
+        address recipient,
+        bool zeroForOne,
+        uint160 sqrtPriceLimitX96,
+        bool prefer223Out,
+        SwapCallbackData memory data,
+        address pool,
+        address tokenIn,
+        address tokenOut
+    ) private returns (uint256 amountOut) {
+        bytes memory _data = abi.encodeWithSignature(
+            "swap(address,bool,int256,uint160,bool,bytes)",
+            recipient,
+            zeroForOne,
+            amountIn.toInt256(),
+            sqrtPriceLimitX96 == 0
+                ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
+                : sqrtPriceLimitX96,
+            prefer223Out,
+            data
+        );
+
+        address _tokenOut = resolveTokenOut(prefer223Out, pool, tokenIn, tokenOut);
+
+        uint256 balance1before = IERC20(_tokenOut).balanceOf(recipient);
+        require(IERC223(token_sender).transfer(pool, amountIn, _data));
+
+        return uint256(IERC20(_tokenOut).balanceOf(recipient) - balance1before);
+    }
+
+    function executeSwapWithoutDeposit(
+        address recipient,
+        bool zeroForOne,
+        int256 amountInt,
+        uint160 sqrtPriceLimitX96,
+        bool prefer223Out,
+        SwapCallbackData memory data,
+        address pool
+    ) private returns (uint256 amountOut) {
         int256 amount0;
         int256 amount1;
 
-        if (depositedTokens(call_sender, token_sender) >= amountIn)
-        {
-            // NOTE than make 223 transfer with SWAP call encoded
-            uint160 _sqrtPrice = sqrtPriceLimitX96 == 0
+        (amount0, amount1) = IDex223Pool(pool).swap(
+            recipient,
+            zeroForOne,
+            amountInt,
+            sqrtPriceLimitX96 == 0
                 ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
-                : sqrtPriceLimitX96;
+                : sqrtPriceLimitX96,
+            prefer223Out,
+            abi.encode(data)
+        );
 
-            // NOTE encode swap
-            bytes memory _data = abi.encodeWithSignature("swap(address,bool,int256,uint160,bool,bytes)", recipient, zeroForOne, amountInt, _sqrtPrice, prefer223Out, data);
-
-            // NOTE MAKE transfer to POOL
-            address target = recipient;
-            uint balance1before = IERC20(tokenOut).balanceOf(target);
-
-            address pool = address (getPool(tokenIn, tokenOut, fee));
-            bool res = IERC223(token_sender).transfer(pool, uint(amountInt), _data);
-            require(res);
-
-            // NOTE: way get amountOut
-            uint balance1after = IERC20(tokenOut).balanceOf(target);
-            amountOut = uint(balance1after - balance1before);
-
-            return amountOut;
-        } else {
-
-            (amount0, amount1) =
-                    getPool(tokenIn, tokenOut, fee).swap(
-                    recipient,
-                    zeroForOne,
-                    amountInt,
-                    sqrtPriceLimitX96 == 0
-                        ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
-                        : sqrtPriceLimitX96,
-                    prefer223Out,
-                    abi.encode(data)
-                );
-            return uint256(-(zeroForOne ? amount1 : amount0));
-        }
-
+        return uint256(-(zeroForOne ? amount1 : amount0));
     }
+
+    function resolveTokenOut(
+        bool prefer223Out,
+        address pool,
+        address tokenIn,
+        address tokenOut
+    ) private returns (address) {
+        if (prefer223Out) {
+            (address _token0_erc20, address _token0_erc223) = IDex223Pool(pool).token0();
+            (, address _token1_erc223) = IDex223Pool(pool).token1();
+
+            return (_token0_erc20 == tokenIn) ? _token1_erc223 : _token0_erc223;
+        } else {
+            return tokenOut;
+        }
+    }
+
 
     function exactInputSingle(ExactInputSingleParams calldata params)
     external
