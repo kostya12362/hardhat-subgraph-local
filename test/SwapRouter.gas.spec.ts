@@ -268,7 +268,6 @@ describe('SwapRouter gas tests', function () {
     expect(slots).to.deep.eq([0, 0, 0])
   })
 
-  // TODO fails
   afterEach('ensure ticks are 0 after', async () => {
     const slots = await Promise.all(pools.map((pool) => pool.slot0().then(({ tick }) => tick)))
     expect(slots).to.deep.eq([0, 0, 0])

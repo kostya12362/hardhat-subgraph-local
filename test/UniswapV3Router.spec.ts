@@ -111,6 +111,8 @@ describe('UniswapV3Router', () => {
     expect((await pool1.token1())[0]).to.eq(token2.target.toString())
   })
 
+  // NOTE: still no ERC223 version since it not work with exactOutput
+
   describe('multi-swaps', () => {
     let inputToken: TestERC20
     let outputToken: TestERC20
