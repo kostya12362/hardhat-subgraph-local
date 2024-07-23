@@ -646,6 +646,51 @@ describe('SwapRouter', function () {
           : router.connect(trader).multicall(data, { value })
       }
 
+      async function exactInputSingle223(
+        tokenIn: string,
+        tokenIn223: string,
+        tokenOut: string,
+        amountIn: number = 3,
+        amountOutMinimum: number = 1,
+        sqrtPriceLimitX96?: bigint,
+        prefer223out: boolean = false
+      ): Promise<ContractTransactionResponse> {
+        const params = {
+          tokenIn,
+          tokenOut,
+          fee: FeeAmount.MEDIUM,
+          sqrtPriceLimitX96:
+            sqrtPriceLimitX96 ?? tokenIn.toLowerCase() < tokenOut.toLowerCase()
+              ? BigInt('4295128740')
+              : BigInt('1461446703485210103287273052203988822378723970341'),
+          recipient: trader.address,
+          deadline: 1,
+          amountIn,
+          amountOutMinimum,
+          prefer223Out: prefer223out
+        }
+
+        // ensure that the swap fails if the limit is any tighter
+        params.amountOutMinimum += 1;
+        const data0 = router.interface.encodeFunctionData('exactInputSingle', [params]);
+        const bytes0 = ethers.getBytes(data0);
+
+        const tokenContract = new Contract(
+            tokenIn223,
+            TEST_HYBRID_ERC223_C.abi,
+            ethers.provider
+        ) as BaseContract as ERC223HybridToken;
+
+        await expect(tokenContract.connect(trader)['transfer(address,uint256,bytes)'](router.target, amountIn, bytes0)).to.be.reverted; // With('Too little received')
+
+        params.amountOutMinimum -= 1;
+        const data1 = router.interface.encodeFunctionData('exactInputSingle', [params]);
+        const bytes1 = ethers.getBytes(data1);
+
+        // optimized for the gas test
+        return tokenContract.connect(trader)['transfer(address,uint256,bytes)'](router.target, amountIn, bytes1);
+      }
+
       it('0 -> 1', async () => {
         const pool = await factory.getPool(tokens[0].target.toString(), tokens[1].target.toString(), FeeAmount.MEDIUM)
 
@@ -665,6 +710,54 @@ describe('SwapRouter', function () {
         expect(poolAfter.token1).to.be.eq(poolBefore.token1 - 1n)
       })
 
+      it('(223-20) 0 -> 1', async () => {
+        const pool = await factory.getPool(tokens[0].target.toString(), tokens[1].target.toString(), FeeAmount.MEDIUM);
+
+        // get balances before
+        const poolBefore = await getBalances(pool);
+        const traderBefore = await getBalances(trader.address);
+
+        await exactInputSingle223(
+            tokens[0].target.toString(), // ERC20 version on TokenIn
+            tokens[3].target.toString(), // ERC223 version on TokenIn
+            tokens[1].target.toString());
+
+        // get balances after
+        const poolAfter = await getBalances(pool);
+        const traderAfter = await getBalances(trader.address);
+
+        expect(traderAfter.token0).to.be.eq(traderBefore.token0 - 3n);
+        expect(traderAfter.token1).to.be.eq(traderBefore.token1 + 1n);
+        expect(poolAfter.token0).to.be.eq(poolBefore.token0 + 3n);
+        expect(poolAfter.token1).to.be.eq(poolBefore.token1 - 1n);
+      });
+
+      it('(223-223) 0 -> 1', async () => {
+        const pool = await factory.getPool(tokens[0].target.toString(), tokens[1].target.toString(), FeeAmount.MEDIUM);
+
+        // get balances before
+        const poolBefore = await getBalances(pool);
+        const traderBefore = await getBalances(trader.address);
+
+        await exactInputSingle223(
+            tokens[0].target.toString(), // ERC20 version on TokenIn
+            tokens[3].target.toString(), // ERC223 version on TokenIn
+            tokens[1].target.toString(),
+            undefined,
+            undefined,
+            undefined,
+            true);
+
+        // get balances after
+        const poolAfter = await getBalances(pool);
+        const traderAfter = await getBalances(trader.address);
+
+        expect(traderAfter.token0).to.be.eq(traderBefore.token0 - 3n);
+        expect(traderAfter.token1).to.be.eq(traderBefore.token1 + 1n);
+        expect(poolAfter.token0).to.be.eq(poolBefore.token0 + 3n);
+        expect(poolAfter.token1).to.be.eq(poolBefore.token1 - 1n);
+      });
+
       it('1 -> 0', async () => {
         const pool = await factory.getPool(tokens[1].target.toString(), tokens[0].target.toString(), FeeAmount.MEDIUM)
 
@@ -683,6 +776,54 @@ describe('SwapRouter', function () {
         expect(poolAfter.token0).to.be.eq(poolBefore.token0 - 1n)
         expect(poolAfter.token1).to.be.eq(poolBefore.token1 + 3n)
       })
+
+      it('(223-20) 1 -> 0', async () => {
+        const pool = await factory.getPool(tokens[1].target.toString(), tokens[0].target.toString(), FeeAmount.MEDIUM);
+
+        // get balances before
+        const poolBefore = await getBalances(pool);
+        const traderBefore = await getBalances(trader.address);
+
+        await exactInputSingle223(
+            tokens[1].target.toString(), // ERC20 version on TokenIn
+            tokens[4].target.toString(), // ERC223 version on TokenIn
+            tokens[0].target.toString());
+
+        // get balances after
+        const poolAfter = await getBalances(pool);
+        const traderAfter = await getBalances(trader.address);
+
+        expect(traderAfter.token0).to.be.eq(traderBefore.token0 + 1n);
+        expect(traderAfter.token1).to.be.eq(traderBefore.token1 - 3n);
+        expect(poolAfter.token0).to.be.eq(poolBefore.token0 - 1n);
+        expect(poolAfter.token1).to.be.eq(poolBefore.token1 + 3n);
+      });
+
+      it('(223-223) 1 -> 0', async () => {
+        const pool = await factory.getPool(tokens[1].target.toString(), tokens[0].target.toString(), FeeAmount.MEDIUM);
+
+        // get balances before
+        const poolBefore = await getBalances(pool);
+        const traderBefore = await getBalances(trader.address);
+
+        await exactInputSingle223(
+            tokens[1].target.toString(), // ERC20 version on TokenIn
+            tokens[4].target.toString(), // ERC223 version on TokenIn
+            tokens[0].target.toString(),
+            undefined,
+            undefined,
+            undefined,
+            true);
+
+        // get balances after
+        const poolAfter = await getBalances(pool);
+        const traderAfter = await getBalances(trader.address);
+
+        expect(traderAfter.token0).to.be.eq(traderBefore.token0 + 1n);
+        expect(traderAfter.token1).to.be.eq(traderBefore.token1 - 3n);
+        expect(poolAfter.token0).to.be.eq(poolBefore.token0 - 1n);
+        expect(poolAfter.token1).to.be.eq(poolBefore.token1 + 3n);
+      });
 
       describe('ETH input', () => {
         describe('WETH9', () => {
