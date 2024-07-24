@@ -268,7 +268,7 @@ IERC223Recipient
         address pool,
         address tokenIn,
         address tokenOut
-    ) private returns (address) {
+    ) private view returns (address) {
         if (prefer223Out) {
             (address _token0_erc20, address _token0_erc223) = IDex223Pool(pool).token0();
             (, address _token1_erc223) = IDex223Pool(pool).token1();
