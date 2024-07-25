@@ -134,6 +134,16 @@ IERC223Recipient
         address payer;
     }
 
+    struct SwapData {
+        address pool;
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        bool zeroForOne;
+        bool prefer223Out;
+        uint160 sqrtPriceLimitX96;
+    }
+
     /// @inheritdoc IUniswapV3SwapCallback
     function uniswapV3SwapCallback(
         int256 amount0Delta,
@@ -175,33 +185,33 @@ IERC223Recipient
         if (recipient == address(0)) recipient = address(this);
 
         (address tokenIn, address tokenOut, uint24 fee) = data.path.decodeFirstPool();
-
         bool zeroForOne = tokenIn < tokenOut;
-        int256 amountInt = amountIn.toInt256();
-
         address pool = address(getPool(tokenIn, tokenOut, fee));
+
+        SwapData memory swapData = SwapData({
+            pool: pool,
+            tokenIn: tokenIn,
+            tokenOut: tokenOut,
+            fee: fee,
+            zeroForOne: zeroForOne,
+            prefer223Out: prefer223Out,
+            sqrtPriceLimitX96: sqrtPriceLimitX96
+        });
 
         if (depositedTokens(call_sender, token_sender) >= amountIn) {
             return executeSwapWithDeposit(
                 amountIn,
                 recipient,
-                zeroForOne,
-                sqrtPriceLimitX96,
-                prefer223Out,
                 data,
-                pool,
-                tokenIn,
-                tokenOut
+                swapData
             );
         } else {
+            int256 amountInt = amountIn.toInt256();
             return executeSwapWithoutDeposit(
                 recipient,
-                zeroForOne,
                 amountInt,
-                sqrtPriceLimitX96,
-                prefer223Out,
                 data,
-                pool
+                swapData
             );
         }
     }
@@ -209,58 +219,49 @@ IERC223Recipient
     function executeSwapWithDeposit(
         uint256 amountIn,
         address recipient,
-        bool zeroForOne,
-        uint160 sqrtPriceLimitX96,
-        bool prefer223Out,
         SwapCallbackData memory data,
-        address pool,
-        address tokenIn,
-        address tokenOut
+        SwapData memory swapData
     ) private returns (uint256 amountOut) {
         bytes memory _data = abi.encodeWithSignature(
             "swap(address,bool,int256,uint160,bool,bytes)",
             recipient,
-            zeroForOne,
+            swapData.zeroForOne,
             amountIn.toInt256(),
-            sqrtPriceLimitX96 == 0
-                ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
-                : sqrtPriceLimitX96,
-            prefer223Out,
+            swapData.sqrtPriceLimitX96 == 0
+                ? (swapData.zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
+                : swapData.sqrtPriceLimitX96,
+            swapData.prefer223Out,
             data
         );
 
-        address _tokenOut = resolveTokenOut(prefer223Out, pool, tokenIn, tokenOut);
+        address _tokenOut = resolveTokenOut(swapData.prefer223Out, swapData.pool, swapData.tokenIn, swapData.tokenOut);
 
         uint256 balance1before = IERC20(_tokenOut).balanceOf(recipient);
-        require(IERC223(token_sender).transfer(pool, amountIn, _data));
+        require(IERC223(token_sender).transfer(swapData.pool, amountIn, _data));
 
         return uint256(IERC20(_tokenOut).balanceOf(recipient) - balance1before);
     }
 
     function executeSwapWithoutDeposit(
         address recipient,
-        bool zeroForOne,
         int256 amountInt,
-        uint160 sqrtPriceLimitX96,
-        bool prefer223Out,
         SwapCallbackData memory data,
-        address pool
+        SwapData memory swapData
     ) private returns (uint256 amountOut) {
-        int256 amount0;
-        int256 amount1;
 
-        (amount0, amount1) = IDex223Pool(pool).swap(
-            recipient,
-            zeroForOne,
-            amountInt,
-            sqrtPriceLimitX96 == 0
-                ? (zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
-                : sqrtPriceLimitX96,
-            prefer223Out,
-            abi.encode(data)
-        );
+        (int256 amount0, int256 amount1) =
+            IDex223Pool(swapData.pool).swap(
+                recipient,
+                swapData.zeroForOne,
+                amountInt,
+                swapData.sqrtPriceLimitX96 == 0
+                    ? (swapData.zeroForOne ? TickMath.MIN_SQRT_RATIO + 1 : TickMath.MAX_SQRT_RATIO - 1)
+                    : swapData.sqrtPriceLimitX96,
+                swapData.prefer223Out,
+                abi.encode(data)
+            );
 
-        return uint256(-(zeroForOne ? amount1 : amount0));
+        return uint256(-(swapData.zeroForOne ? amount1 : amount0));
     }
 
     function resolveTokenOut(

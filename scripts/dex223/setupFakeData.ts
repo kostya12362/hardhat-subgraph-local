@@ -4,8 +4,8 @@ import { BaseContract, Contract } from "ethers";
 import { deployPool, encodePriceSqrt } from "./createPool";  // calculateSqrtPriceX96
 import { addLiquidity } from "./addLiquidity";
 import { makeQuote } from "./makeQuote";
-import {makeRouteMultiSwap223, makeRouteSwap223} from "./makeSwap223";
-import {ERC20Token, IERC223, TokenStandardConverter} from "../../typechain-types";
+import { makeRouteMultiSwap223, makeRouteSwap223, makeRouteSwap20 } from "./makeSwap223";
+import { ERC20Token, IERC223, TokenStandardConverter } from "../../typechain-types";
 
 import USDT from "../../deployments/localhost/dex223/tokens/Tether/result.json";
 import USDC from "../../deployments/localhost/dex223/tokens/USDC/result.json";
@@ -250,6 +250,8 @@ async function main() {
 
   await makeRouteSwap223(usdt, usdc, 3000, 10000000000, false);
   await makeRouteSwap223(usdt, usdc, 3000, 10000000000, true);
+  await makeRouteSwap20(usdt, usdc, 3000, 10000000000, false);
+  await makeRouteSwap20(usdt, usdc, 3000, 10000000000, true);
 
   const lastToken = usdc2.target === usdc.target ? dai : usdc2;
   await lastToken.connect(signer2).approve(convertContract.target.toString(), ethers.MaxUint256 / 4n);

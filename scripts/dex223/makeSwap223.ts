@@ -10,6 +10,7 @@ import {
 import SwapRouter from "../../deployments/localhost/dex223/SwapRouter/result.json";
 import TokenConvertor from "../../deployments/localhost/dex223/TokenConvertor/result.json";
 import TEST_HYBRID_ERC223_C from "../../deployments/localhost/dex223/tokens/testTestHybridC/result.json";
+import USDT from "../../deployments/localhost/dex223/tokens/Tether/result.json";
 import { encodePath } from "../../test/shared/path";
 
 const provider = ethers.provider;
@@ -22,7 +23,7 @@ export async function makeRouteSwap223(
     _prefer223Out: boolean
 )
 {
-    console.log("makeRouterSwap223: ", _token0.target, _token1.target, _fee, _val);
+    console.log("\nmakeRouterSwap223: ", _token0.target, _token1.target, _fee, _val);
 
     const converter = new Contract(
         TokenConvertor.contractAddress,
@@ -110,6 +111,109 @@ export async function makeRouteSwap223(
     }
 }
 
+export async function makeRouteSwap20(
+    _token0: ERC20Token,
+    _token1: ERC20Token,
+    _fee: number,
+    _val: number,
+    _prefer223Out: boolean
+)
+{
+    console.log("\nmakeRouterSwap20: ", _token0.target, _token1.target, _fee, _val);
+
+    const converter = new Contract(
+        TokenConvertor.contractAddress,
+        TokenConvertor.abi,
+        provider
+    ) as BaseContract as TokenStandardConverter;
+
+    const _token0_223 = await converter.predictWrapperAddress(_token0.target, true);
+    const _token1_223 = await converter.predictWrapperAddress(_token1.target, true);
+
+    const tokenContract0_20 = new Contract(
+        _token0,
+        USDT.abi,
+        provider
+    ) as BaseContract as ERC20Token;
+
+    const tokenContract0 = new Contract(
+        _token0_223,
+        TEST_HYBRID_ERC223_C.abi,
+        provider
+    ) as BaseContract as ERC223HybridToken;
+
+    const tokenContract1 = new Contract(
+        _token1_223,
+        TEST_HYBRID_ERC223_C.abi,
+        provider
+    ) as BaseContract as ERC223HybridToken;
+
+    const routerContract = new Contract(
+        SwapRouter.contractAddress,
+        SwapRouter.abi,
+        provider
+    ) as BaseContract as ERC223SwapRouter;
+
+    const [_owner, signer2] = await ethers.getSigners();
+
+    try {
+        console.log('trying route swap...');
+        // encode path - not used in single swap
+        // const encoded  = ethers.AbiCoder.defaultAbiCoder().encode(
+        //     ['address'],
+        //     [signer2.address]
+        // )
+
+        console.log('-- Balances before:');
+        let bal0_233 = await tokenContract0.balanceOf(signer2.address);
+        let bal0 = await _token0.balanceOf(signer2.address);
+        let bal1 = await _token1.balanceOf(signer2.address);
+        let bal1_223 = 0n;
+        try {
+            bal1_223 = await tokenContract1.balanceOf(signer2.address);
+        } catch (e) {
+            //
+        }
+
+        console.log(`TokenIn (ERC223): ${bal0_233}\nTokenIn (ERC20): ${bal0}\nTokenOut (ERC223): ${bal1_223}\nTokenOut (ERC20): ${bal1}`);
+
+        const deadline = Math.floor(Date.now() / 1000) + 60 * 10;
+        const swapValues = {
+            tokenIn: _token0.target,
+            tokenOut: _token1.target,
+            fee: _fee,
+            recipient: signer2.address,
+            deadline,
+            amountIn: _val,
+            amountOutMinimum: 0,
+            sqrtPriceLimitX96: 0,
+            prefer223Out: _prefer223Out
+        };
+
+        await tokenContract0_20.connect(signer2).approve(routerContract.target, _val);
+        // @ts-ignore
+        // const data = routerContract.interface.encodeFunctionData('exactInputSingle', [swapValues]);
+        // const bytes = ethers.getBytes(data);
+        // const result =
+            await routerContract.connect(signer2)['exactInputSingle'](swapValues);
+        // console.log('result:', result);
+
+        console.log('-- Balances after:');
+        bal0_233 = await tokenContract0.balanceOf(signer2.address);
+        bal0 = await _token0.balanceOf(signer2.address);
+        bal1 = await _token1.balanceOf(signer2.address);
+        try {
+            bal1_223 = await tokenContract1.balanceOf(signer2.address);
+        } catch (e) {
+            //
+        }
+
+        console.log(`TokenIn (ERC223): ${bal0_233}\nTokenIn (ERC20): ${bal0}\nTokenOut (ERC223): ${bal1_223}\nTokenOut (ERC20): ${bal1}`);
+    } catch (e) {
+        console.log(e)
+    }
+}
+
 export async function makeRouteMultiSwap223(
     _token0: IERC223 | ERC20Token,
     _token1: IERC223 | ERC20Token,
@@ -120,7 +224,7 @@ export async function makeRouteMultiSwap223(
     _prefer223Out: boolean
 )
 {
-    console.log("makeRouterMultiSwap223: ", _token0.target, _token1.target, _token2.target, _fee1, _fee2, _val);
+    console.log("\nmakeRouterMultiSwap223: ", _token0.target, _token1.target, _token2.target, _fee1, _fee2, _val);
 
     const converter = new Contract(
         TokenConvertor.contractAddress,
