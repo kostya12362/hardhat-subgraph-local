@@ -228,6 +228,16 @@ const config: HardhatUserConfig = {
         mnemonic: MNEMONIC,
       },
     },
+    tbnb: {
+      url: "https://bsc-testnet-rpc.publicnode.com", //
+      // url: "https://data-seed-prebsc-1-s2.bnbchain.org:8545",
+      // url: "https://data-seed-prebsc-1-s3.bnbchain.org:8545",
+      // url: "https://public.stackup.sh/api/v1/node/bsc-testnet", // https://data-seed-prebsc-1-s2.bnbchain.org:8545",
+      chainId: 97,
+      accounts: {
+        mnemonic: MNEMONIC,
+      },
+    },
   },
 };
 

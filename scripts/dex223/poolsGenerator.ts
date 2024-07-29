@@ -111,18 +111,44 @@ async function mintApproveToken(tokenAddress: string, value: bigint, signer: Wal
         provider
     ) as BaseContract as ERC20Token;
 
-    console.log(`Mint ${tokenAddress} : ${value}`);
-    await (tokenContract)
-        .connect(signer)
-        .mint(signer.address, value);
+    const connectedContract = tokenContract.connect(signer);
 
-    console.log(`Approve ${tokenAddress} : ${value}`);
-    await (tokenContract)
-        .connect(signer)
-        .approve(
-            targetAddress,
-            value
-        );
+    const bal = await tokenContract.balanceOf(signer);
+    if (bal < value) {
+
+        console.log(`Mint ${tokenAddress} : ${value}`);
+
+        try {
+            let tx = await connectedContract
+                // .connect(signer)
+                .mint(signer.address, value);
+            console.log('Waiting mint TX');
+            await tx.wait(1);
+        } catch (e) {
+            console.log(e);
+        }
+    } else {
+        console.log('Tokens already minted. Skipping...');
+    }
+
+    const appr = await tokenContract.allowance(signer.address, targetAddress);
+    if (appr < value) {
+        console.log(`Approve ${tokenAddress} : ${value}`);
+        try {
+            let tx = await connectedContract
+                // .connect(signer)
+                .approve(
+                    targetAddress,
+                    value
+                );
+            console.log('Waiting approve TX');
+            await tx.wait(1);
+        } catch (e) {
+            console.log(e);
+        }
+    } else {
+        console.log('Tokens already Approved. Skipping...');
+    }
 }
 
 async function addLiquidity(
@@ -204,7 +230,7 @@ async function addLiquidity(
 
     const tx = await nfpm
         .connect(signer_wallet)
-        .mint(params, { gasLimit: 8_000_000 });
+        .mint(params); //, { gasLimit: 8_000_000 });
     await tx.wait();
 }
 
@@ -260,6 +286,7 @@ async function deployPool(
     console.dir(token1);
     console.log(price);
 
+
     const tx = await nfpm
         .connect(signer_wallet)
         .createAndInitializePoolIfNecessary(token0.address, token1.address, token0.address223, token1.address223, fee, price);
@@ -272,11 +299,18 @@ async function main() {
     const chainId = network.chainId;
     const tokens = flatternTokens(tokensLists, chainId);
     // console.dir(tokens);
-
     const fee = Number(process.env.POOL_FEE || '3000');
 
+    console.log(`Generating pools for ChainId: ${chainId} with fee = ${fee}`);
+
     // NOTE swap sepolia | localhost based on call settings
-    const netName = (Number(chainId) === 31337) ? 'localhost' : 'sepolia';
+    let netName; // = 'localhost';
+    switch (Number(chainId)) {
+        case 11155111: netName = 'sepolia'; break;
+        case 97: netName = 'tbnb'; break;
+        default: netName = 'localhost';
+    }
+    // const netName = (Number(chainId) === 31337) ? 'localhost' : 'sepolia';
     const FACTORY = require(`../../deployments/${netName}/dex223/Factory/result.json`);
     const NFPM = require(`../../deployments/${netName}/dex223/DexaransNonfungiblePositionManager/result.json`);
 
@@ -295,13 +329,16 @@ async function main() {
     for (let token0 of tokens) {
         for (let token1 of tokens) {
             if (token0.address === token1.address) continue;
+            // NOTE skip WBNB
+            if ([token0.address.toLowerCase(), token1.address.toLowerCase()].includes('0x094616f0bdfb0b526bd735bf66eca0ad254ca81f') ) continue;
             console.log('-< -- >-');
 
             const pool = await factoryContract.getPool(token0.address, token1.address, fee);
-            if (pool !== ethers.ZeroAddress) { // && pool !== '0xA41b42314A80aF39b57c8CFA9637C792F8c099D6') {
+            if (pool !== ethers.ZeroAddress) {//} && pool !== '0x549895C3f4Cc969115DFEe0A77849A95df7BB0A7') {
                 console.log(`Exists Pool: ${token0.symbol} | ${token1.symbol}: ${pool}`);
                 continue;
             }
+
 
             if (pool === ethers.ZeroAddress) {
                 await deployPool(token0, token1, fee, nfpmContract, Number(chainId));
@@ -313,6 +350,8 @@ async function main() {
                 await addLiquidity(address, token0, token1, 1, nfpmContract, Number(chainId));
                 console.log(`Liquidity added: ${token0.symbol} | ${token1.symbol}: ${address}`);
             }
+
+            // process.exit(0);
         }
     }
 }

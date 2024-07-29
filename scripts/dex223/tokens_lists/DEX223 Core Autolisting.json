@@ -8,25 +8,25 @@
   },
   "tokens": [
     {
-      "chainId": 11155111,
-      "decimals": 5,
-      "symbol": "XE",
-      "name": "Xenon",
+      "chainId": 97,
+      "decimals": 6,
+      "symbol": "TOB2",
+      "name": "Total Test Bsc 2",
       "isNative": false,
       "isToken": true,
-      "address0": "0x8F5Ea3D9b780da2D0Ab6517ac4f6E697A948794f",
-      "address1": "0xE36231fe26e8fB44Cf82687926061d65C0989196",
+      "address0": "0x304dC7BF30692081B0ab96497f8914362316580e",
+      "address1": "0x6050d7389058D188256788b0437bc6950Cde391f",
       "logoURI": "/tokens/placeholder.svg"
     },
     {
-      "chainId": 11155111,
-      "decimals": 2,
-      "symbol": "HE",
-      "name": "Helium",
+      "chainId": 97,
+      "decimals": 18,
+      "symbol": "TOB1",
+      "name": "Total Test Bsc 1",
       "isNative": false,
       "isToken": true,
-      "address0": "0xEC5aa08386F4B20dE1ADF9Cdf225b71a133FfaBa",
-      "address1": "0xE201F9a4ed6e165FC259143F419782039AE0C3E0",
+      "address0": "0x6Af15783242fAD978C90FFCDA0119223BFFeaB53",
+      "address1": "0xB3B9923f79dC81f9B7f25883a77EdD3523b06f52",
       "logoURI": "/tokens/placeholder.svg"
     }
   ]
