@@ -1,0 +1,33 @@
+{
+  "logoURI": "/token-list-placeholder.svg",
+  "name": "DEX223 Core Autolisting",
+  "version": {
+    "major": 0,
+    "minor": 0,
+    "patch": 1
+  },
+  "tokens": [
+    {
+      "chainId": 11155111,
+      "decimals": 5,
+      "symbol": "XE",
+      "name": "Xenon",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0x8F5Ea3D9b780da2D0Ab6517ac4f6E697A948794f",
+      "address1": "0xE36231fe26e8fB44Cf82687926061d65C0989196",
+      "logoURI": "/tokens/placeholder.svg"
+    },
+    {
+      "chainId": 11155111,
+      "decimals": 2,
+      "symbol": "HE",
+      "name": "Helium",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0xEC5aa08386F4B20dE1ADF9Cdf225b71a133FfaBa",
+      "address1": "0xE201F9a4ed6e165FC259143F419782039AE0C3E0",
+      "logoURI": "/tokens/placeholder.svg"
+    }
+  ]
+}

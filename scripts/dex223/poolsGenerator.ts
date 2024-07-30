@@ -294,9 +294,17 @@ async function deployPool(
 }
 
 async function main() {
-    const tokensLists = await readAndParseJsonFiles(folderPath);
     const network = await ethers.provider.getNetwork();
     const chainId = network.chainId;
+    let netName; // = 'localhost';
+    switch (Number(chainId)) {
+        case 11155111: netName = 'sepolia'; break;
+        case 97: netName = 'tbnb'; break;
+        case 15557: netName = 'eostest'; break;
+        default: netName = 'localhost';
+    }
+
+    const tokensLists = await readAndParseJsonFiles(path.join(folderPath, netName));
     const tokens = flatternTokens(tokensLists, chainId);
     // console.dir(tokens);
     const fee = Number(process.env.POOL_FEE || '3000');
@@ -304,12 +312,7 @@ async function main() {
     console.log(`Generating pools for ChainId: ${chainId} with fee = ${fee}`);
 
     // NOTE swap sepolia | localhost based on call settings
-    let netName; // = 'localhost';
-    switch (Number(chainId)) {
-        case 11155111: netName = 'sepolia'; break;
-        case 97: netName = 'tbnb'; break;
-        default: netName = 'localhost';
-    }
+
     // const netName = (Number(chainId) === 31337) ? 'localhost' : 'sepolia';
     const FACTORY = require(`../../deployments/${netName}/dex223/Factory/result.json`);
     const NFPM = require(`../../deployments/${netName}/dex223/DexaransNonfungiblePositionManager/result.json`);
@@ -334,7 +337,7 @@ async function main() {
             console.log('-< -- >-');
 
             const pool = await factoryContract.getPool(token0.address, token1.address, fee);
-            if (pool !== ethers.ZeroAddress) {//} && pool !== '0x549895C3f4Cc969115DFEe0A77849A95df7BB0A7') {
+            if (pool !== ethers.ZeroAddress) { //} && pool !== '0xD48e5DA8E3687c02dd6E6D593Cc8Aa283180B233') {
                 console.log(`Exists Pool: ${token0.symbol} | ${token1.symbol}: ${pool}`);
                 continue;
             }
@@ -351,7 +354,7 @@ async function main() {
                 console.log(`Liquidity added: ${token0.symbol} | ${token1.symbol}: ${address}`);
             }
 
-            // process.exit(0);
+            process.exit(0);
         }
     }
 }

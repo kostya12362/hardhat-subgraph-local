@@ -1,0 +1,66 @@
+{
+  "logoURI": "/token-list-placeholder.svg",
+  "name": "DEX223 Free Autolisting",
+  "version": {
+    "major": 0,
+    "minor": 0,
+    "patch": 1
+  },
+  "tokens": [
+    {
+      "chainId": 15557,
+      "decimals": 5,
+      "symbol": "XE",
+      "name": "Xenon",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0x8524c3bD49Cd455EA0102BF194AdD2F21165E049",
+      "address1": "0x71515d5A095AeDccD02851E375ebCDdaCF2dB337",
+      "logoURI": "/tokens/placeholder.svg"
+    },
+    {
+      "chainId": 15557,
+      "decimals": 1,
+      "symbol": "Ar",
+      "name": "Argon",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0x2287fD53dC186A850ae5AFF276a54C501C2Cac44",
+      "address1": "0x0e9077a8db78d4D142E829f98102E12846346Fd2",
+      "logoURI": "/tokens/placeholder.svg"
+    },
+    {
+      "chainId": 15557,
+      "decimals": 3,
+      "symbol": "Kr",
+      "name": "Krypton",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0xc9e8FDcCb861623685458cD825537e74E22F99e0",
+      "address1": "0xB303FD34506BDcb300B0F0445873f8913f3FC684",
+      "logoURI": "/tokens/placeholder.svg"
+    },
+    {
+      "chainId": 15557,
+      "decimals": 10,
+      "symbol": "NE",
+      "name": "Neon",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0x9cCF60dDE926FB2579209bb0D6C00C8Cc873A458",
+      "address1": "0x4129e02a35337E5ef3A9f7793fe15eCD13e6D502",
+      "logoURI": "/tokens/placeholder.svg"
+    },
+    {
+      "chainId": 15557,
+      "decimals": 2,
+      "symbol": "HE",
+      "name": "Helium",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0xb130D5e318898718C1Efa27Abe634294B0a4C4c8",
+      "address1": "0x7f369a700b99D3eF7dD66806F64462E1e2F6F7dc",
+      "logoURI": "/tokens/placeholder.svg"
+    }
+  ]
+}

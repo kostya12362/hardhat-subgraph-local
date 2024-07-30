@@ -238,6 +238,13 @@ const config: HardhatUserConfig = {
         mnemonic: MNEMONIC,
       },
     },
+    eostest: {
+      url: "https://api.testnet.evm.eosnetwork.com",
+      chainId: 15557,
+      accounts: {
+        mnemonic: MNEMONIC,
+      },
+    },
   },
 };
 
