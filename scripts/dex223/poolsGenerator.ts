@@ -113,9 +113,13 @@ async function mintApproveToken(tokenAddress: string, value: bigint, signer: Wal
 
     const connectedContract = tokenContract.connect(signer);
 
-    const bal = await tokenContract.balanceOf(signer);
+    let bal = 0n;
+    try {
+        bal = await tokenContract.balanceOf(signer);
+    } catch (e) {
+        console.log('Failed to get balance');
+    }
     if (bal < value) {
-
         console.log(`Mint ${tokenAddress} : ${value}`);
 
         try {
@@ -131,7 +135,12 @@ async function mintApproveToken(tokenAddress: string, value: bigint, signer: Wal
         console.log('Tokens already minted. Skipping...');
     }
 
-    const appr = await tokenContract.allowance(signer.address, targetAddress);
+    let appr = 0n;
+    try {
+        appr = await tokenContract.allowance(signer.address, targetAddress);
+    } catch (e) {
+        console.log('Failed to get approve');
+    }
     if (appr < value) {
         console.log(`Approve ${tokenAddress} : ${value}`);
         try {
@@ -230,7 +239,7 @@ async function addLiquidity(
 
     const tx = await nfpm
         .connect(signer_wallet)
-        .mint(params); //, { gasLimit: 8_000_000 });
+        .mint(params, { gasLimit: 8_000_000 });
     await tx.wait();
 }
 
@@ -289,7 +298,8 @@ async function deployPool(
 
     const tx = await nfpm
         .connect(signer_wallet)
-        .createAndInitializePoolIfNecessary(token0.address, token1.address, token0.address223, token1.address223, fee, price);
+        .createAndInitializePoolIfNecessary(token0.address, token1.address, token0.address223, token1.address223, fee, price,
+            { gasLimit: 8_000_000 });
     await tx.wait();
 }
 
@@ -337,7 +347,7 @@ async function main() {
             console.log('-< -- >-');
 
             const pool = await factoryContract.getPool(token0.address, token1.address, fee);
-            if (pool !== ethers.ZeroAddress) { //} && pool !== '0xD48e5DA8E3687c02dd6E6D593Cc8Aa283180B233') {
+            if (pool !== ethers.ZeroAddress) {//} && pool !== '0x7DF57857AEb300D0EcA3f7B10FbE70E8e6E87D5e') {
                 console.log(`Exists Pool: ${token0.symbol} | ${token1.symbol}: ${pool}`);
                 continue;
             }
@@ -354,7 +364,7 @@ async function main() {
                 console.log(`Liquidity added: ${token0.symbol} | ${token1.symbol}: ${address}`);
             }
 
-            process.exit(0);
+            // process.exit(0);
         }
     }
 }

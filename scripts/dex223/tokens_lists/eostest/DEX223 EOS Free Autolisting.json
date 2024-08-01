@@ -9,6 +9,17 @@
   "tokens": [
     {
       "chainId": 15557,
+      "decimals": 6,
+      "symbol": "USDC",
+      "name": "UsdCoin",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0x2f404E8BD5319BEbB789C3d3b58FA3643799e3cF",
+      "address1": "0xd2847fA8604CaA91b063fcC2141C6f2ef32f1848",
+      "logoURI": "/tokens/placeholder.svg"
+    },
+    {
+      "chainId": 15557,
       "decimals": 5,
       "symbol": "XE",
       "name": "Xenon",
