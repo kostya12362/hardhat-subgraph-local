@@ -65,7 +65,8 @@ describe('AutoListing', () => {
     describe('lists add', () => {
 
         it('add list', async () => {
-            await expect(listing.list(pool0, feeAmount))
+            // NOTE list with payment
+            await expect(listing.list(pool0, feeAmount, {value: 1}))
                 .to.emit(registry, 'TokenListed')
                 .withArgs(listing.target.toString(), token0.target.toString(), token3)
                 .to.emit(listing, 'TokenListed')
@@ -83,13 +84,13 @@ describe('AutoListing', () => {
             expect(await listing.isListed(token2.target.toString())).not.to.eq(true);
             expect(await listing.isListed(token5)).not.to.eq(true);
 
-            await expect(listing.list(pool0, feeAmount))
+            await expect(listing.list(pool0, feeAmount, {value: 1} ))
                 .not.to.emit(registry, 'TokenListed')
                 .not.to.emit(listing, 'TokenListed')
                 .not.to.emit(listing, 'TokenListed');
                 // .withArgs(pool1.target.toString(), wallet.address, 100n)
 
-            await expect(listing.list(pool1, feeAmount))
+            await expect(listing.list(pool1, feeAmount, {value: 1}))
                 .to.emit(registry, 'TokenListed')
                 .to.emit(listing, 'TokenListed')
                 .to.emit(listing, 'PairListed');

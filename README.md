@@ -48,6 +48,8 @@ Test swap with test contracts on local deployment:
 ```bash
 yarn run hardhat:swap:dex223:local
 ```
+If some test failing - this could be caused by wrong `pool_hash` constant value. 
+Try cleaning cache files, start local node and run command `hardhat:deploy:dex223:local`
 
 Generate json files to pass contract verification (for ex. TestBNB explorer):
 ```bash
