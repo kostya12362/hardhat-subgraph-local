@@ -9,7 +9,6 @@ import "../tokens/interfaces/IERC223Recipient.sol";
 import "../libraries/Address.sol";
 import "../introspection/ERC165.sol";
 
-
 interface standardERC20
 {
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -432,6 +431,7 @@ contract TokenStandardConverter is IERC223Recipient
         {
             createERC223Wrapper(_ERC20token);
         }
+
         uint256 _converterBalance = IERC20(_ERC20token).balanceOf(address(this)); // Safety variable.
 
         //IERC20(_ERC20token).transferFrom(msg.sender, address(this), _amount);

@@ -37,7 +37,8 @@ describe('SwapRouter', function () {
       nft , converter} = await completeFixture()
 
     // approve & fund wallets
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 7; i++) {
+      if (i > 2 && i < 6) continue;
       const token = tokens[i] as TestERC20;
       await token.approve(router.target.toString(), ethers.MaxUint256);
       await token.approve(nft.target.toString(), ethers.MaxUint256);
@@ -45,7 +46,7 @@ describe('SwapRouter', function () {
       // await token.transfer(trader.address, expandTo18Decimals(1_000_000));
     }
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       const token = tokens[i] as TestERC20;
       await token.transfer(trader.address, expandTo18Decimals(1_000_000))
     }
@@ -74,6 +75,7 @@ describe('SwapRouter', function () {
     token0: bigint
     token1: bigint
     token2: bigint
+    token6: bigint
   }>;
 
   before('create fixture loader', async () => {
@@ -94,12 +96,14 @@ describe('SwapRouter', function () {
         tokens[3].balanceOf(who),
         tokens[4].balanceOf(who),
         tokens[5].balanceOf(who),
+        tokens[6].balanceOf(who),
       ])
       return {
         weth9: balances[0],
         token0: balances[1] + balances[4],
         token1: balances[2] + balances[5],
         token2: balances[3] + balances[6],
+        token6: balances[7]
       }
     }
   })
@@ -164,15 +168,18 @@ describe('SwapRouter', function () {
     }
 
     beforeEach('create 0-1 and 1-2 pools', async () => {
-      await createPool(tokens[0].target.toString(), tokens[1].target.toString(), tokens[3].target.toString(), tokens[4].target.toString())
-      await createPool(tokens[1].target.toString(), tokens[2].target.toString(), tokens[4].target.toString(), tokens[5].target.toString())
+      await createPool(tokens[0].target.toString(), tokens[1].target.toString(), tokens[3].target.toString(), tokens[4].target.toString());
+      await createPool(tokens[1].target.toString(), tokens[2].target.toString(), tokens[4].target.toString(), tokens[5].target.toString());
+      // NOTE pool with not existed 223 token
+      await createPool(tokens[0].target.toString(), tokens[6].target.toString(), tokens[3].target.toString(), tokens[7].target.toString());
     })
 
     describe('#exactInput', () => {
       async function exactInput(
         tokens: string[],
         amountIn: number = 3,
-        amountOutMinimum: number = 1
+        amountOutMinimum: number = 1,
+        prefer223out: boolean = false
       ): Promise<ContractTransactionResponse> {
         const inputIsWETH = weth9.target.toString() === tokens[0];
         const outputIsWETH9 = tokens[tokens.length - 1] === weth9.target.toString();
@@ -185,8 +192,10 @@ describe('SwapRouter', function () {
           deadline: 1,
           amountIn,
           amountOutMinimum,
-          prefer223Out: false
+          prefer223Out: prefer223out
         };
+
+        // console.dir(params);
 
         const data = [router.interface.encodeFunctionData('exactInput', [params])];
         if (outputIsWETH9)
@@ -261,6 +270,17 @@ describe('SwapRouter', function () {
           expect(traderAfter.token1).to.be.eq(traderBefore.token1 + 1n)
           expect(poolAfter.token0).to.be.eq(poolBefore.token0 + 3n)
           expect(poolAfter.token1).to.be.eq(poolBefore.token1 - 1n)
+        });
+
+        it('(20->223x) 0 -> 1', async () => {
+          const pool = await factory.getPool(tokens[0].target.toString(), tokens[6].target.toString(), FeeAmount.MEDIUM);
+          const poolBefore = await getBalances(pool);
+          console.log(`Out token: ${tokens[6].target}`);
+          console.log(`Caller pool: ${pool}`);
+          console.log(`Pool balances: ${poolBefore.token0} | ${poolBefore.token6}`);
+          await exactInput([tokens[0].target.toString(), tokens[6].target.toString()], 3, 1, true);
+          const poolAfter = await getBalances(pool);
+          console.log(`Pool balances: ${poolAfter.token0} | ${poolAfter.token6}`);
         });
 
         it('(223->20) 0 -> 1', async () => {

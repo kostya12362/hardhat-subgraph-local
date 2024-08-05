@@ -69,6 +69,12 @@ export async function  completeFixture():  Promise<{
   tokens.push(token1_223);
   tokens.push(token2_223);
 
+  // additional token without 223 converted
+  tokens.push((await tokenFactory.deploy(ethers.MaxUint256)) as TestERC20);
+  tokenAddress = await converter.predictWrapperAddress(tokens[6].target, true);
+  const token3_223 = TokenFactory.attach(tokenAddress) as ERC223HybridToken;
+  tokens.push(token3_223);
+
   return {
     weth9,
     factory,
