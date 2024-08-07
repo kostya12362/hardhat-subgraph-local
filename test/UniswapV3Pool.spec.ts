@@ -1184,6 +1184,123 @@ describe('Dex223Pool', () => {
       await expect(swapExact0For1_223(expandTo18Decimals(1), wallet.address, undefined, 906610893880149132n, undefined)).to.be.reverted;
     });
 
+    // NOTE compare direct swap balances (swap 223-223 and swap 20-20)
+    // it('(223-223) exactInputSingle balances', async () => {
+    //   await mint(wallet.address, minTick, maxTick, expandTo18Decimals(100000));
+    //   // await mint223(wallet.address, maxTick - tickSpacing, maxTick, 2n ** 102n);
+    //   // await mint223(wallet.address, minTick + tickSpacing, maxTick - tickSpacing, 10000n);
+    //   let balances = await Promise.all([
+    //       token0.balanceOf(pool.target.toString()),
+    //       token1.balanceOf(pool.target.toString()),
+    //       token0_223.balanceOf(pool.target.toString()),
+    //       token1_223.balanceOf(pool.target.toString()),
+    //   ]);
+    //   console.log(`Balance 0: ${balances[0]}`);
+    //   console.log(`Balance 1: ${balances[1]}`);
+    //   console.log(`Balance 0_223: ${balances[2]}`);
+    //   console.log(`Balance 1_223: ${balances[3]}`);
+    //   await swapExact1For0(expandTo18Decimals(1000) , wallet.address);
+    //
+    //   let balances1 = await Promise.all([
+    //     token0.balanceOf(pool.target.toString()),
+    //     token1.balanceOf(pool.target.toString()),
+    //     token0_223.balanceOf(pool.target.toString()),
+    //     token1_223.balanceOf(pool.target.toString()),
+    //   ]);
+    //   console.log(`Diff (223) Balance 0: ${balances[0] - balances1[0]}`);
+    //   console.log(`Diff (223) Balance 1: ${balances[1] - balances1[1]}`);
+    //   console.log(`Diff (223) Balance 0_223: ${balances[2] - balances1[2]}`);
+    //   console.log(`Diff (223) Balance 1_223: ${balances[3] - balances1[3]}`);
+    //
+    //
+    //   // NOTE trying to restore pool to init state
+    //   // let position = await pool.positions(getPositionKey(wallet.address, minTick, maxTick));
+    //   // console.log(`Position: ${position}`);
+    //   //
+    //   // await pool.burn(minTick, maxTick, position.liquidity);
+    //   //
+    //   // position = await pool.positions(getPositionKey(wallet.address, minTick, maxTick));
+    //   // console.log(`Position after burn: ${position}`);
+    //   //
+    //   // await pool.collect(
+    //   //     wallet.address,
+    //   //     minTick,
+    //   //     maxTick,
+    //   //     balances1[0],
+    //   //     balances1[1],
+    //   //     false,
+    //   //     false
+    //   // );
+    //   //
+    //   // position = await pool.positions(getPositionKey(wallet.address, minTick, maxTick));
+    //   // console.log(`Position after collect: ${position}`);
+    //   //
+    //   // balances = await Promise.all([
+    //   //   token0.balanceOf(pool.target.toString()),
+    //   //   token1.balanceOf(pool.target.toString()),
+    //   //   token0_223.balanceOf(pool.target.toString()),
+    //   //   token1_223.balanceOf(pool.target.toString()),
+    //   // ]);
+    //   // console.log(`Balance 0: ${balances[0]}`);
+    //   // console.log(`Balance 1: ${balances[1]}`);
+    //   // console.log(`Balance 0_223: ${balances[2]}`);
+    //   // console.log(`Balance 1_223: ${balances[3]}`);
+    //   //
+    //   // await mint223(wallet.address, minTick, maxTick, expandTo18Decimals(100000));
+    //   //
+    //   // balances = await Promise.all([
+    //   //   token0.balanceOf(pool.target.toString()),
+    //   //   token1.balanceOf(pool.target.toString()),
+    //   //   token0_223.balanceOf(pool.target.toString()),
+    //   //   token1_223.balanceOf(pool.target.toString()),
+    //   // ]);
+    //   // console.log(`Balance 0: ${balances[0]}`);
+    //   // console.log(`Balance 1: ${balances[1]}`);
+    //   // console.log(`Balance 0_223: ${balances[2]}`);
+    //   // console.log(`Balance 1_223: ${balances[3]}`);
+    //   //
+    //   // await swapExact1For0_223(expandTo18Decimals(1000), wallet.address);
+    //   //
+    //   // balances1 = await Promise.all([
+    //   //   token0.balanceOf(pool.target.toString()),
+    //   //   token1.balanceOf(pool.target.toString()),
+    //   //   token0_223.balanceOf(pool.target.toString()),
+    //   //   token1_223.balanceOf(pool.target.toString()),
+    //   // ]);
+    //   // console.log(`Diff (20) Balance 0: ${balances[0] - balances1[0]}`);
+    //   // console.log(`Diff (20) Balance 1: ${balances[1] - balances1[1]}`);
+    //   // console.log(`Diff (20) Balance 0_223: ${balances[2] - balances1[2]}`);
+    //   // console.log(`Diff (20) Balance 1_223: ${balances[3] - balances1[3]}`);
+    // });
+
+    // it('(20-20) exactInputSingle balances', async () => {
+    //   await mint(wallet.address, minTick, maxTick, expandTo18Decimals(100000));
+    //   // await mint(wallet.address, maxTick - tickSpacing, maxTick, 2n ** 102n);
+    //   // await mint(wallet.address, minTick + tickSpacing, maxTick - tickSpacing, 10000n);
+    //   const balances = await Promise.all([
+    //     token0.balanceOf(pool.target.toString()),
+    //     token1.balanceOf(pool.target.toString()),
+    //     token0_223.balanceOf(pool.target.toString()),
+    //     token1_223.balanceOf(pool.target.toString()),
+    //   ]);
+    //   console.log(`Balance 0: ${balances[0]}`);
+    //   console.log(`Balance 1: ${balances[1]}`);
+    //   console.log(`Balance 0_223: ${balances[2]}`);
+    //   console.log(`Balance 1_223: ${balances[3]}`);
+    //   await swapExact1For0(expandTo18Decimals(1000), wallet.address);
+    //
+    //   const balances1 = await Promise.all([
+    //     token0.balanceOf(pool.target.toString()),
+    //     token1.balanceOf(pool.target.toString()),
+    //     token0_223.balanceOf(pool.target.toString()),
+    //     token1_223.balanceOf(pool.target.toString()),
+    //   ]);
+    //   console.log(`Diff (20) Balance 0: ${balances[0] - balances1[0]}`);
+    //   console.log(`Diff (20) Balance 1: ${balances[1] - balances1[1]}`);
+    //   console.log(`Diff (20) Balance 0_223: ${balances[2] - balances1[2]}`);
+    //   console.log(`Diff (20) Balance 1_223: ${balances[3] - balances1[3]}`);
+    // });
+
   });
 
   describe('#collect', () => {

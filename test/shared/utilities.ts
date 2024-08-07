@@ -1,11 +1,11 @@
-import {BaseContract, Wallet, ContractTransactionResponse, Fragment, FunctionFragment} from 'ethers'
+import { BaseContract, Wallet, ContractTransactionResponse } from 'ethers'
 import { ethers } from 'hardhat'
 import { TestUniswapV3Callee, ERC223HybridToken } from '../../typechain-types'
 import { TestUniswapV3Router } from '../../typechain-types'
 import { MockTimeDex223Pool } from '../../typechain-types'
 import { TestERC20 } from '../../typechain-types'
 import bn from 'bignumber.js'
-import {TypedContractMethod} from "../../typechain-types/common";
+// import {TypedContractMethod} from "../../typechain-types/common";
 
 export const MaxUint128 = 2n ** 128n - 1n
 
