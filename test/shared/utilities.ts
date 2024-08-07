@@ -78,7 +78,9 @@ export function getPositionKey(address: string, lowerTick: bigint, upperTick: bi
 export type SwapFunction = (
   amount: bigint,
   to: Wallet | string,
-  sqrtPriceLimitX96?: bigint
+  sqrtPriceLimitX96?: bigint,
+  amountOutMin?: bigint,
+  deadline?: bigint
 ) => Promise<ContractTransactionResponse>
 export type SwapToPriceFunction = (sqrtPriceX96: bigint, to: Wallet | string) => Promise<ContractTransactionResponse>
 // export type FlashFunction = (
@@ -178,7 +180,9 @@ export function createPoolFunctions({
     inputToken: BaseContract,
     [amountIn, amountOut]: [bigint, bigint],
     to: Wallet | string,
-    sqrtPriceLimitX96?: bigint
+    sqrtPriceLimitX96?: bigint,
+    amountOutMin: bigint = 0n,
+    deadline: bigint = 1601916400n
   ): Promise<ContractTransactionResponse> {
     // const exactInput = amountOut === 0n
 
@@ -195,10 +199,11 @@ export function createPoolFunctions({
         ['address'],
         [toAddress]
     )
-    const swapValues = [toAddress, inputToken.target == token0_223.target, amountIn, sqrtPriceLimitX96, true, encoded];
+    const swapValues =
+        [toAddress, inputToken.target == token0_223.target, amountIn, amountOutMin, sqrtPriceLimitX96, true, encoded, deadline];
 
     // @ts-ignore
-    const data = pool.interface.encodeFunctionData('swap', swapValues);
+    const data = pool.interface.encodeFunctionData('swapExactInput', swapValues);
     const bytes = ethers.getBytes(data)
     return await (inputToken as ERC223HybridToken)['transfer(address,uint256,bytes)'](pool.target, amountIn /*ethers.MaxUint256 / 4n - 1n */, bytes);
   }
@@ -225,8 +230,8 @@ export function createPoolFunctions({
     return swap(token0, [amount, 0n], to, sqrtPriceLimitX96)
   }
 
-  const swapExact0For1_223: SwapFunction = (amount, to, sqrtPriceLimitX96) => {
-    return swap223(token0_223, [amount, 0n], to, sqrtPriceLimitX96)
+  const swapExact0For1_223: SwapFunction = (amount, to, sqrtPriceLimitX96, amountOutMin = undefined, deadline = undefined) => {
+    return swap223(token0_223, [amount, 0n], to, sqrtPriceLimitX96, amountOutMin, deadline);
   }
 
   const swap0ForExact1: SwapFunction = (amount, to, sqrtPriceLimitX96) => {
@@ -237,8 +242,8 @@ export function createPoolFunctions({
     return swap(token1, [amount, 0n], to, sqrtPriceLimitX96)
   }
 
-  const swapExact1For0_223: SwapFunction = (amount, to, sqrtPriceLimitX96) => {
-    return swap223(token1_223, [amount, 0n], to, sqrtPriceLimitX96)
+  const swapExact1For0_223: SwapFunction = (amount, to, sqrtPriceLimitX96, amountOutMin = undefined, deadline = undefined) => {
+    return swap223(token1_223, [amount, 0n], to, sqrtPriceLimitX96, amountOutMin, deadline);
   }
 
   const swap1ForExact0: SwapFunction = (amount, to, sqrtPriceLimitX96) => {

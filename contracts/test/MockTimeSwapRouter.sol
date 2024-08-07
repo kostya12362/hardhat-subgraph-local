@@ -9,8 +9,8 @@ contract MockTimeSwapRouter is ERC223SwapRouter {
 
     constructor(address _factory, address _WETH9) ERC223SwapRouter(_factory, _WETH9) {}
 
-    function _blockTimestamp() internal view override returns (uint256) {
-        return time;
+    function _blockTimestamp() internal view override returns (uint32) {
+        return uint32(time);
     }
 
     function setTime(uint256 _time) external {

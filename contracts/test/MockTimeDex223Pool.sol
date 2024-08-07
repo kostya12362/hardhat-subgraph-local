@@ -45,6 +45,35 @@ contract MockTimeDex223Pool is Dex223Pool {
         }
     }
 
+    function swapExactInput(
+        address recipient,
+        bool zeroForOne,
+        int256 amountSpecified,
+        uint256 amountOutMinimum,
+        uint160 sqrtPriceLimitX96,
+        bool prefer223,
+        bytes memory data,
+        uint256 deadline
+    ) external override checkDeadline(deadline) returns (uint256 amountOut) {
+        (bool success, bytes memory retdata) = pool_lib.delegatecall(abi.encodeWithSignature("swap(address,bool,int256,uint160,bool,bytes)", recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, prefer223, data));
+
+        if (success) {
+            int256 amount0;
+            int256 amount1;
+            ( amount0,  amount1) = abi.decode(retdata, (int256, int256));
+            amountOut = uint256(-(zeroForOne ? amount1 : amount0));
+
+            require(amountOut >= amountOutMinimum, 'Too little received');
+        } else {
+            if (retdata.length == 0) revert();
+            assembly {
+                revert(add(32, retdata), mload(retdata))
+            }
+        }
+
+
+    }
+
     function setFeeGrowthGlobal0X128(uint256 _feeGrowthGlobal0X128) external {
         feeGrowthGlobal0X128 = _feeGrowthGlobal0X128;
     }

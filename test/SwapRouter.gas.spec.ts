@@ -34,18 +34,24 @@ describe('SwapRouter gas tests', function () {
       nft , converter} = await completeFixture()
 
     // approve & fund wallets
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 7; i++) {
+      if (i > 2 && i < 6) continue;
       const token = tokens[i] as TestERC20;
-      await token.approve(router.target.toString(), ethers.MaxUint256)
-      await token.approve(nft.target.toString(), ethers.MaxUint256)
-      await token.connect(trader).approve(router.target.toString(), ethers.MaxUint256)
-      await token.transfer(trader.address, expandTo18Decimals(1_000_000))
+      await token.approve(router.target.toString(), ethers.MaxUint256);
+      await token.approve(nft.target.toString(), ethers.MaxUint256);
+      await token.connect(trader).approve(router.target.toString(), ethers.MaxUint256);
+      // await token.transfer(trader.address, expandTo18Decimals(1_000_000));
     }
 
-    const liquidity = 1000000
+    for (let i = 0; i < 7; i++) {
+      const token = tokens[i] as TestERC20;
+      await token.transfer(trader.address, expandTo18Decimals(1_000_000));
+    }
+
+    const liquidity = 1000000;
     async function createPool(tokenAddressA0: string, tokenAddressB0: string, tokenAddressA1: string, tokenAddressB1: string) {
       if (tokenAddressA0.toLowerCase() > tokenAddressB0.toLowerCase()) {
-        [tokenAddressA0, tokenAddressB0, tokenAddressA1, tokenAddressB1] = [tokenAddressB0, tokenAddressA0, tokenAddressB1, tokenAddressA1]
+        [tokenAddressA0, tokenAddressB0, tokenAddressA1, tokenAddressB1] = [tokenAddressB0, tokenAddressA0, tokenAddressB1, tokenAddressA1];
       }
 
       await nft.createAndInitializePoolIfNecessary(
@@ -55,7 +61,7 @@ describe('SwapRouter gas tests', function () {
           tokenAddressB1,
           FeeAmount.MEDIUM,
           encodePriceSqrt(100005n, 100000n)
-      )
+      );
 
       const liquidityParams = {
         token0: tokenAddressA0,
@@ -71,7 +77,7 @@ describe('SwapRouter gas tests', function () {
         deadline: 1,
       }
 
-      return nft.mint(liquidityParams)
+      return nft.mint(liquidityParams);
     }
 
     async function createPoolWETH9(tokenAddress: string) {
@@ -85,9 +91,9 @@ describe('SwapRouter gas tests', function () {
     }
 
     // create pools
-    await createPool(tokens[0].target.toString(), tokens[1].target.toString(), tokens[3].target.toString(), tokens[4].target.toString())
-    await createPool(tokens[1].target.toString(), tokens[2].target.toString(), tokens[4].target.toString(), tokens[5].target.toString())
-    await createPoolWETH9(tokens[0].target.toString())
+    await createPool(tokens[0].target.toString(), tokens[1].target.toString(), tokens[3].target.toString(), tokens[4].target.toString());
+    await createPool(tokens[1].target.toString(), tokens[2].target.toString(), tokens[4].target.toString(), tokens[5].target.toString());
+    await createPoolWETH9(tokens[0].target.toString());
 
     const poolAddresses = await Promise.all([
       factory.getPool(tokens[0].target.toString(), tokens[1].target.toString(), FeeAmount.MEDIUM),

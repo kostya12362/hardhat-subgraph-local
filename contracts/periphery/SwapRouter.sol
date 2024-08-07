@@ -7,12 +7,13 @@ import '../libraries/TickMath.sol';
 import '../libraries/Multicall.sol';
 import '../libraries/SelfPermit.sol';
 import '../libraries/Path.sol';
+import '../libraries/PeripheryValidation.sol';
 import '../interfaces/IUniswapV3Pool.sol';
+
 import '../tokens/interfaces/IWETH9.sol';
 
 import './interfaces/ISwapRouter.sol';
 import './base/PeripheryImmutableState.sol';
-import './base/PeripheryValidation.sol';
 import './base/PeripheryPaymentsWithFee.sol';
 import './base/PoolAddress.sol';
 import './base/CallbackValidation.sol';

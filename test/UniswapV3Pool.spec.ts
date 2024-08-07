@@ -1153,6 +1153,39 @@ describe('Dex223Pool', () => {
     })
   })
 
+  describe('#swap', () => {
+    beforeEach(async () => {
+      pool = await createPool(FeeAmount.MEDIUM, TICK_SPACINGS[FeeAmount.MEDIUM]);
+      await pool.initialize(encodePriceSqrt(1n, 1n));
+    });
+
+    // NOTE: includes 223 version tokens
+    it('(223) exactInputSingle', async () => {
+      await mint223(wallet.address, minTick, maxTick, expandTo18Decimals(10));
+
+      await swapExact0For1_223(expandTo18Decimals(1), wallet.address);
+
+      const {liquidity} = await pool.positions(
+          getPositionKey(wallet.address, minTick, maxTick)
+      );
+
+      expect(liquidity).to.be.eq('10000000000000000000')
+    });
+
+    it('(223) exactInputSingle failing deadline', async () => {
+      await mint223(wallet.address, minTick, maxTick, expandTo18Decimals(10));
+
+      await expect(swapExact0For1_223(expandTo18Decimals(1), wallet.address, undefined, undefined, 10n)).to.be.reverted;
+    });
+
+    it('(223) exactInputSingle failing minimum out', async () => {
+      await mint223(wallet.address, minTick, maxTick, expandTo18Decimals(10));
+
+      await expect(swapExact0For1_223(expandTo18Decimals(1), wallet.address, undefined, 906610893880149132n, undefined)).to.be.reverted;
+    });
+
+  });
+
   describe('#collect', () => {
     beforeEach(async () => {
       pool = await createPool(FeeAmount.LOW, TICK_SPACINGS[FeeAmount.LOW])
