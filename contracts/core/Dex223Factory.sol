@@ -11,6 +11,8 @@ import './NoDelegateCall.sol';
 
 import './Dex223Pool.sol';
 
+import 'hardhat/console.sol';
+
 /// @title Canonical Uniswap V3 factory
 /// @notice Deploys Uniswap V3 pools and manages ownership and control over pool protocol fees
 contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall {
@@ -68,16 +70,40 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
         uint24 fee
     ) external override noDelegateCall returns (address pool) {
 
-        // TODO: Add pool correctness safety checks via Converter.
-
-
+        console.log('Before tokenA_erc20 != tokenB_erc20');
         require(tokenA_erc20 != tokenB_erc20);
-//        (address _token0_erc20, address _token0_erc223, uint8 _token0_standard) = identifyTokens(tokenA_erc20);
-//        (address _token1_erc20, address _token1_erc223, uint8 _token1_standard) = identifyTokens(tokenB_erc20);
-//        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+        console.log('Before tokenA_erc20 != address(0)');
+        require(tokenA_erc20 != address(0));
+        console.log('Before tokenB_erc20 != address(0)');
+        require(tokenB_erc20 != address(0));
+
+        // TODO enable these checks ? or use values from identifyTokens ?
+        require(tokenA_erc223 != address(0));
+        require(tokenB_erc223 != address(0));
+
+        // pool correctness safety checks via Converter.
+        console.log('Before identifyTokens');
+        (address _token0_erc20, address _token0_erc223, uint8 _token0_standard) = identifyTokens(tokenA_erc20, tokenA_erc223);
+        console.log('_token0_erc20');
+        console.log(_token0_erc20);
+        console.log('_token0_erc223');
+        console.log(_token0_erc223);
+        console.log('_token0_standard');
+        console.logUint(_token0_standard);
+        require(_token0_standard == 20);
+
+        (address _token1_erc20, address _token1_erc223, uint8 _token1_standard) = identifyTokens(tokenB_erc20, tokenB_erc223);
+        console.log('_token1_erc20');
+        console.log(_token1_erc20);
+        console.log('_token1_erc223');
+        console.log(_token1_erc223);
+        console.log('_token1_standard');
+        console.logUint(_token1_standard);
+        require(_token1_standard == 20);
 
         // Comment out the checks for testing reasons now.
 
+        console.log('Before tokenA_erc20 > tokenB_erc20');
         if(tokenA_erc20 > tokenB_erc20)
         {
             // Make sure token0 < token1 ERC-20-wise.
@@ -92,10 +118,10 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
             tokenB_erc223 = tmp;
         }
 
-        require(tokenA_erc20 != address(0));
-        require(tokenB_erc20 != address(0));
         int24 tickSpacing = feeAmountTickSpacing[fee];
+        console.log('Before tickSpacing != 0');
         require(tickSpacing != 0);
+        console.log('Before pool == address(0)');
         require(getPool[tokenA_erc20][tokenB_erc20][fee] == address(0));
         pool = deploy(address(this), tokenA_erc20, tokenB_erc20, fee, tickSpacing);
         Dex223Pool(pool).set(tokenA_erc223, tokenB_erc223, pool_lib,  address(converter));
@@ -110,6 +136,7 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
         getPool[tokenB_erc223][tokenA_erc20][fee] = pool;
         emit PoolCreated(tokenA_erc20, tokenB_erc20, tokenA_erc223, tokenB_erc223, fee, tickSpacing, pool);
         tokenReceivedCaller = address(0);
+        console.log('Pool create success');
     }
 
     // @inheritdoc IUniswapV3Factory
@@ -119,9 +146,9 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
         owner = _owner;
     }
 
-    function identifyTokens(address _token) internal view returns (address erc20_address, address erc223_address, uint8 origin)
+    function identifyTokens(address _token, address _token223) internal view returns (address erc20_address, address erc223_address, uint8 origin)
     {
-
+        // TODO we can limit returns by only origin - other values are not used
         // origin      << address of the token origin (always exists)
         // originERC20 << if the origins standard is ERC20 or not
         // converted   << alternative version that would be created via ERC-7417 converter, may not exist
@@ -130,30 +157,53 @@ contract Dex223Factory is IDex223Factory, UniswapV3PoolDeployer, NoDelegateCall 
         // Not using the standard introspection now but better check it for safety in production.
         // bytes memory erc223_output = bytes("0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000033232330000000000000000000000000000000000000000000000000000000000");
 
-        (bool success, ) =
-                _token.staticcall(abi.encodeWithSelector(0x5a3b7e42));
-                if(success)
-                {
-                    if(converter.isWrapper(_token))
-                    {
-                        return (converter.getERC20OriginFor(_token), _token, 20);
-                    }
-                    else
-                    {
-                        return (converter.predictWrapperAddress(_token, false), _token, 223);
-                    }
+        (bool success, bytes memory data) = _token.staticcall(abi.encodeWithSelector(0x5a3b7e42));
+        if (success && data.length > 0) {
+            console.log('identifyTokens-> has STANDARD');
+            if(converter.isWrapper(_token))
+            {
+                return (converter.getERC20OriginFor(_token), _token, 223);
+            }
+            else
+            {
+                return (converter.predictWrapperAddress(_token, false), _token, 223);
+            }
+        }
+        else
+        {
+            console.log('identifyTokens-> has NO STANDARD');
+            if(converter.isWrapper(_token))
+            {
+                return (_token, converter.getERC223OriginFor(_token), 20);
+            }
+            else
+            {
+                console.log('identifyTokens-> token is NOT wrapper');
+                address _tokenWrapper20 = converter.predictWrapperAddress(_token223, false);
+                if (_tokenWrapper20 == _token) {
+                    console.log('identifyTokens-> _tokenWrapper20 == _token');
+                    return (_token, _token223, 20);
                 }
-                else
-                {
-                    if(converter.isWrapper(_token))
-                    {
-                        return (_token, converter.getERC223OriginFor(_token), 223);
-                    }
-                    else
-                    {
-                        return (_token, converter.predictWrapperAddress(_token, true), 20);
-                    }
+
+                address _tokenWrapper223 = converter.predictWrapperAddress(_token223, true);
+                if (_tokenWrapper223 == _token) {
+                    console.log('identifyTokens-> _tokenWrapper223 == _token');
+                    return (_token223, _token, 223);
                 }
+
+                _tokenWrapper223 = converter.predictWrapperAddress(_token, true);
+                if (_tokenWrapper223 == _token223) {
+                    console.log('identifyTokens-> _tokenWrapper223 == _token223');
+                    return (_token, _token223, 20);
+                }
+//                    return (_token, converter.predictWrapperAddress(_token, true), 20);
+            }
+        }
+
+        // if all checks fail - assume that everything is OK
+        // TODO here we can try to check ERC165 to be sure that _token is ERC20
+        console.log('identifyTokens-> not identified');
+        return (_token, _token223, 20);
     }
 
 
