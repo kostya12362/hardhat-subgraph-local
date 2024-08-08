@@ -188,53 +188,40 @@ describe('Dex223Pool', () => {
       let tokenA223 = await converter.predictWrapperAddress(tokenA.target, true);
       let tokenB223 = await converter.predictWrapperAddress(tokenB.target, true);
 
-      // - tokenA = tokenB
-      console.log('\ntokenA = tokenB');
+      // console.log('\ntokenA = tokenB');
       await expect(factory.createPool(tokenA.target, tokenA.target, tokenA223, tokenB223, 3000n)).to.be.reverted;
-      // - tokenA = 0
-      console.log('\ntokenA = 0');
+      // console.log('\ntokenA = 0');
       await expect(factory.createPool(ethers.ZeroAddress, tokenB.target, tokenA223, tokenB223, 3000n)).to.be.reverted;
-      // - tokenB = 0
-      console.log('\ntokenB = 0');
+      // console.log('\ntokenB = 0');
       await expect(factory.createPool(tokenA.target, ethers.ZeroAddress, tokenA223, tokenB223, 3000n)).to.be.reverted;
-      // - tokenA(223) = 0
-      console.log('tokenA(223) = 0');
+      // console.log('tokenA(223) = 0');
       await expect(factory.createPool(tokenA.target, tokenB.target, ethers.ZeroAddress, tokenB223, 3000n)).to.be.reverted;
-      // - tokenB(223) = 0
-      console.log('tokenB(223) = 0');
+      // console.log('tokenB(223) = 0');
       await expect(factory.createPool(tokenA.target, tokenB.target, tokenA223, ethers.ZeroAddress, 3000n)).to.be.reverted;
-      // - tokenA is not ERC20
-      console.log('\ntokenA is not ERC20');
+      // console.log('\ntokenA is not ERC20');
       await expect(factory.createPool(token223.target, tokenB.target, tokenA223, tokenB223, 3000n)).to.be.reverted;
-      // - tokenB is not ERC20
-      console.log('\ntokenB is not ERC20');
+      // console.log('\ntokenB is not ERC20');
       await expect(factory.createPool(tokenA.target, token223.target, tokenA223, tokenB223, 3000n)).to.be.reverted;
-      // - tokenA is ERC20 wrapper for ERC223
-      console.log('\ntokenA is ERC20 wrapper for ERC223');
+      // console.log('\ntokenA is ERC20 wrapper for ERC223');
       let tokenAwrapper = await converter.predictWrapperAddress(token223.target, false);
-      console.log(tokenAwrapper, tokenB.target, token223.target, tokenB223);
+      // console.log(tokenAwrapper, tokenB.target, token223.target, tokenB223);
       await expect(factory.createPool(tokenAwrapper, tokenB.target, token223.target, tokenB223, 3000n)).not.to.be.reverted;
-      // - tokenA is ERC20 wrapper for ERC223
-      console.log('\ntokenB is ERC20 wrapper for ERC223');
-      console.log(tokenA.target, tokenAwrapper, tokenA223, token223.target);
+      // console.log('\ntokenB is ERC20 wrapper for ERC223');
+      // console.log(tokenA.target, tokenAwrapper, tokenA223, token223.target);
       await expect(factory.createPool(tokenA.target, tokenAwrapper, tokenA223, token223.target, 3000n)).not.to.be.reverted;
-      // - tokenA is ERC223 wrapper for ERC20
-      console.log('\ntokenA is ERC223 wrapper for ERC20');
-      console.log(tokenA.target, tokenAwrapper, tokenA223, token223.target);
+      // console.log('\ntokenA is ERC223 wrapper for ERC20');
+      // console.log(tokenA.target, tokenAwrapper, tokenA223, token223.target);
       await expect(factory.createPool(tokenA223, tokenB.target, tokenA.target, tokenB223, 3000n)).to.be.reverted;
-      // - tokenB is ERC223 wrapper for ERC20
-      console.log('\ntokenA is ERC223 wrapper for ERC20');
-      console.log(tokenA.target, tokenAwrapper, tokenA223, token223.target);
+      // console.log('\ntokenA is ERC223 wrapper for ERC20');
+      // console.log(tokenA.target, tokenAwrapper, tokenA223, token223.target);
       await expect(factory.createPool(tokenA.target, tokenB223, tokenA223, tokenB.target, 3000n)).to.be.reverted;
 
       // - tokenA(223) not version of tokenA (not needed?)
       // - tokenB(223) not version of tokenB (not needed?)
 
-      // - wrong fee
-      console.log('\nwrong fee');
+      // console.log('\nwrong fee');
       await expect(factory.createPool(tokenA.target, tokenB.target, tokenA223, tokenB223, 3005n)).to.be.reverted;
-      // existing pool
-      console.log('\nexisting pool');
+      // console.log('\nexisting pool');
       await factory.createPool(token0.target, token1.target, token0_223.target, token1_223.target, 3000n);
       await expect(factory.createPool(token0.target, token1.target, token0_223.target, token1_223.target, 3000n)).to.be.reverted;
     });
