@@ -77,6 +77,14 @@ Call local unit tests for contracts without deployment
 yarn run hardhat:test
 ```
 
+1.6.
+Collect gas consumption for major list of operations 
+(change `local` to `sepolia` or other supported network to run on that network)
+To test on local - local hardhat node should be running and `deploy` script executed
+```bash
+yarn run hardhat:gastest:dex223:local
+```
+
 ## 2 Setup docker
 
 2.1 Open dir `/docker`</br>

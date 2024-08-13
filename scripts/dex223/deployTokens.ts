@@ -112,7 +112,7 @@ export async function setupTokens() {
     await contract
       .connect(owner)
       // .mint(signer2.address, ethers.parseEther("100000"));
-      .mint(signer2.address, ethers.MaxUint256);
+      .mint(signer2.address, ethers.MaxUint256 / 2n);
   }
 
   const WETH9 = require( "../../deployments/localhost/dex223/WETH9/result.json");
