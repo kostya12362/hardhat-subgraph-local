@@ -483,9 +483,8 @@ contract Dex223Pool is IUniswapV3Pool, NoDelegateCall, PeripheryValidation {
         int256 amount0;
         int256 amount1;
 
-        if (success) {
-            ( amount0,  amount1) = abi.decode(retdata, (int256, int256));
-        }
+        require(success);
+        ( amount0,  amount1) = abi.decode(retdata, (int256, int256));
 
         amountOut = uint256(-(zeroForOne ? amount1 : amount0));
 
