@@ -129,12 +129,12 @@ async function mintApproveToken(tokenAddress: string, value: bigint, signer: Wal
     }
     
     if (bal < value) {
-        // console.log(`Mint ${tokenAddress} : ${value}`);
+        console.log(`Mint ${tokenAddress} : ${value}`);
 
         try {
             let tx = await connectedContract
                 // .connect(signer)
-                .mint(signer.address, value);
+                .mint(signer.address, value, {gasPrice: 5000000000n});
             // console.log('Waiting mint TX');
             await tx.wait(1);
         } catch (e) {
@@ -151,14 +151,14 @@ async function mintApproveToken(tokenAddress: string, value: bigint, signer: Wal
         console.log('Failed to get approve');
     }
     if (appr < value) {
-        // console.log(`Approve ${tokenAddress} : ${value}`);
+        console.log(`Approve ${tokenAddress} : ${value}`);
         try {
             let tx = await connectedContract
                 // .connect(signer)
                 .approve(
                     targetAddress,
-                    value
-                );
+                    value,
+            {gasPrice: 5000000000n});   // NOTE for TBNB
             // console.log('Waiting approve TX');
             await tx.wait(1);
         } catch (e) {
@@ -383,7 +383,7 @@ async function main() {
     const ROUTER = require(`../../deployments/${netName}/dex223/SwapRouter/result.json`);
     const CONV = require(`../../deployments/${netName}/dex223/TokenConvertor/result.json`);
     const WETH9 = require(`../../deployments/${netName}/dex223/WETH9/result.json`);
-    const wethAddress = WETH9.contractAddress;
+    const wethAddress = WETH9.contractAddress.toLowerCase();
 
     const factoryContract = new Contract(
         FACTORY.contractAddress,
@@ -441,25 +441,67 @@ async function main() {
         tokens = flatternTokens(tokensLists, chainId);
     }
     
+    // console.dir(tokens);
+    
     
     let i = 0;
     let tokenA = tokens[i];
-    if (tokenA.address.toLowerCase() === wethAddress.toString()) {
-        i++;
-        tokenA = tokens[i];
+    let found = false;
+    while (!found) {
+        if ([wethAddress, '0xec5aa08386f4b20de1adf9cdf225b71a133ffaba', // '0x8f5ea3d9b780da2d0ab6517ac4f6e697a948794f',
+            '0xd0c00cc7ec5c78557beaf61a3dd15bda1b8c7325', '0xe39c469bea1d805e02a31e9d8d2d78a379f2a099',
+            '0x304dc7bf30692081b0ab96497f8914362316580e']
+            .includes(tokenA.address.toLowerCase())) {
+            i++;
+            tokenA = tokens[i];
+        } else {
+            found = true;
+        }
     }
-    i++;
-    let tokenB = tokens[i];
-    if (tokenB.address.toLowerCase() === wethAddress.toString()) {
-        tokenB = tokens[i+1];
-    }
+    i++;                 
     
+    let tokenB = tokens[i];
+    found = false;
+    while (!found) {
+        if ([wethAddress, '0xec5aa08386f4b20de1adf9cdf225b71a133ffaba', '0x8f5ea3d9b780da2d0ab6517ac4f6e697a948794f',
+            '0xd0c00cc7ec5c78557beaf61a3dd15bda1b8c7325', '0xe39c469bea1d805e02a31e9d8d2d78a379f2a099',
+            '0xc676e76573267cc2e053be8637ba71d6ba321195', '0x51a3f4b5ffa9125da78b55ed201efd92401604fa',
+            '0x98b925ecc32ce2b8b7458ff4bd489052e58e3cd9', '0x0684f8a7cc01ad4a253df7d55340688f8173d520',
+            '0x304dc7bf30692081b0ab96497f8914362316580e', '0x094616f0bdfb0b526bd735bf66eca0ad254ca81f']
+            .includes(tokenB.address.toLowerCase())) {
+            i++;
+            tokenB = tokens[i];
+        } else {
+            found = true;
+        }
+    }
+
+    let signer_wallet = await getSigner(Number(chainId));
+    if (!signer_wallet) return;
+    
+    // const a = await  poolContract.token0();
+    // console.dir(a);
+    // const b = await  poolContract.token1();
+    // console.dir(b);
+    // const c = await poolContract.converter();
+    // console.log(c);
+    
+    if (tokenA.address.toLowerCase() > tokenB.address223.toLowerCase()) {
+        const tes = tokenA;
+        tokenA = tokenB;
+        tokenB = tes;
+    }
+
     let tokenB_223address = await convertContract.predictWrapperAddress(tokenB.address, true);
     const token223Contract = new Contract(
         tokenB_223address,
         ERC223.abi,
         provider
     ) as BaseContract as ERC223HybridToken;
+
+    console.log(`TokenA: ${tokenA.name} | ${tokenA.address}`);
+    console.log(`TokenB: ${tokenB.name} | ${tokenB.address}`);
+    console.log(`TokenB (223): ${tokenB_223address}`);
 
     let pool: string;
     if (netName === 'localhost') {
@@ -486,10 +528,6 @@ async function main() {
         provider
     ) as BaseContract as Dex223Pool;
 
-    let signer_wallet = await getSigner(Number(chainId));
-    if (!signer_wallet) return;
-
-
     // - pool create
     {
         console.log('\n-- 1. pool create GAS calc:')
@@ -511,6 +549,10 @@ async function main() {
     // mint and approve minimum required  tokens for tests
     // maybe use fromAmount0 or fromAmount1 to get position
     const { poolData, position} = await calcLiquidity(pool, tokenA, tokenB, 1);
+    
+    // console.dir(position);
+    // const { amount0: amount00Desired, amount1: amount10Desired } = position.mintAmounts;
+    // console.log(amount00Desired.toString(), amount10Desired.toString());
 
     const minPosition = Position.fromAmount0({
             pool: position.pool, 
@@ -518,11 +560,16 @@ async function main() {
             tickUpper: position.tickUpper,
             amount0: 10, 
             useFullPrecision: false});
+
+    // console.dir(minPosition);
     
     const { amount0: amount0Desired, amount1: amount1Desired } = minPosition.mintAmounts;
+    // console.log(amount0Desired.toString(), amount1Desired.toString());
 
     let amount0int = BigInt(amount0Desired.toString());
     let amount1int = BigInt(amount1Desired.toString());
+    if (amount0int === 0n) amount0int = 2n;
+    if (amount1int === 0n) amount1int = 2n;
     
     console.log(`Token 0 amount: ${amount0int}`);
     console.log(`Token 1 amount: ${amount1int}`);
@@ -531,23 +578,18 @@ async function main() {
     let token1address = tokenB.address.toLowerCase();
 
     try {
-        await mintApproveToken(token0address, amount0int, signer_wallet, nfpmContract.target.toString());
-        await mintApproveToken(token1address, amount1int, signer_wallet, nfpmContract.target.toString());
-        await mintApproveToken(token0address, amount0int, signer_wallet, routerContract.target.toString());
-        await mintApproveToken(token1address, amount1int, signer_wallet, routerContract.target.toString());
+        await mintApproveToken(token0address, amount0int + 1n, signer_wallet, nfpmContract.target.toString());
+        await mintApproveToken(token1address, amount1int + 1n, signer_wallet, nfpmContract.target.toString());
+        await mintApproveToken(token0address, amount0int + 1n, signer_wallet, routerContract.target.toString());
+        await mintApproveToken(token1address, amount1int + 1n, signer_wallet, routerContract.target.toString());
 
-        const tokenContract = new Contract(
-            tokenB_223address,
-            ERC20.abi,
-            provider
-        ) as BaseContract as ERC20Token;
         let bal = 0n;
         try {
-            bal = await tokenContract.balanceOf(signer_wallet.address);
+            bal = await token223Contract.balanceOf(signer_wallet.address);
         } catch (e) {}
-        if (bal < amount1int) {
+        if (bal < amount1int + 1n) {
             await mintApproveToken(token1address, amount1int + 1n, signer_wallet, convertContract.target.toString());
-            await convertContract.connect(signer_wallet).convertERC20(token1address, amount1int);
+            await convertContract.connect(signer_wallet).convertERC20(token1address, amount1int + 1n);
         }
     } catch (e) {
         console.error('Could not mint approve token', e);
@@ -569,8 +611,8 @@ async function main() {
                 tickUpper:
                     nearestUsableTick(poolData.tick, Number(poolData.tickSpacing)) +
                     Number(poolData.tickSpacing) * 2,
-                amount0Desired: amount0int.toString(),
-                amount1Desired: amount1int.toString(),
+                amount0Desired: amount0int, //.toString(),
+                amount1Desired: amount1int, //.toString(),
                 amount0Min: 0,
                 amount1Min: 0,
                 recipient: signer_wallet.address,
@@ -601,9 +643,13 @@ async function main() {
     }
     const positionIds = await Promise.all(calls);
     
+    // console.log(`Positions: ${positionIds.length}`);
+    // console.log(`Positions: ${positionIds}`);
+    
     let tokenId: bigint = 0n;
     for (let id of positionIds) {
         const p = await nfpmContract.positions(id);
+        // console.dir(p);
         if (p.token0.toLowerCase() === token0address || p.token1.toLowerCase() === token0address) {
             if (p.token0.toLowerCase() === token1address || p.token1.toLowerCase() === token1address) {
                 tokenId = id;
@@ -613,6 +659,8 @@ async function main() {
             }
         }
     }
+    
+    // process.exit(0);
 
     // - increaseLiquidity ERC20
     {
@@ -639,6 +687,7 @@ async function main() {
             }
         } catch (e) {
             console.error('-- increaseLiquidity ERC20 GAS calc FAIL');
+            console.error(e);
         }
     }
     
@@ -680,8 +729,8 @@ async function main() {
                 const ilParams = {
                     tokenId,
                     liquidity: minPosition.liquidity.toString(),
-                    amount0Min: 1n,
-                    amount1Min: 1n,
+                    amount0Min: 0, //amount0int,
+                    amount1Min: 0, //amount1int,
                     deadline: Math.floor(Date.now() / 1000) + 60 * 10
                 }
 
@@ -694,6 +743,7 @@ async function main() {
             }
         } catch (e) {
             console.error('-- decreaseLiquidity ERC20 GAS calc FAIL');
+            console.error(e);
         }
     }
     
@@ -794,7 +844,7 @@ async function main() {
                 fee: 3000,
                 recipient: signer_wallet.address,
                 deadline: Math.floor(Date.now() / 1000) + 60 * 10,
-                amountIn: amount0int,
+                amountIn: 1n, // amount0int,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0,
                 prefer223Out: true
@@ -821,7 +871,7 @@ async function main() {
                 fee: 3000,
                 recipient: signer_wallet.address,
                 deadline: Math.floor(Date.now() / 1000) + 60 * 10,
-                amountIn: amount0int,
+                amountIn: 1n, //amount0int,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0,
                 prefer223Out: true
@@ -844,13 +894,13 @@ async function main() {
         try {
             const callValues =
                 [tokenB.address, tokenA.address, 3000, signer_wallet.address, Math.floor(Date.now() / 1000) + 60 * 10,
-                    amount1int, 0n, 0n, false];
+                    2n/*amount1int*/, 0n, 0n, false];
 
             // @ts-ignore
             const data = routerContract.interface.encodeFunctionData('exactInputSingle', [callValues]);
             const bytes = ethers.getBytes(data)
             const tx = await token223Contract.connect(signer_wallet)
-                ['transfer(address,uint256,bytes)'].estimateGas(routerContract.target, amount1int, bytes, {gasLimit: 8_000_000});
+                ['transfer(address,uint256,bytes)'].estimateGas(routerContract.target, 2n/*amount1int*/, bytes, {gasLimit: 8_000_000});
             console.log(`gas usage: ${tx}`);
         } catch (e) {
             console.error('-- router swap 223-20 GAS calc FAIL');
@@ -865,13 +915,13 @@ async function main() {
         try {
             const callValues =
                 [tokenB.address, tokenA.address, 3000, signer_wallet.address, Math.floor(Date.now() / 1000) + 60 * 10,
-                    amount1int, 0n, 0n, true];
+                    2n/*amount1int*/, 0n, 0n, true];
 
             // @ts-ignore
             const data = routerContract.interface.encodeFunctionData('exactInputSingle', [callValues]);
             const bytes = ethers.getBytes(data)
             const tx = await token223Contract.connect(signer_wallet)
-                ['transfer(address,uint256,bytes)'].estimateGas(routerContract.target, amount1int, bytes, {gasLimit: 8_000_000});
+                ['transfer(address,uint256,bytes)'].estimateGas(routerContract.target, 2n/*amount1int*/, bytes, {gasLimit: 8_000_000});
             console.log(`gas usage: ${tx}`);
         } catch (e) {
             console.error('-- router swap 223-223 GAS calc FAIL');

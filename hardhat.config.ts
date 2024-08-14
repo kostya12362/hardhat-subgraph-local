@@ -222,17 +222,23 @@ const config: HardhatUserConfig = {
     },
     sepolia: {
       // url: `https://sepolia.infura.io/v3/${INFURA_API_KEY}`,
-      url: "https://rpc2.sepolia.org", // https://sepolia.drpc.org
+      // url: "https://rpc2.sepolia.org", // https://sepolia.drpc.org
+      // url: "https://ethereum-sepolia.rpc.subquery.network/public",
+      url: "https://eth-sepolia.public.blastapi.io",
       chainId: 11155111,
       accounts: {
         mnemonic: MNEMONIC,
       },
     },
     tbnb: {
-      url: "https://bsc-testnet-rpc.publicnode.com", //
+      // url: "https://bsc-testnet-rpc.publicnode.com", 
       // url: "https://data-seed-prebsc-1-s2.bnbchain.org:8545",
       // url: "https://data-seed-prebsc-1-s3.bnbchain.org:8545",
-      // url: "https://public.stackup.sh/api/v1/node/bsc-testnet", // https://data-seed-prebsc-1-s2.bnbchain.org:8545",
+      url: "https://public.stackup.sh/api/v1/node/bsc-testnet", // https://data-seed-prebsc-1-s2.bnbchain.org:8545",
+      // url: "https://endpoints.omniatech.io/v1/bsc/testnet/public",  // NOT work  
+      // url: "https://bsc-testnet.public.blastapi.io",
+      // url: "https://api.zan.top/node/v1/bsc/testnet/public",         // NOT work 
+      // url: "https://bsc-testnet.blockpi.network/v1/rpc/public",
       chainId: 97,
       accounts: {
         mnemonic: MNEMONIC,
