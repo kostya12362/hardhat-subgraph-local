@@ -124,7 +124,11 @@ export async function setupTokens() {
       provider
   ) as BaseContract as ERC20Token;
 
-  const balance = await weth.connect(signer2).balanceOf(signer2.address);
+  let balance = 0n;
+  try {
+    balance = await weth.connect(signer2).balanceOf(signer2.address);
+  } catch (e) {}
+  
   if (!balance) {
     await weth.connect(signer2).deposit({value: ethers.parseEther("3000")});
     console.log(`Converted 3000 WETH`);

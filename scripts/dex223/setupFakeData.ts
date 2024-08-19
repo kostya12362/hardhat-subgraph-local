@@ -97,14 +97,14 @@ async function main() {
   console.log("wethPair1ERC223:", wethPair1ERC223);
   console.log("wethPair2ERC223:", wethPair2ERC223);
 
-  const wethUsdc3000 = await deployPool(
-      String(wethPair1.target),
-      String(wethPair2.target),
-      wethPair1ERC223,
-      wethPair2ERC223,
-      10000,
-      sqrtPrice
-  );
+  // const wethUsdc3000 = await deployPool(
+  //     String(wethPair1.target),
+  //     String(wethPair2.target),
+  //     wethPair1ERC223,
+  //     wethPair2ERC223,
+  //     3000,
+  //     sqrtPrice
+  // );
 
   // const wethUsdc3000 = await deployPool(
   //     String(wethPair1.target),
@@ -226,7 +226,7 @@ async function main() {
   // console.log(`Pool: ERC223 and ERC20 = ${erc223_erc20}`);
   // console.log(`Pool: USDT and USDC = ${usdtUsdc500}`);
 
-  console.log(`Pool: WETH and USDT = ${wethUsdc3000}`);
+  // console.log(`Pool: WETH and USDT = ${wethUsdc3000}`);
   console.log(`Pool: USDC and USDT = ${usdtUsdc3000}`);
   console.log(`Pool: USDC and DAI = ${daiUsdc3000}`);
 
