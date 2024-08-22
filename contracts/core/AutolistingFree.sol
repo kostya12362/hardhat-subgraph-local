@@ -176,11 +176,8 @@ contract Dex223AutoListing {
 
     uint256 public last_update;
     uint256 public num_listed_tokens;
-    mapping(uint256 => TradeablePair) public pairs; // index => pair
 
-    // NOTE add storing paymentTokens & prices (map)
-    address[] private paymentTokens;
-    mapping(address => uint) private paymentPrices;
+    mapping(uint256 => TradeablePair) public pairs; // index => pair
 
     struct TokenPrice
     {
@@ -194,14 +191,14 @@ contract Dex223AutoListing {
         registry.updateContractInfo(owner, _newURL, "");
     }
 
-    function getRegistry() public view returns (address)
-    {
-        return address(registry);
-    }
-
     function getFactory() public view returns (address)
     {
         return address(factory);
+    }
+
+    function getRegistry() public view returns (address)
+    {
+        return address(registry);
     }
 
     function getName() public view returns (string memory)
@@ -219,7 +216,7 @@ contract Dex223AutoListing {
         return (listed_tokens[_token] != 0);
     }
 
-    function list(address pool, uint24 feeTier, address paymentToken) public // NOTE not supported payment in ETH
+    function list(address pool, uint24 feeTier, address /*paymentToken*/) public
     {
         require(checkListingCriteria());
         // require(msg.value > 0);
@@ -233,19 +230,13 @@ contract Dex223AutoListing {
         require(_token1_erc20 != address(0) || _token1_erc223 != address(0), "Token not defined in the pool contract.");
         require(factory.getPool(_token0_erc20, _token1_erc20, feeTier) == pool, "Token pool is not a part of Dex223 factory.");
 
-        // check payment token
-        uint price = paymentPrices[paymentToken];
-        require(price > 0, "Unsupported payment token");
-
         if(!isListed(_token0_erc20) || !isListed(_token0_erc223))
         {
-            safeTransferFrom(paymentToken, msg.sender, address(this), price);
             checkListing(_token0_erc20, _token0_erc223);
         }
 
         if(!isListed(_token1_erc20) || !isListed(_token1_erc223))
         {
-            safeTransferFrom(paymentToken, msg.sender, address(this), price);
             checkListing(_token1_erc20, _token1_erc223);
         }
 
@@ -312,68 +303,9 @@ contract Dex223AutoListing {
         return (tokens[index].erc20, tokens[index].erc223);
     }
 
-    // function to set paymentToken price
-    //@dec set price to ZERO to exclude token from acceptable
-    function setPaymentPrice(address paymentToken, uint price)  external returns (bool)
+    function getPrices() external pure returns (TokenPrice[] memory)
     {
-        require(msg.sender == owner);
-
-        // If the token is being set to a non-zero price for the first time, add it to paymentTokens
-        if (price > 0 && paymentPrices[paymentToken] == 0) {
-            paymentTokens.push(paymentToken);
-        }
-
-        // If the token price is being set to zero, remove it from the list
-        if (price == 0 && paymentPrices[paymentToken] > 0) {
-            _removeToken(paymentToken);
-        }
-
-        paymentPrices[paymentToken] = price;
-
-        registry.updateListingPrice(paymentToken, price);
-
-        return true;
-    }
-
-    // function to get paymentTokens
-    function getPrices() external view returns (TokenPrice[] memory)
-    {
-        TokenPrice[] memory prices = new TokenPrice[](paymentTokens.length);
-
-        for (uint i = 0; i < paymentTokens.length; i++) {
-            prices[i] = TokenPrice(paymentTokens[i], paymentPrices[paymentTokens[i]]);
-        }
+        TokenPrice[] memory prices = new TokenPrice[](0);
         return prices;
-    }
-
-    function _removeToken(address paymentToken) internal {
-        uint length = paymentTokens.length;
-        for (uint i = 0; i < length; i++) {
-            if (paymentTokens[i] == paymentToken) {
-                paymentTokens[i] = paymentTokens[length - 1];
-                paymentTokens.pop();
-                break;
-            }
-        }
-    }
-
-    function safeTransferFrom(address token, address from, address to, uint value) internal {
-        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0x23b872dd, from, to, value));
-        require(success && (data.length == 0 || abi.decode(data, (bool))), "Transfer failed");
-    }
-
-    function safeTransfer(address token, address to, uint value) internal {
-        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0xa9059cbb, to, value));
-        require(success && (data.length == 0 || abi.decode(data, (bool))), "Transfer failed");
-    }
-
-    function extractTokens(address _token, uint256 _amount) public
-    {
-        require(msg.sender == owner);
-        safeTransfer(_token, msg.sender, _amount);
-        if(_token == address(0))
-        {
-            payable(msg.sender).transfer(address(this).balance);
-        }
     }
 }
