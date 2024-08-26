@@ -3,15 +3,18 @@
 
 import { ethers } from 'hardhat';
 require('dotenv').config();
-import {type AddressLike, BaseContract, type BigNumberish, Contract, Wallet} from "ethers";
+import { BaseContract, Contract, Wallet } from "ethers";
 import {
     Dex223Factory,
     DexaransNonfungiblePositionManager,
     ERC20Token,
     Dex223Pool, ERC223HybridToken,
     TokenStandardConverter,
-    ERC223SwapRouter, TestERC20
+    ERC223SwapRouter, TestERC20,
+    AutoListingsRegistry, 
 } from "../../typechain-types";
+import { Dex223AutoListing } from "../../typechain-types/contracts/core/AutolistingFree.sol";
+import { Dex223AutoListing as Dex223AutoListingPaid } from "../../typechain-types/contracts/core/AutolistingPaying.sol";
 
 import ERC20 from "../../artifacts/contracts/tokens/UsdCoin.sol/UsdCoin.json";
 import ERC223 from "../../artifacts/contracts/tokens/ERC223Hybrid.sol/ERC223HybridToken.json";
@@ -28,6 +31,8 @@ import {BigintIsh, Token} from "@uniswap/sdk-core";
 const provider = ethers.provider;
 const folderPath = path.join(__dirname, 'tokens_lists');
 const privKey = process.env.PRIVATE_KEY || '';
+
+let gasPrice: any;
 
 interface JsonObject {
     [key: string]: any;
@@ -134,7 +139,7 @@ async function mintApproveToken(tokenAddress: string, value: bigint, signer: Wal
         try {
             let tx = await connectedContract
                 // .connect(signer)
-                .mint(signer.address, value); //, {gasPrice: 5000000000n});  // for TBNB      
+                .mint(signer.address, value, gasPrice); //, {gasPrice: 5000000000n});  // for TBNB      
             // console.log('Waiting mint TX');
             await tx.wait(1);
         } catch (e) {
@@ -155,9 +160,7 @@ async function mintApproveToken(tokenAddress: string, value: bigint, signer: Wal
         try {
             let tx = await connectedContract
                 // .connect(signer)
-                .approve(
-                    targetAddress,
-                    value);//,
+                .approve( targetAddress, value, gasPrice);//,
             // {gasPrice: 5000000000n});   // NOTE for TBNB
             // console.log('Waiting approve TX');
             await tx.wait(1);
@@ -269,11 +272,13 @@ async function addLiquidity(
     
     const params = await prepareAddLiquidity( poolAddress, token0, token1, val, nfpm, chainId);
     console.log(params);
+
+    const gas = gasPrice ? { gasLimit: 8_000_000, gasPrice: gasPrice.gasPrice } : { gasLimit: 8_000_000 };
     
     if (params) {
         const tx = await nfpm
             .connect(signer_wallet)
-            .mint(params, {gasLimit: 8_000_000});
+            .mint(params, gas);
         await tx.wait();
     }
 }
@@ -340,10 +345,12 @@ async function deployPool(
 
     const pp = preparePoolDeploy(token0, token1, fee);
 
+    const gas = gasPrice ? { gasLimit: 8_000_000, gasPrice: gasPrice.gasPrice } : { gasLimit: 8_000_000 };
+    
     const tx = await nfpm
         .connect(signer_wallet)
         .createAndInitializePoolIfNecessary(pp.t1, pp.t2, pp.t3, pp.t4, pp.fee, pp.price,
-            { gasLimit: 8_000_000 });
+            gas);
     return  tx.wait();
 }
 
@@ -373,6 +380,8 @@ async function main() {
         default: netName = 'localhost';
     }
     
+    gasPrice = netName === 'tbnb' ? {gasPrice: 5000000001n} : {};
+    
     // console.dir(tokens);
     const fee = 3000;
 
@@ -383,6 +392,9 @@ async function main() {
     const ROUTER = require(`../../deployments/${netName}/dex223/SwapRouter/result.json`);
     const CONV = require(`../../deployments/${netName}/dex223/TokenConvertor/result.json`);
     const WETH9 = require(`../../deployments/${netName}/dex223/WETH9/result.json`);
+    const ALREG = require(`../../deployments/${netName}/dex223/AutoListRegistry/result.json`);
+    const ALFREE = require(`../../deployments/${netName}/dex223/AutoListFree/result.json`);
+    const ALPAID = require(`../../deployments/${netName}/dex223/AutoListPaid/result.json`);
     const wethAddress = WETH9.contractAddress.toLowerCase();
 
     const factoryContract = new Contract(
@@ -446,9 +458,9 @@ async function main() {
         } catch (e) { // no file
             // deploy tokens
             const tokenFactory = await ethers.getContractFactory('contracts/TestTokens/Usdcoin.sol:UsdCoin');
-            const tokenA = (await tokenFactory.connect(signer_wallet).deploy()) as TestERC20;
+            const tokenA = (await tokenFactory.connect(signer_wallet).deploy(gasPrice)) as TestERC20;
             const tokenFactoryB = await ethers.getContractFactory('contracts/TestTokens/Tether.sol:Tether');
-            const tokenB = (await tokenFactoryB.connect(signer_wallet).deploy()) as TestERC20;
+            const tokenB = (await tokenFactoryB.connect(signer_wallet).deploy(gasPrice)) as TestERC20;
             const tokenA223 = await convertContract.predictWrapperAddress(tokenA.target, true);
             const tokenB223 = await convertContract.predictWrapperAddress(tokenB.target, true);
 
@@ -480,68 +492,6 @@ async function main() {
     let tokenA = tokens[0];
     let tokenB = tokens[1];
     
-    // {
-    //     let obj: TokenObject = {
-    //         chainId: Number(chainId),
-    //         decimals: 6,
-    //         symbol: 'USDC',
-    //         name: 'UsdCoin',
-    //         address: USDC.contractAddress,
-    //         address223: usdc223
-    //     };
-    //     tokens.push(obj);
-    //    
-    //     obj = {
-    //         chainId: Number(chainId),
-    //         decimals: 6,
-    //         symbol: 'DAI',
-    //         name: 'DaiCoin',
-    //         address: DAI.contractAddress,
-    //         address223: dai223
-    //     };
-    //     tokens.push(obj);
-    // } else {
-    //     const tokensLists = await readAndParseJsonFiles(path.join(folderPath, netName));
-    //     tokens = flatternTokens(tokensLists, chainId);
-    // }
-    
-    // console.dir(tokens);
-    
-    
-    // let i = 0;
-    // let tokenA = tokens[i];
-    // let found = false;
-    // while (!found) {
-    //     if ([wethAddress, '0xec5aa08386f4b20de1adf9cdf225b71a133ffaba', // '0x8f5ea3d9b780da2d0ab6517ac4f6e697a948794f',
-    //         '0xd0c00cc7ec5c78557beaf61a3dd15bda1b8c7325', '0xe39c469bea1d805e02a31e9d8d2d78a379f2a099',
-    //         '0x304dc7bf30692081b0ab96497f8914362316580e', '0x6ccc5ad199bf1c64b50f6e7dd530d71402402eb6']
-    //         .includes(tokenA.address.toLowerCase())) {
-    //         i++;
-    //         tokenA = tokens[i];
-    //     } else {
-    //         found = true;
-    //     }
-    // }
-    // i++;                 
-    //
-    // let tokenB = tokens[i];
-    // found = false;
-    // while (!found) {
-    //     if ([wethAddress, '0xec5aa08386f4b20de1adf9cdf225b71a133ffaba', '0x8f5ea3d9b780da2d0ab6517ac4f6e697a948794f',
-    //         '0xd0c00cc7ec5c78557beaf61a3dd15bda1b8c7325', '0xe39c469bea1d805e02a31e9d8d2d78a379f2a099',
-    //         '0xc676e76573267cc2e053be8637ba71d6ba321195', '0x51a3f4b5ffa9125da78b55ed201efd92401604fa',
-    //         '0x98b925ecc32ce2b8b7458ff4bd489052e58e3cd9', '0x0684f8a7cc01ad4a253df7d55340688f8173d520',
-    //         '0x304dc7bf30692081b0ab96497f8914362316580e', '0x094616f0bdfb0b526bd735bf66eca0ad254ca81f',
-    //         '0x6ccc5ad199bf1c64b50f6e7dd530d71402402eb6']
-    //         .includes(tokenB.address.toLowerCase())) {
-    //         i++;
-    //         tokenB = tokens[i];
-    //     } else {
-    //         found = true;
-    //     }
-    // }
-
-    
     if (tokenA.address.toLowerCase() > tokenB.address223.toLowerCase()) {
         const tes = tokenA;
         tokenA = tokenB;
@@ -560,6 +510,30 @@ async function main() {
     console.log(`TokenB: ${tokenB.name} | ${tokenB.address}`);
     console.log(`TokenA (223): ${tokenA_223address}`);
     console.log(`TokenB (223): ${tokenB_223address}`);
+    
+    // - approve
+    console.log('\n-- 0. token approve GAS calc:');
+    {
+        const tokenContract = new Contract(
+            tokenA.address,
+            ERC20.abi,
+            provider
+        ) as BaseContract as ERC20Token;
+
+        const connectedContract = tokenContract.connect(signer_wallet);
+        try {
+            let tx = await connectedContract
+                // .connect(signer)
+                .approve.estimateGas(
+                    convertContract.target,
+                    100);//,
+            console.log(`gas usage: ${tx}`);
+        } catch (e) {
+            console.error('-- token approve GAS calc FAIL');
+        }
+    }
+    
+    // process.exit(0);
     
     // - pool create
     console.log('\n-- 1. pool create GAS calc:')
@@ -581,10 +555,11 @@ async function main() {
         const pp = preparePoolDeploy(tokenA, tokenB, 500);
 
         try {
+            const gas = gasPrice ? { gasLimit: 8_000_000, gasPrice: gasPrice.gasPrice } : { gasLimit: 8_000_000 };
             const tx = await nfpmContract
                 .connect(signer_wallet)
                 .createAndInitializePoolIfNecessary.estimateGas(pp.t1, pp.t2, pp.t3, pp.t4, pp.fee, pp.price,
-                    {gasLimit: 8_000_000});
+                    gas);
             console.log(`gas usage: ${tx}`);
         } catch (e) {
             console.error('-- pool create GAS calc FAIL');
@@ -638,7 +613,7 @@ async function main() {
         } catch (e) {}
         if (bal < amount1int + 1n) {
             await mintApproveToken(token1address, amount1int + 1n, signer_wallet, convertContract.target.toString());
-            await convertContract.connect(signer_wallet).convertERC20(token1address, amount1int + 1n);
+            await convertContract.connect(signer_wallet).convertERC20(token1address, amount1int + 1n, gasPrice);
         }
     } catch (e) {
         console.error('Could not mint approve token', e);
@@ -681,9 +656,10 @@ async function main() {
     if (newPool) {
         try {
             if (params) {
+                const gas = gasPrice ? { gasLimit: 8_000_000, gasPrice: gasPrice.gasPrice } : { gasLimit: 8_000_000 };
                 const tx = await nfpmContract
                     .connect(signer_wallet)
-                    .mint(params, {gasLimit: 8_000_000});
+                    .mint(params, gas);
                 // console.dir(tx);
                 const res = await tx.wait();
                 console.log(`gas usage: ${res?.gasUsed}`);
@@ -706,6 +682,31 @@ async function main() {
         } catch (e) {
             console.error('-- mint position GAS calc FAIL');
         }
+    }
+    
+    console.log('\n-- 2.1. mint position (20-223) GAS calc:');
+    try {
+        // NOTE we don't have second ERC223 (so we use 20-223 tokens)
+
+
+        if (params) {
+            const callValues =
+                [...Object.values(params)];
+            
+            // ERC223 transfer + mint
+
+            // @ts-ignore
+            const data = nfpmContract.interface.encodeFunctionData('mint', [callValues]);
+            const bytes = ethers.getBytes(data);
+            const tx = await token223Contract.connect(signer_wallet)
+                ['transfer(address,uint256,bytes)'].estimateGas(nfpmContract.target, amount1int, bytes, {gasLimit: 8_000_000});
+            
+            console.log(`gas usage: ${tx}`);
+        } else {
+            console.log(`gas usage: undefined`);
+        }
+    } catch (e) {
+        console.error('-- mint position (20-223) GAS calc FAIL');
     }
 
     // process.exit(0);
@@ -1057,6 +1058,89 @@ async function main() {
             console.log(`gas usage: ${tx}`);
         } catch (e) {
             console.error('-- direct pool swap 223-223 GAS calc FAIL');
+            console.error(e);
+        }
+    }
+
+    /** AutoListing */
+
+    const alRegistryContract = new Contract(
+        ALREG.contractAddress,
+        ALREG.abi,
+        provider
+    ) as BaseContract as AutoListingsRegistry;
+    
+    const alFreeContract = new Contract(
+        ALFREE.contractAddress,
+        ALFREE.abi,
+        provider
+    ) as BaseContract as Dex223AutoListing;
+    
+    const alPaidContract = new Contract(
+        ALPAID.contractAddress,
+        ALPAID.abi,
+        provider
+    ) as BaseContract as Dex223AutoListingPaid;
+    
+    // - calc autolisting registry deploy gas
+    {
+        // console.log('\n-- 15. deploy autolisting registry GAS calc:')
+
+        try {
+            // const alRegFactory = await ethers.getContractFactory('contracts/core/Autolisting.sol:AutoListingsRegistry');
+            // const deploymentData = contract.interface.encodeDeploy([<constructor_arguments>]);
+            // const estimatedGas = await ethers.provider.estimateGas({ data: deploymentData });
+        } catch (e) {
+            console.error('-- deploy autolisting registry GAS calc FAIL');
+            console.error(e);
+        }
+    }
+    
+    // - calc autolisting deploy gas
+    {
+        // console.log('\n-- 16. deploy autolisting GAS calc:')
+    }
+    
+    // - calc add pool to free listing 
+    {
+        console.log('\n-- 17. free autolisting add list GAS calc:')
+
+        try {
+            const tx = await alFreeContract
+                .connect(signer_wallet)
+                .list.estimateGas(pool, 3000, pool, {gasLimit: 8_000_000});
+            console.log(`gas usage: ${tx}`);
+        } catch (e) {
+            console.error('-- free autolisting add list  GAS calc FAIL');
+            console.error(e);
+        }
+    }
+    
+    // - calc add pool to paid listing 
+    {
+        console.log('\n-- 18. paid autolisting add list GAS calc:')
+
+        try {
+            // set price
+            const res = await alPaidContract.getPrices();
+            if (res.length > 0) {
+                // await mintApproveToken(token0address, BigInt(amount0int.toString()), signer_wallet, alPaidContract.target.toString());
+            } else {
+                const tx = await alPaidContract
+                    .connect(signer_wallet)
+                    .setPaymentPrice(token0address, amount0int / 2n, gasPrice);
+                await tx.wait();
+                // await mintApproveToken(token0address, BigInt(amount0int.toString()), signer_wallet, alPaidContract.target.toString());
+            }
+
+            await mintApproveToken(token0address, BigInt(amount0int.toString()), signer_wallet, alPaidContract.target.toString());
+            // Approve token
+            const tx = await alPaidContract
+                .connect(signer_wallet)
+                .list.estimateGas(pool, 3000, token0address, {gasLimit: 8_000_000});
+            console.log(`gas usage: ${tx}`);
+        } catch (e) {
+            console.error('-- paid autolisting add list  GAS calc FAIL');
             console.error(e);
         }
     }

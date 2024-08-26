@@ -20,6 +20,9 @@ const artifacts = {
   SwapRouter: require("../../artifacts/contracts/periphery/SwapRouter.sol/ERC223SwapRouter.json"),
   TestPoolCallee: require("../../artifacts/contracts/test/TestUniswapV3Callee.sol/TestUniswapV3Callee.json"),
   Quoter: require("../../artifacts/contracts/periphery/lens/Quoter223.sol/ERC223Quoter.json"),
+  AutoListRegistry: require("../../artifacts/contracts/core/Autolisting.sol/AutoListingsRegistry.json"),
+  AutoListFree: require("../../artifacts/contracts/core/AutolistingFree.sol/Dex223AutoListing.json"),
+  AutoListPaid: require("../../artifacts/contracts/core/AutolistingPaying.sol/Dex223AutoListing.json"),
   NFTDescriptor: require("../../artifacts/contracts/periphery/base/NFTDescriptor.sol/NFTDescriptor.json"),
   NonfungibleTokenPositionDescriptor: require("../../artifacts/contracts/periphery/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json"),
   WETH9,
@@ -199,6 +202,35 @@ async function main() {
       owner
     ),
     contractArgs: [factory.target, weth.target],
+  });
+
+  const alRegistry = await deployHelper.deployState({
+    contractName: "AutoListRegistry",
+    contractFactory: new ContractFactory(
+      artifacts.AutoListRegistry.abi,
+      artifacts.AutoListRegistry.bytecode,
+      owner
+    )
+  });
+
+  await deployHelper.deployState({
+    contractName: "AutoListFree",
+    contractFactory: new ContractFactory(
+        artifacts.AutoListFree.abi,
+        artifacts.AutoListFree.bytecode,
+        owner
+    ),
+    contractArgs: [factory.target, alRegistry.target, 'AL free', 'no URL'],
+  });
+  
+  await deployHelper.deployState({
+    contractName: "AutoListPaid",
+    contractFactory: new ContractFactory(
+        artifacts.AutoListPaid.abi,
+        artifacts.AutoListPaid.bytecode,
+        owner
+    ),
+    contractArgs: [factory.target, alRegistry.target, 'AL paid', 'no URL'],
   });
 
   const nftDescriptor = await deployHelper.deployState({

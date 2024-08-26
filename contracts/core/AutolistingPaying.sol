@@ -236,17 +236,25 @@ contract Dex223AutoListing {
         // check payment token
         uint price = paymentPrices[paymentToken];
         require(price > 0, "Unsupported payment token");
+        
+        uint toTransfer = 0;
 
         if(!isListed(_token0_erc20) || !isListed(_token0_erc223))
         {
-            safeTransferFrom(paymentToken, msg.sender, address(this), price);
+//            safeTransferFrom(paymentToken, msg.sender, address(this), price);
+            toTransfer += price;
             checkListing(_token0_erc20, _token0_erc223);
         }
 
         if(!isListed(_token1_erc20) || !isListed(_token1_erc223))
         {
-            safeTransferFrom(paymentToken, msg.sender, address(this), price);
+//            safeTransferFrom(paymentToken, msg.sender, address(this), price);
+            toTransfer += price;
             checkListing(_token1_erc20, _token1_erc223);
+        }
+        
+        if (toTransfer > 0) {
+            safeTransferFrom(paymentToken, msg.sender, address(this), toTransfer);
         }
 
         emit PairListed(_token0_erc20, _token0_erc223, _token1_erc20, _token1_erc223, pool, feeTier);
