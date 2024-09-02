@@ -216,8 +216,10 @@ async function main() {
   await deployHelper.deployState({
     contractName: "AutoListFree",
     contractFactory: new ContractFactory(
-        artifacts.AutoListFree.abi,
-        artifacts.AutoListFree.bytecode,
+        // artifacts.AutoListFree.abi,
+        // artifacts.AutoListFree.bytecode,
+        artifacts.AutoListPaid.abi,
+        artifacts.AutoListPaid.bytecode,
         owner
     ),
     contractArgs: [factory.target, alRegistry.target, 'AL free', 'no URL'],

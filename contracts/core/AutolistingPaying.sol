@@ -1,15 +1,6 @@
-/**
- *Submitted for verification at Etherscan.io on 2024-07-19
-*/
-
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.7.6;
 pragma abicoder v2;
-
-//import './interfaces/IUniswapV3Pool.sol';
-//import './interfaces/IDex223Factory.sol';
-
-
 
 /// @title The interface for the Uniswap V3 Factory
 /// @notice The Uniswap V3 Factory facilitates creation of Uniswap V3 pools and control over the protocol fees
@@ -219,10 +210,11 @@ contract Dex223AutoListing {
         return (listed_tokens[_token] != 0);
     }
 
-    function list(address pool, uint24 feeTier, address paymentToken) public // NOTE not supported payment in ETH
+    function list(address pool, uint24 feeTier, address paymentToken) public payable // NOTE not supported payment in ETH
     {
-        require(checkListingCriteria());
-        // require(msg.value > 0);
+        uint price = checkListingCriteria(paymentToken);
+//        require(price >= 0); // if price < 0 - listing criteria not met
+        
         IDexPool _pool = IDexPool(pool);
 
         (address _token0_erc20, address _token0_erc223) = _pool.token0();
@@ -232,29 +224,28 @@ contract Dex223AutoListing {
         require(_token0_erc20 != address(0) || _token0_erc223 != address(0), "Token not defined in the pool contract.");
         require(_token1_erc20 != address(0) || _token1_erc223 != address(0), "Token not defined in the pool contract.");
         require(factory.getPool(_token0_erc20, _token1_erc20, feeTier) == pool, "Token pool is not a part of Dex223 factory.");
-
-        // check payment token
-        uint price = paymentPrices[paymentToken];
-        require(price > 0, "Unsupported payment token");
         
         uint toTransfer = 0;
 
         if(!isListed(_token0_erc20) || !isListed(_token0_erc223))
         {
-//            safeTransferFrom(paymentToken, msg.sender, address(this), price);
             toTransfer += price;
             checkListing(_token0_erc20, _token0_erc223);
         }
 
         if(!isListed(_token1_erc20) || !isListed(_token1_erc223))
         {
-//            safeTransferFrom(paymentToken, msg.sender, address(this), price);
             toTransfer += price;
             checkListing(_token1_erc20, _token1_erc223);
         }
         
         if (toTransfer > 0) {
-            safeTransferFrom(paymentToken, msg.sender, address(this), toTransfer);
+            if (paymentToken == address(0)) {
+                // NOTE no return of excess payment
+                require(msg.value >= toTransfer, "Payment is not enough");
+            } else {
+                safeTransferFrom(paymentToken, msg.sender, address(this), toTransfer);
+            }
         }
 
         emit PairListed(_token0_erc20, _token0_erc223, _token1_erc20, _token1_erc223, pool, feeTier);
@@ -304,15 +295,25 @@ contract Dex223AutoListing {
         }
     }
 
-    function checkListingCriteria() internal pure returns (bool)
+    function checkListingCriteria(address paymentToken) internal view returns (uint)
     {
         // This function implements custom logic of listing an asset
         // in this exact contract.
         // It may require payments or some liquidity criteria.
 
         // Free-listing contract does not require anything so it will automatically pass.
+        if (paymentTokens.length == 0) return 0; // no prices set == free listing
 
-        return true;
+        // get price for passed token address
+        uint price = paymentPrices[paymentToken];
+        require(price > 0);
+        
+        // check payment in native coin
+        if (paymentToken == address(0)) {
+            require(msg.value > 0);             
+        }
+
+        return price;
     }
 
     function getToken(uint256 index) public view returns (address _erc20, address _erc223)
@@ -378,10 +379,12 @@ contract Dex223AutoListing {
     function extractTokens(address _token, uint256 _amount) public
     {
         require(msg.sender == owner);
-        safeTransfer(_token, msg.sender, _amount);
+        
         if(_token == address(0))
         {
-            payable(msg.sender).transfer(address(this).balance);
+            payable(msg.sender).transfer(_amount);
+        } else {
+            safeTransfer(_token, msg.sender, _amount);
         }
     }
 }
