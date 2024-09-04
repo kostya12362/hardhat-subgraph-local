@@ -9,7 +9,7 @@ import {
   TestUniswapV3SwapPay,
   TestUniswapV3Callee,
   TickMathTest,
-  SwapMathTest, TokenStandardConverter, ERC20Token
+  SwapMathTest, TokenStandardConverter
 } from '../typechain-types/'
 import checkObservationEquals from './shared/checkObservationEquals'
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";

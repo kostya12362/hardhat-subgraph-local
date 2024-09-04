@@ -254,7 +254,7 @@ describe('NonfungiblePositionManager', () => {
         amount0Min: 0,
         amount1Min: 0,
         recipient: other.address,
-        deadline: 10, //  Math.floor(new Date().getTime() / 1000) + 100 //
+        deadline: 1, // Math.floor(new Date().getTime() / 1000) + 100 //
       }
 
       try {

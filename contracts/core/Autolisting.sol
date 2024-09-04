@@ -1,14 +1,6 @@
-/**
- *Submitted for verification at Etherscan.io on 2024-07-19
-*/
-
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity =0.7.6;
-
-//import './interfaces/IUniswapV3Pool.sol';
-//import './interfaces/IDex223Factory.sol';
-
-
+pragma abicoder v2;
 
 /// @title The interface for the Uniswap V3 Factory
 /// @notice The Uniswap V3 Factory facilitates creation of Uniswap V3 pools and control over the protocol fees
@@ -147,6 +139,8 @@ contract Dex223AutoListing {
         owner    = msg.sender;
         name     = _name;
         url      = _URL;
+
+        registry.updateContractInfo(msg.sender, _URL, "");
     }
 
     struct Token
@@ -173,8 +167,23 @@ contract Dex223AutoListing {
 
     uint256 public last_update;
     uint256 public num_listed_tokens;
-
     mapping(uint256 => TradeablePair) public pairs; // index => pair
+
+    // NOTE add storing paymentTokens & prices (map)
+    address[] private paymentTokens;
+    mapping(address => uint) private paymentPrices;
+
+    struct TokenPrice
+    {
+        address token;
+        uint price;
+    }
+
+    function updateMe(string memory _newURL) public
+    {
+        url = _newURL;
+        registry.updateContractInfo(owner, _newURL, "");
+    }
 
     function getRegistry() public view returns (address)
     {
@@ -201,10 +210,11 @@ contract Dex223AutoListing {
         return (listed_tokens[_token] != 0);
     }
 
-    function list(address pool, uint24 feeTier) public payable
+    function list(address pool, uint24 feeTier, address paymentToken) public payable // NOTE not supported payment in ETH
     {
-        require(checkListingCriteria());
-        require(msg.value > 0);
+        uint price = checkListingCriteria(paymentToken);
+//        require(price >= 0); // if price < 0 - listing criteria not met
+        
         IDexPool _pool = IDexPool(pool);
 
         (address _token0_erc20, address _token0_erc223) = _pool.token0();
@@ -214,15 +224,28 @@ contract Dex223AutoListing {
         require(_token0_erc20 != address(0) || _token0_erc223 != address(0), "Token not defined in the pool contract.");
         require(_token1_erc20 != address(0) || _token1_erc223 != address(0), "Token not defined in the pool contract.");
         require(factory.getPool(_token0_erc20, _token1_erc20, feeTier) == pool, "Token pool is not a part of Dex223 factory.");
+        
+        uint toTransfer = 0;
 
         if(!isListed(_token0_erc20) || !isListed(_token0_erc223))
         {
+            toTransfer += price;
             checkListing(_token0_erc20, _token0_erc223);
         }
 
         if(!isListed(_token1_erc20) || !isListed(_token1_erc223))
         {
+            toTransfer += price;
             checkListing(_token1_erc20, _token1_erc223);
+        }
+        
+        if (toTransfer > 0) {
+            if (paymentToken == address(0)) {
+                // NOTE no return of excess payment
+                require(msg.value >= toTransfer, "Payment is not enough");
+            } else {
+                safeTransferFrom(paymentToken, msg.sender, address(this), toTransfer);
+            }
         }
 
         emit PairListed(_token0_erc20, _token0_erc223, _token1_erc20, _token1_erc223, pool, feeTier);
@@ -272,19 +295,96 @@ contract Dex223AutoListing {
         }
     }
 
-    function checkListingCriteria() internal view returns (bool)
+    function checkListingCriteria(address paymentToken) internal view returns (uint)
     {
         // This function implements custom logic of listing an asset
         // in this exact contract.
         // It may require payments or some liquidity criteria.
 
         // Free-listing contract does not require anything so it will automatically pass.
+        if (paymentTokens.length == 0) return 0; // no prices set == free listing
 
-        return true;
+        // get price for passed token address
+        uint price = paymentPrices[paymentToken];
+        require(price > 0);
+        
+        // check payment in native coin
+        if (paymentToken == address(0)) {
+            require(msg.value > 0);             
+        }
+
+        return price;
     }
 
     function getToken(uint256 index) public view returns (address _erc20, address _erc223)
     {
         return (tokens[index].erc20, tokens[index].erc223);
+    }
+
+    // function to set paymentToken price
+    //@dec set price to ZERO to exclude token from acceptable
+    function setPaymentPrice(address paymentToken, uint price)  external returns (bool)
+    {
+        require(msg.sender == owner);
+
+        // If the token is being set to a non-zero price for the first time, add it to paymentTokens
+        if (price > 0 && paymentPrices[paymentToken] == 0) {
+            paymentTokens.push(paymentToken);
+        }
+
+        // If the token price is being set to zero, remove it from the list
+        if (price == 0 && paymentPrices[paymentToken] > 0) {
+            _removeToken(paymentToken);
+        }
+
+        paymentPrices[paymentToken] = price;
+
+        registry.updateListingPrice(paymentToken, price);
+
+        return true;
+    }
+
+    // function to get paymentTokens
+    function getPrices() external view returns (TokenPrice[] memory)
+    {
+        TokenPrice[] memory prices = new TokenPrice[](paymentTokens.length);
+
+        for (uint i = 0; i < paymentTokens.length; i++) {
+            prices[i] = TokenPrice(paymentTokens[i], paymentPrices[paymentTokens[i]]);
+        }
+        return prices;
+    }
+
+    function _removeToken(address paymentToken) internal {
+        uint length = paymentTokens.length;
+        for (uint i = 0; i < length; i++) {
+            if (paymentTokens[i] == paymentToken) {
+                paymentTokens[i] = paymentTokens[length - 1];
+                paymentTokens.pop();
+                break;
+            }
+        }
+    }
+
+    function safeTransferFrom(address token, address from, address to, uint value) internal {
+        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0x23b872dd, from, to, value));
+        require(success && (data.length == 0 || abi.decode(data, (bool))), "Transfer failed");
+    }
+
+    function safeTransfer(address token, address to, uint value) internal {
+        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0xa9059cbb, to, value));
+        require(success && (data.length == 0 || abi.decode(data, (bool))), "Transfer failed");
+    }
+
+    function extractTokens(address _token, uint256 _amount) public
+    {
+        require(msg.sender == owner);
+        
+        if(_token == address(0))
+        {
+            payable(msg.sender).transfer(_amount);
+        } else {
+            safeTransfer(_token, msg.sender, _amount);
+        }
     }
 }

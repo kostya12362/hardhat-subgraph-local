@@ -9,6 +9,7 @@ export function computePoolAddress(factoryAddress: string, [tokenA, tokenB]: [st
     ['address', 'address', 'uint24'],
     [token0, token1, fee]
   )
+  
   const create2Inputs = [
     '0xff',
     factoryAddress,
