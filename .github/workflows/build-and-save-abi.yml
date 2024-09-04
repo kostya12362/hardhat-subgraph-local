@@ -1,0 +1,42 @@
+name: Build and Save ABI
+
+on:
+  push:
+    branches:
+      - main
+      - new_version_with_dex223
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install packages
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+
+      - name: Install packages
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: hardhat:compile
+
+      - name: Extract ABI
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: hardhat:extract:abis:dex223
+
+      - name: Upload ABI artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: contract-abis
+          path: ./.extractedAbis/

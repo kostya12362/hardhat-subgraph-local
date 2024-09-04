@@ -1,0 +1,33 @@
+{
+  "logoURI": "/token-list-placeholder.svg",
+  "name": "DEX223 Core Autolisting",
+  "version": {
+    "major": 0,
+    "minor": 0,
+    "patch": 1
+  },
+  "tokens": [
+    {
+      "chainId": 97,
+      "decimals": 6,
+      "symbol": "TOB2",
+      "name": "Total Test Bsc 2",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0x304dC7BF30692081B0ab96497f8914362316580e",
+      "address1": "0x6050d7389058D188256788b0437bc6950Cde391f",
+      "logoURI": "/tokens/placeholder.svg"
+    },
+    {
+      "chainId": 97,
+      "decimals": 18,
+      "symbol": "TOB1",
+      "name": "Total Test Bsc 1",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0x6Af15783242fAD978C90FFCDA0119223BFFeaB53",
+      "address1": "0xB3B9923f79dC81f9B7f25883a77EdD3523b06f52",
+      "logoURI": "/tokens/placeholder.svg"
+    }
+  ]
+}

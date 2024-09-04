@@ -1,0 +1,55 @@
+{
+  "version": {
+    "major": 1,
+    "minor": 0,
+    "patch": 6
+  },
+  "logoURI": "/token-list-placeholder.svg",
+  "name": "DEX223 Sepolia Default",
+  "tokens": [
+    {
+      "chainId": 11155111,
+      "decimals": 18,
+      "symbol": "TOT1",
+      "name": "Total Test 1",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0x51a3F4b5fFA9125Da78b55ed201eFD92401604fa",
+      "address1": "0xD3783257FD5E5b0CFA244eC14dc10B2263dC5f63",
+      "logoURI": "/tokens/placeholder.svg"
+    },
+    {
+      "chainId": 11155111,
+      "decimals": 6,
+      "symbol": "TOT2",
+      "name": "Total Test 2",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0x30C7A2261Ad72ad12393B075163Bf9a72a2dA4f8",
+      "address1": "0x1A57D43b2F1Aed52106614eE4D3359247bD1982a",
+      "logoURI": "/tokens/placeholder.svg"
+    },
+    {
+      "chainId": 11155111,
+      "decimals": 10,
+      "symbol": "TOT3",
+      "name": "Total Test 3",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0x18B32000CEaAe9BE1cec1cb6845EF7bba1c9DC02",
+      "address1": "0x77eBa0266AcCf29e80A753645FC964975ad25C75",
+      "logoURI": "/tokens/placeholder.svg"
+    },
+    {
+      "chainId": 11155111,
+      "decimals": 0,
+      "symbol": "TOT4Z",
+      "name": "Total Test 4Z",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0xa083e42B1525c67A90Cb1628acBC99895dC0447B",
+      "address1": "0x2992B2Efcef1f63297a4C34404AF9b8B39E3f2Ef",
+      "logoURI": "/tokens/placeholder.svg"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "logoURI": "/token-list-placeholder.svg",
+  "name": "DEX223 Free Autolisting",
+  "version": {
+    "major": 0,
+    "minor": 0,
+    "patch": 1
+  },
+  "tokens": [
+    {
+      "chainId": 97,
+      "decimals": 18,
+      "symbol": "WBNB",
+      "name": "Wrapped BNB",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0x094616F0BdFB0b526bD735Bf66Eca0Ad254ca81F",
+      "address1": "0xf0a9AC13a76D5A6f9057dd2d0dcc6198FA959453",
+      "logoURI": "/tokens/placeholder.svg"
+    },
+    {
+      "chainId": 97,
+      "decimals": 6,
+      "symbol": "USDC",
+      "name": "UsdCoin",
+      "isNative": false,
+      "isToken": true,
+      "address0": "0x431cC175baFB82C2415a94ef6103e124F289959e",
+      "address1": "0x1cEb373C18685225f83ee1A524403e59ec6C731F",
+      "logoURI": "/tokens/placeholder.svg"
+    }
+  ]
+}

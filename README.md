@@ -1,8 +1,9 @@
 # Subgrpah + hadrhat local dev
+# DEX223.io contracts testing + local deployment
+
+## Actual working branch: `new_version_with_dex223`
 
 ## 1 Setup CORE
-
-1.1 Open dir dex223-core in terminale
 
 ```bash
 yarn install
@@ -16,32 +17,73 @@ yarn run hardhat:node
 ```
 
 1.3
-Open new terminal and run next command
+Open new terminal and run one of next commands
 
+Compile contracts:
 ```bash
 yarn run hardhat:compile
 ```
 
+For clean local deployment it's better to remove local subfolders:
+- artifacts
+- cache
+- deployments
+
+Local contracts deployment:
 ```bash
-yarn run hardhat:deploy:local
+yarn run hardhat:deploy:dex223:local
 ```
 
-After deployment to the local node, you will see the counter address, you should copy it
-
+Contracts test swaps on local deployment:
 ```bash
-[ '======== State: deploy started ========' ]
-[ 'found defaultIdType 0x0212 for chainId 31337' ]
-[ 'deploying verifier...' ]
-[
-  '===== Autolisting =====',
-  '- Contract deployed to address 0x5FbDB2315678afecb367f032d93F642f64180aa3 from 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
-  '- Tranaction = 0x6c281224c8ffa87a0dd4aa5c072687a7e0f2cc65787a371ed45c227f8a928a56',
-  '- Block deploy (startBlock) = 1      '
-]
+yarn run hardhat:setup:dex223:local
 ```
 
-1.4
-Copy output file `testnet.json` and save this is file in `/dex223-subgraphs/subgraphs/auto-listing/config/`
+Test swap with test contracts on local deployment:
+```bash
+yarn run hardhat:swap:dex223:local
+```
+
+Test swap with test contracts on local deployment:
+```bash
+yarn run hardhat:swap:dex223:local
+```
+If some test failing - this could be caused by wrong `pool_hash` constant value. 
+Try cleaning cache files, start local node and run command `hardhat:deploy:dex223:local`
+
+Generate json files to pass contract verification (for ex. TestBNB explorer):
+```bash
+yarn run hardhat:verify
+```
+
+1.4. 
+Generate pools in batch and mint liquidity (`sepolia`):
+- under deployments folder copy folder localhost and rename it to sepolia
+- edit files in this sepolia folder and set their real contracts address (as they deployed on real net)
+- runs script 
+
+```bash
+yarn run hardhat:pools:dex223:sepolia
+```
+
+Command may be called with additional param - setting pools FEE (for example, `3000`)
+```bash
+yarn run hardhat:pools:dex223:sepolia:3000
+```
+
+1.5.
+Call local unit tests for contracts without deployment 
+```bash
+yarn run hardhat:test
+```
+
+1.6.
+Collect gas consumption for major list of operations 
+(change `local` to `sepolia` or other supported network to run on that network)
+To test on local - local hardhat node should be running and `deploy` script executed
+```bash
+yarn run hardhat:gastest:dex223:local
+```
 
 ## 2 Setup docker
 
